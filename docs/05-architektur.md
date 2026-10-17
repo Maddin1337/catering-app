@@ -844,7 +844,9 @@ sequenceDiagram
     Note over DB,F: pg_cron stündlich: exports_cleanup → export-company cleanup
     DB->>F: action cleanup
     F->>S: Dateien mit expires_at ≤ now() löschen
-    F->>DB: status expired, file_path null; hängende Läufe > 30 min → failed, export_failed
+    F->>DB: status expired, file_path null
+    F->>DB: Läufe über 30 min in queued oder running → status failed
+    F->>M: export_failed an die anfordernde Person
 ```
 
 | Thema | Festlegung |
@@ -1480,6 +1482,8 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 | ADR-20 | Kein Drittanbieter-Tracking im MVP | 01 §7, Datensparsamkeit | Kennzahlen aus der eigenen DB; Sentry in der EU ohne PII | weniger Produktdetails; spätere Analytics mit Opt-in |
 | ADR-21 | Zeitlogik serverseitig in Europe/Berlin | Fristen, Testende, Erinnerungen; `pg_cron` plant in UTC | Fristen in SQL mit Zeitzone; Jobs stündlich mit Prüfung der lokalen Stunde; Schreibbarkeit allein aus `subscriptions.writable_until` (03 §6.1), kein Statuswechsel durch Jobs | korrekt über die Zeitumstellung; Jobs idempotent über `notifications.dedupe_key` |
 | ADR-22 | Geheimnisse und Service-Rolle nur serverseitig | RLS-Umgehung durch Service-Rolle | Secret Key nur in Functions, Vault für `pg_net`, GitHub Environments mit Freigabe | klare Grenze; CI-Deploys brauchen eigene, eingeschränkte Tokens |
+| ADR-23 | Datenexport im Hintergrund mit Download-Link per E-Mail | entschieden R2-14 (ersetzt den Browser-Export aus 06 E-17); 01 US-59, DSGVO-Auskunft (US-61.1) | `request_data_export()` → `export-company` (intern, Hintergrundaufgabe) → privater Bucket `exports` (`{company_id}/{data_export_id}.zip`) → E-Mail `export_ready` mit signiertem Link (7 Tage) → Job `exports_cleanup` löscht nach 7 Tagen; Status, Pfad und Ablauf in `data_exports` (5.11) | Export auch bei geschlossenem Browser und im Lesemodus; ein Bucket und ein Job mehr; der Link funktioniert ohne Anmeldung und geht deshalb nur an die anfordernde Person; Laufzeitgrenzen der Edge Functions im Pilot messen |
+| ADR-24 | Auftragsstatus nur vorwärts, Bestätigungsdialog statt Korrektur | entschieden R2-2, R2-3, R2-4 | eine Übergangstabelle (02 §1.1) in `_shared/domain/event-status.ts` und `private.is_allowed_event_transition()`; keine Rückwärts-Übergänge, keine Funktion „Status korrigieren“; Direktbestätigung ohne Angebot erlaubt; `completed` nur manuell; Bestätigungsdialog SC-31 vor jedem Statuswechsel (4.10) | einfache, prüfbare Statusmaschine ohne halb wiederhergestellte Schichten und Benachrichtigungen; Fehlbedienungen lassen sich nur per „Auftrag kopieren“ auffangen |
 
 ---
 
@@ -1487,42 +1491,69 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 
 | # | Thema | Stand | Umgang in der Architektur |
 |---|---|---|---|
-| 1 | Datenexport | entschieden (06 E-17, **[Vorschlag]**): im Browser; 01 US-59.2 und 03 angeglichen | Abruf über RLS, PDFs über signierte URLs, ZIP im Browser; keine zusätzliche Function, kein Export-Bucket. Ziel „< 10 min bei 1.000 Aufträgen“ im Pilot messen; bei Bedarf serverseitig (Glossar-Ergänzung) |
+| 1 | Datenexport | **entschieden (R2-14)**: Hintergrund-Export mit Download-Link per E-Mail, nicht im Browser; ersetzt 06 E-17; 01 US-59, 02 §10.2 und 03 §3.7 angeglichen | Function `export-company`, privater Bucket `exports` (`{company_id}/…`), signierter Link 7 Tage, E-Mail `export_ready`, Job `exports_cleanup`, `data_exports` mit Status, Pfad und Ablauf (5.11, ADR-23). Ziel „< 10 min bei 1.000 Aufträgen“ im Pilot messen |
 | 2 | PDF-Fehler beim Versand | entschieden: Ablauf 5.4 in 02 §2.4 und 03 §4.7 übernommen | ohne PDF kein Versand und keine Revision (01 US-27.7); E-Mail-Fehler lassen die Revision bestehen |
 | 3 | Portal-Token wiederverwenden | entschieden: neuer Token je Versand bzw. Link-Kopie, ältere bleiben gültig; 01 US-27.2 angeglichen | 8.5 |
 | 4 | Gültigkeit Portal-Link | 01 §4.2.6: 60 Tage nach Eventdatum · 02 §4.3: 90 Tage nach Eventende | als Konfigurationswert `portal_token_ttl_days` (Standard 60, 03); Freigabe offen |
-| 5 | Kundenänderungen im Portal | entschieden (06 E-10, **[Vorschlag]**): Regel aus 01, 02 §4 angeglichen | `portal-api` setzt nur diese Regel um (5.3), keine Umschaltung |
-| 6 | Widerrufsfrist Firmenlöschung | entschieden: 30 Tage (01 US-60.3), 02 §10.3 angeglichen | Job `billing_lifecycle` (03 §9.6) |
-| 7 | „Durchgeführt“ | entschieden: Erinnerung 09:00, kein automatischer Wechsel (01, 02 §1.1) | Job `events_completion` |
+| 5 | Kundenänderungen im Portal | **entschieden (R2-1)**, ersetzt 06 E-10: Menüwahl vor der Annahme direkt, Gästezahl und Änderungen nach der Bestätigung als Änderungswunsch, ab ± 20 % Hinweis „bitte anrufen“, Sonderessen sofort; Änderungsschluss 72 h/24 h je Auftrag änderbar (**R2-6**) | `portal-api` setzt nur diese Regel um (5.3), keine Umschaltung |
+| 6 | Widerrufsfrist Firmenlöschung | entschieden: 30 Tage (01 US-60.3), 02 §10.3 angeglichen | Job `billing_lifecycle` (03 §9.6) → `purge-company` (R2-13) |
+| 7 | „Durchgeführt“ | **entschieden (R2-3)**: nie automatisch (kein nächtlicher Job), Erinnerung am Folgetag 09:00, Admin setzt `completed` selbst (01, 02 §1.1) | Job `events_completion` nur mit Erinnerung `completion_due` (4.12) |
 | 8 | Angebots-Chat | ergänzt: F-32 und US-63–66 in 01, 02 §11, `intake_questions` und RPC `create_event_from_intake` in 03 | Ablaufmaschine im Client (4.11) |
-| 9 | Technische Hilfstabellen | nicht im Glossar | festgelegt in 03 §3.7: `push_tickets`, `stripe_events`, `usage_events`; `rate_limits` (8.6) und Zustellstatus für E-Mails (5.5) folgen demselben Muster |
-| 10 | Fehlende Functions | Kontolöschung mit Apple-Widerruf, endgültige Löschung mit Storage-Dateien | **[Vorschlag]** `delete-account` (Pflicht wegen Apple, 5.10, 06 M1) und `purge-company` als Glossar-Ergänzung; Freigabe offen |
+| 9 | Technische Hilfstabellen | nicht im Glossar | festgelegt in 03 §3.7: `push_tickets`, `stripe_events`, `usage_events`, `data_exports` (entschieden R2-14: mit `status`, `file_path`, `ready_at`, `expires_at`, `error`); `rate_limits` (8.6) und Zustellstatus für E-Mails (5.5) folgen demselben Muster |
+| 10 | Fehlende Functions | Kontolöschung mit Apple-Widerruf, endgültige Löschung mit Storage-Dateien, Hintergrund-Export | **entschieden**: `delete-account` (freigegeben R2-12; Pflicht wegen Apple, 5.10, 06 M1), `purge-company` (freigegeben R2-13, 5.10) und `export-company` (R2-14, 5.11) als Glossar-Ergänzungen |
+| 11 | Statusübergänge | **entschieden (R2-2, R2-4)**, ersetzt 06 E-8: Direktbestätigung ohne Angebot erlaubt; keine Rückwärts-Übergänge, keine Reaktivierung, keine Funktion „Status korrigieren“; Bestätigungsdialog vor jedem Statuswechsel (02 §1.1, §1.1.1) | `set_event_status` mit `private.is_allowed_event_transition()`, TS-Tabelle `event-status.ts`, Dialog SC-31, Test aller 64 Paare (4.10, ADR-24) |
+| 12 | Küchen-Gerät | **entschieden (R2-8)**, ersetzt 06 E-18: kein Küchen-Tablet, die Küche nutzt Smartphones mit der nativen App; Tablet-Optimierung nach dem MVP (01 P-23) | `ios.supportsTablet: false`, Phone-Layout auf allen Geräten, keine Tablet-Testgeräte (9.1) |
+| 13 | Schichtbörse bei Verschiebung | **entschieden (R2-10)**: kein Sonderabsagerecht, immer die normale Absagefrist (48 h, pro Firma); Eingeplante werden über jede Zeitänderung benachrichtigt | Absagefrist aus der aktuellen Schichtzeit, `shift_slot_times_changed()` nur Benachrichtigung (4.10) |
 
 ---
 
-## 13. Vorschläge zur Freigabe
+## 13. Vorschläge zur Freigabe und Entscheidungen Runde 2
 
-| # | Vorschlag | Abschnitt |
+### 13.1 Vorschläge zur Freigabe
+
+Nr. 20, 22 und 23 sind durch Runde 2 erledigt und stehen nur noch zur Nachverfolgung in der Liste; alle übrigen Punkte warten weiter auf Freigabe.
+
+| # | Vorschlag | Stand | Abschnitt |
+|---|---|---|---|
+| 1 | UI-Basis NativeWind + react-native-reusables | offen | 2.2 |
+| 2 | Verschlüsselte MMKV-Instanz für Sitzung und Cache (nativ); im Web keine Cache-Persistenz | offen | 2.3 |
+| 3 | Preisfreie Lesepfade über SECURITY-DEFINER-Funktionen bzw. Views (alternativ eigene Preistabellen) | offen | 4.2 |
+| 4 | Kalkulation als geteiltes TypeScript-Modul, Server rechnet den Snapshot | offen | 4.10 |
+| 5 | Realtime nur als Invalidierungssignal für Schichtbörse und Besetzung | offen | 4.9 |
+| 6 | Alle Functions mit `verify_jwt = false` und eigener Auth-Prüfung | offen | 5.1 |
+| 7 | pdfmake mit Spike in Etappe 1, Rückfall pdf-lib | offen | 5.4 |
+| 8 | Versandablauf in `render-quote-pdf` (Prepare/Commit nur `service_role`, PDF je Versuch eigener Pfad, Hash in SQL) | offen | 5.4 |
+| 9 | Resend mit EU-Region; Absender `"{Firmenname}" <kunden@mail.{domain}>` | offen | 5.5 |
+| 10 | Push-Bündelung (15 min) und Ruhezeit über `pg_cron`; Steuerfelder an `notifications`, Tickets in `push_tickets`, Beanspruchen über `claim_notifications` | offen | 5.6 |
+| 11 | iCal-URL über eigene Domain, Link nur nach Erzeugen sichtbar | offen | 5.8 |
+| 12 | Bestätigungs- und Reset-Links mit `token_hash` | offen | 6.3 |
+| 13 | Planwechsel über die eigene Abo-Seite, Customer Portal ohne Planwechsel | offen | 7.3 |
+| 14 | Rückfallebene iOS: Firmenregistrierung nur im Web, falls die Prüfung es verlangt | offen | 7.7 |
+| 15 | Portal-Token je Ausgabe neu, mehrere gültige Links je Auftrag | offen | 8.5 |
+| 16 | Rate-Limits und Versandlimits aus 8.6, umgesetzt in Postgres | offen | 8.6 |
+| 17 | Netlify für Web-Admin und Portal auf getrennten Origins | offen | 9.4 |
+| 18 | Staging mit Mail-Allowlist und eigener App-Variante | offen | 9.1 |
+| 19 | Kein Analytics-SDK im MVP; Kennzahlen aus der DB | offen | 10.4 |
+| 20 | ~~Clientseitiger Datenexport im MVP~~ → Hintergrund-Export mit Download-Link per E-Mail (`export-company`, Bucket `exports`, Link 7 Tage, `exports_cleanup`) | **entschieden (R2-14)**; Vorschlag verworfen | 5.11, 12 |
+| 21 | Rechenmodul nur mit Ganzzahlen | offen | 4.10 |
+| 22 | Function `delete-account` für den Apple-Token-Widerruf (Glossar-Ergänzung) | **entschieden (freigegeben R2-12)** | 5.10, 6.7 |
+| 23 | Function `purge-company` für die endgültige Firmenlöschung inklusive Storage (Glossar-Ergänzung) | **entschieden (freigegeben R2-13)** | 5.10 |
+
+### 13.2 Entscheidungen Runde 2 – Umsetzung in diesem Dokument
+
+| # | Entscheidung (00 §9) | Umsetzung in 05 |
 |---|---|---|
-| 1 | UI-Basis NativeWind + react-native-reusables | 2.2 |
-| 2 | Verschlüsselte MMKV-Instanz für Sitzung und Cache (nativ); im Web keine Cache-Persistenz | 2.3 |
-| 3 | Preisfreie Lesepfade über SECURITY-DEFINER-Funktionen bzw. Views (alternativ eigene Preistabellen) | 4.2 |
-| 4 | Kalkulation als geteiltes TypeScript-Modul, Server rechnet den Snapshot | 4.10 |
-| 5 | Realtime nur als Invalidierungssignal für Schichtbörse und Besetzung | 4.9 |
-| 6 | Alle Functions mit `verify_jwt = false` und eigener Auth-Prüfung | 5.1 |
-| 7 | pdfmake mit Spike in Etappe 1, Rückfall pdf-lib | 5.4 |
-| 8 | Versandablauf in `render-quote-pdf` (Prepare/Commit nur `service_role`, PDF je Versuch eigener Pfad, Hash in SQL) | 5.4 |
-| 9 | Resend mit EU-Region; Absender `"{Firmenname}" <kunden@mail.{domain}>` | 5.5 |
-| 10 | Push-Bündelung (15 min) und Ruhezeit über `pg_cron`; Steuerfelder an `notifications`, Tickets in `push_tickets`, Beanspruchen über `claim_notifications` | 5.6 |
-| 11 | iCal-URL über eigene Domain, Link nur nach Erzeugen sichtbar | 5.8 |
-| 12 | Bestätigungs- und Reset-Links mit `token_hash` | 6.3 |
-| 13 | Planwechsel über die eigene Abo-Seite, Customer Portal ohne Planwechsel | 7.3 |
-| 14 | Rückfallebene iOS: Firmenregistrierung nur im Web, falls die Prüfung es verlangt | 7.7 |
-| 15 | Portal-Token je Ausgabe neu, mehrere gültige Links je Auftrag | 8.5 |
-| 16 | Rate-Limits und Versandlimits aus 8.6, umgesetzt in Postgres | 8.6 |
-| 17 | Netlify für Web-Admin und Portal auf getrennten Origins | 9.4 |
-| 18 | Staging mit Mail-Allowlist und eigener App-Variante | 9.1 |
-| 19 | Kein Analytics-SDK im MVP; Kennzahlen aus der DB | 10.4 |
-| 20 | Clientseitiger Datenexport im MVP | 12 |
-| 21 | Rechenmodul nur mit Ganzzahlen | 4.10 |
-| 22 | Function `delete-account` für den Apple-Token-Widerruf (Glossar-Ergänzung) | 5.10, 6.7 |
+| R2-1 | Portal: Menüwahl vor der Annahme direkt; Gästezahl und Änderungen nach der Bestätigung als Änderungswunsch; ab ± 20 % „bitte anrufen“; Sonderessen sofort | `portal-api`-Aktionen `select_choice`, `request_change`, `upsert_dietary` (5.3); 12 Nr. 5 |
+| R2-2 | Direktbestätigung ohne Angebot erlaubt | Übergang `inquiry`/`optioned` → `confirmed` mit `confirmation_channel` (4.10, ADR-24) |
+| R2-3 | „Durchgeführt“ nie automatisch; Erinnerung am Folgetag 09:00 | Job `events_completion` nur Erinnerung `completion_due`; kein Job ändert `events.status` (4.10, 4.12) |
+| R2-4 | Keine Rückwärts-Übergänge; Bestätigungsdialog vor jedem Statuswechsel | `private.is_allowed_event_transition()`, `event-status.ts`, Dialog SC-31, Tests aller 64 Paare (4.7, 4.10, 10.1, 10.2 Nr. 11, ADR-24) |
+| R2-5 | Preisvorschlag auf volle 10 Cent aufgerundet | `ceilToStep` mit `companies.price_rounding_cents` in `calc`, Pflicht-Testfall 26,32 € → 26,40 € (4.10, 10.1) |
+| R2-6 | Änderungsschluss 72 h bzw. 24 h, je Auftrag änderbar | `events.changes_until` aus `portal_change_lead_hours` bzw. `portal_change_lead_hours_business_lunch` (4.10, 5.3) |
+| R2-7 | Menge p. P. = Rohware; 5 % Puffer nur in der Einkaufsliste | `kitchen`-Modul mit `companies.shopping_buffer_bp` (4.4, 10.1) |
+| R2-8 | Kein Küchen-Tablet; Smartphones mit nativer App | Smartphone-Layout, `ios.supportsTablet: false`, keine Tablet-Testgeräte; Tablet-Optimierung nach dem MVP (0.2, 1.2, 9.1, 10.1) |
+| R2-9 | Genau eine Pflicht-Qualifikation je Slot | RLS-Matrix `shift_slots` (8.2) |
+| R2-10 | Kein Sonderabsagerecht bei Verschiebung | Absagefrist aus der aktuellen Schichtzeit, `shift_slot_times_changed()` benachrichtigt (4.10, 10.1) |
+| R2-11 | Keine Kinderportionen; Kinder als eigene Position | kein eigener Zweig in `calc` (4.10) |
+| R2-12 | `delete-account` freigegeben | 5.2, 5.10, 6.7 |
+| R2-13 | `purge-company` freigegeben | 4.12, 5.2, 5.10 |
+| R2-14 | Datenexport per Download-Link per E-Mail | `export-company`, Bucket `exports`, `data_exports`, E-Mails `export_ready`/`export_failed`, Job `exports_cleanup` (1.1, 4.1, 4.12, 5.2, 5.11, 8.5, ADR-23) |

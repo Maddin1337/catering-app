@@ -7,7 +7,7 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 - Inhalte ohne Markierung setzen 00–04 um. **[Vorschlag]** markiert eine begründete Empfehlung zu einem offenen Punkt; bis zur Freigabe durch den Gründer gilt sie als Arbeitsannahme.
 - **entschieden (R2-x)** markiert einen Punkt aus den Entscheidungen der Runde 2 (00 §9, R2-1 bis R2-14). Sie haben Vorrang vor allen früheren Vorschlägen und sind in diesem Dokument eingearbeitet: Direktbestätigung erlaubt (R2-2), „Durchgeführt“ nie automatisch (R2-3), keine Rückwärts-Übergänge im Auftragsstatus, stattdessen Bestätigungsdialog vor jedem Statuswechsel (R2-4), kein Küchen-Tablet (R2-8), kein Sonderabsagerecht bei Verschiebung (R2-10), `delete-account` und `purge-company` freigegeben (R2-12, R2-13), Datenexport per Download-Link per E-Mail (R2-14).
 - **AT** = Arbeitstag (Mo–Fr). Daten ohne Jahr: Oktober–Dezember = 2026, Januar–Februar = 2027.
-- Verweise: „01 §4.1“ = Abschnitt 4.1 in `01-produkt.md`. `SC-xx` = Screen aus 04, `F-xx`/`US-xx`/`K-xx` aus 01, `D-x` aus 03 §10.2, `E-xx` = offene Entscheidung in Abschnitt 7 dieses Dokuments, `R-xx` = Risiko in Abschnitt 6.
+- Verweise: „01 §4.1“ = Abschnitt 4.1 in `01-produkt.md`. `SC-xx` = Screen aus 04, `F-xx`/`US-xx`/`K-xx` aus 01, `D-x` aus 03 §10.2, `E-xx` = Entscheidung in Abschnitt 7 dieses Dokuments (offen oder in Runde 2 entschieden), `R-xx` = Risiko in Abschnitt 6, `R2-x` = Entscheidung der Runde 2 aus 00 §9.
 - Rollen, Status, Tabellen, Edge Functions und Routen heißen exakt wie im Glossar (01 §0).
 - Es gibt noch keinen Code. Außer den Dokumenten 00–04 und diesem Dokument entstehen alle genannten Dateien und Verzeichnisse (auch `docs/research/`) erst in den Meilensteinen.
 
@@ -129,7 +129,7 @@ Ablauf je Bereich (Plan und Budget aus 04 §5):
 | M7 | Do 10.12. – Fr 18.12. | 7 | Schichtbörse, Einsätze offline, Push | (C anwenden) | Stufe 3 ab 19.12. |
 | – | Mo 21.12. – Fr 01.01. | – | Weihnachtspuffer | – | Pilot läuft |
 | M8 | Mo 04.01. – Fr 08.01. | 5 | Küchenlisten, Einkaufsliste, iCal | (B anwenden) | Stufe 4 ab 11.01. |
-| M9 | Mo 11.01. – Fr 15.01. | 5 | Stripe-Abo, Lesemodus, Datenexport, Firma löschen | (A anwenden) | Messfenster K-11 ab 11.01. |
+| M9 | Mo 11.01. – Fr 15.01. | 5 | Stripe-Abo, Lesemodus, Datenexport per Download-Link per E-Mail, Firma löschen | (A anwenden) | Messfenster K-11 ab 11.01. |
 | M10 | Mo 18.01. – Fr 22.01. | 5 | Härtung, Store-Einreichung | – | Messfenster läuft |
 | Abnahme | Fr 05.02.2027 | – | MVP fertig (3.6) | – | – |
 
@@ -351,7 +351,7 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
   - Neue Tabelle `portal_tokens`; Fremdschlüssel `quotes.acceptance_portal_token_id`.
   - `prepare_quote_send()` und `commit_quote_send()` (nur `service_role`, 03 §4.7): Prüfregeln, Snapshot aus dem TS-Modul, Konsistenzprüfung und Hash in SQL, Revision + 1, `pdf_path`, `send_log`, Statuswechsel nur `inquiry` → `quoted` (aus `declined` nie: Endzustand, **entschieden, R2-4**; `prepare_quote_send()` lehnt Endzustände ab), bei „Zur Info“ verbindlicher Stand, neuer Portal-Token je Versand (Klartext nur einmal).
   - `discard_quote_changes()`, `record_acceptance()` (setzt `binding_snapshot`), `record_decline()` (`quoted` → `declined`, Endzustand, R2-4), `issue_portal_token()`, `revoke_portal_tokens()`.
-  - pgTAP: `commit_quote_send()` und `prepare_quote_send()` lehnen Aufträge in `declined`, `cancelled` und `invoiced` ab; der Versand ändert den Status nie rückwärts (03 §9.5).
+  - pgTAP: `commit_quote_send()` und `prepare_quote_send()` lehnen Aufträge in `declined`, `cancelled`, `completed` und `invoiced` ab; der Versand ändert den Status nie rückwärts (03 §9.5).
 - **Edge Functions:**
   - `render-quote-pdf` im Echtbetrieb als Versand-Orchestrierung (05 §5.4): Bucket `quotes`, Pfad `{company_id}/{quote_id}/r{n}-{send_attempt_id}.pdf` ohne Überschreiben, Aufräumen nicht referenzierter Versuchsdateien, Fußzeile nach `branding_footer`.
   - `send-email` erweitert: Angebot bzw. neue Revision mit Portal-Link und PDF; Absendername = Firma, Reply-To = Firmen-E-Mail (00 §5); Zustellstatus in `quotes.email_status` inklusive Bounce-Meldung des Dienstes.
@@ -480,9 +480,9 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 - **Datenbank:** Rollen-Views ohne Preise (03 §4.6, §7.7): `kitchen_events` (Gästezahl aus dem verbindlichen Stand, Entwurfszahl und Kennzeichen „Änderung offen“) und `kitchen_production_lines` (verbindlicher Stand → Snapshot + Menüwahl → Live-Stand); Sonderessen mit Konfliktprüfung und Ersatzgericht. RPC `log_usage_event()` und Tabelle `usage_events` (03 §3.7) für K-10.
 - **Listen im TS-Modul** (`_shared/domain/kitchen`, 02 §8, 05 §4.4): „Menge p. P.“ ist Rohware vor dem Garen (**entschieden, R2-7**). Produktionsliste über mehrere Aufträge und Tage, Optionen zuschaltbar, ohne Puffer; Einkaufsliste: Zutaten (Rohware) × Portionen + Puffer 5 % (nur hier, `companies.shopping_buffer_bp` = `500`, R2-7), in Basiseinheiten, Anzeige mit einer Nachkommastelle, gruppiert nach Warengruppe. Unit-Tests mit dem Rechenbeispiel 02 §8.5.
-- **Screens:** SC-13 Heute (Heute/Morgen), SC-25 Tab Küche vollständig, SC-44 Produktion, SC-45 Sonderessen im Zeitraum, SC-46 Einkauf (lokales Abhaken, Teilen als Text, CSV im Web); Druckansicht A4 im Web (Should); Tablet-Layout mit 2 Spalten.
+- **Screens:** SC-13 Heute (Heute/Morgen), SC-25 Tab Küche vollständig, SC-44 Produktion, SC-45 Sonderessen im Zeitraum, SC-46 Einkauf (lokales Abhaken, Teilen als Text, CSV im Web); Druckansicht A4 im Web (Should). Layouts für das Smartphone (einspaltig im Hochformat, große Ziele, 04 §1.4) und für das Web; kein Tablet-Layout im MVP (**entschieden, R2-8**; Tablet-Optimierung im Post-MVP-Backlog, P-23).
 - **Push an `kitchen`:** neuer bestätigter Auftrag, Storno (immer), verbindliche Gästezahländerung, geänderte Sonderessen (gebündelt; kurzfristige Änderungen nicht abschaltbar).
-- **Offline (nur native App, 01 §3.1):** Aufträge der nächsten 7 Tage werden für `kitchen` vorgeladen. Gesundheitsdaten liegen nur im geschützten App-Speicher (US-54.7). Der Web-Admin hat keinen Offline-Modus; das Küchen-Tablet läuft deshalb als native App (E-18).
+- **Offline (nur native App, 01 §3.1):** Aufträge der nächsten 7 Tage werden für `kitchen` vorgeladen. Gesundheitsdaten liegen nur im geschützten App-Speicher (US-54.7). Der Web-Admin hat keinen Offline-Modus; die Küche nutzt deshalb Smartphones mit der nativen App (**entschieden, R2-8**, kein Küchen-Tablet).
 - **Edge Function `ical-feed`** mit SC-70 Kalender-Abo und RPC `reset_ical_token()` (Should).
 - **Job:** `dietary_purge` (Gastnamen 30 Tage nach Eventende entfernen).
 
@@ -490,11 +490,11 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 **Definition of Done – das probiert der Gründer aus**
 
-1. Der Koch plant die Produktion der Woche auf dem Tablet aus der App. Ab Mo 11.01. beginnt Pilot-Stufe 4.
+1. Der Koch plant die Produktion der Woche auf seinem Smartphone in der nativen App (R2-8). Ab Mo 11.01. beginnt Pilot-Stufe 4.
 2. Die Einkaufsliste für einen Tag mit 2 Aufträgen stimmt mit der Handrechnung des Kochs überein (Vorgehen wie im Rechenbeispiel 02 §8.5).
 3. Ein Gast „vegan“ trifft im Auftrag auf ein Gericht mit Milch: Der Konflikt steht rot oben; ein eingetragenes Ersatzgericht erscheint in der Liste.
 4. Vier-Augen-Abgleich: Bei den ersten 3 Events weicht die Allergiker- und Produktionsliste der App nicht von der bisherigen Papierliste ab.
-5. Küchen-Tablet (native App, iPad oder Android-Tablet) im Flugmodus: Produktion, Einkauf und Sonderessen der nächsten 7 Tage sind lesbar.
+5. Smartphone des Kochs (native App) im Flugmodus: Produktion, Einkauf und Sonderessen der nächsten 7 Tage sind lesbar.
 6. Eine Aushilfe und der Gründer abonnieren ihren iCal-Link in Apple bzw. Google Kalender. Die Einsätze erscheinen ohne Kundendaten.
 
 **Kürzbar bei Verzug:** iCal-Abo (F-28, Should), Druckansicht (Should), geschätzte Kosten im Einkauf (Should).
@@ -503,25 +503,32 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.13 M9 · Abo, Lesemodus, Datenschutz-Funktionen
 
-**Zeitraum:** Mo 11.01. – Fr 15.01.2027 · 5 AT · **Abhängigkeiten:** M1; Abo-Stufen und Preise entschieden (E-6, spätestens 08.01.); Stripe-Konto des Betreibers verifiziert; AGB-Entwurf; E-17 (Datenexport, als Vorschlag festgelegt: im Browser)
+**Zeitraum:** Mo 11.01. – Fr 15.01.2027 · 5 AT · **Abhängigkeiten:** M1; Abo-Stufen und Preise entschieden (E-6, spätestens 08.01.); Stripe-Konto des Betreibers verifiziert; AGB-Entwurf; E-17 (Datenexport, **entschieden (R2-14)**: Hintergrund-Export mit Download-Link per E-Mail, nicht im Browser)
 
 **Ziel:** Neue Firmen können nach der Testphase zahlen, ohne Abo greift der Lesemodus, und die DSGVO-Pflichten lassen sich per Knopfdruck erfüllen.
 
 **Lieferumfang**
 
 - **Stripe (zuerst im Testmodus):** Produkte und Preise je Stufe (monatlich, jährlich), Steuerberechnung, USt-IdNr.
+- **Datenbank und Storage für den Datenexport (entschieden, R2-14; 03 §3.7, §8):**
+  - Tabelle `data_exports` als Exportauftrag und Protokoll zugleich: `requested_by_member_id`, `scope` (`company`, `customer`, `member`), `customer_id`, `status` (`queued` → `running` → `ready` → `expired`, bei Fehler `failed`), `file_path` (`{company_id}/{data_export_id}.zip`, gesetzt genau bei `ready`, nach Ablauf leer), `ready_at`, `expires_at` (= `ready_at` + 7 Tage), `error`. Status, Pfad und Ablauf schreibt nur `service_role` (`export-company`, `exports_cleanup`).
+  - RPC `request_data_export(scope, customer_id)`: `company`/`customer` nur `admin`, `member` jedes Mitglied für sich selbst, auch im Lesemodus; legt `queued` an, liefert bei laufendem Export desselben Umfangs den vorhandenen zurück und stößt `export-company` per `pg_net` an.
+  - Privater Bucket `exports` (`application/zip`): keine Lese- oder List-Policy für `authenticated`, Download nur über den signierten Link, Schreiben und Löschen nur `service_role`.
+  - pgTAP- und Storage-Tests (02 §10.2 Nr. 9): Der Export liegt unter `{company_id}/…` und ist ohne signierten Link nicht abrufbar; ein Admin von Firma B liest weder die Zeile in `data_exports` noch die Datei von Firma A; `authenticated` kann `status`, `file_path` und `expires_at` nicht schreiben; nach `expires_at` ist die Datei gelöscht und `status = 'expired'`; ein abgebrochener Lauf endet als `failed` mit E-Mail D2.
 - **Edge Functions:**
   - `create-checkout-session`: Checkout und Stripe-Kundenportal, mit Limitprüfung.
-  - `purge-company` (intern, vom Job `billing_lifecycle` aufgerufen; Glossar-Ergänzung, **[Vorschlag]**, 05 §5.10): löscht bei der endgültigen Firmenlöschung die Storage-Dateien über die Storage-API.
+  - `purge-company` (intern, vom Job `billing_lifecycle` per `pg_net` mit `x-internal-secret` aufgerufen; Glossar-Ergänzung, **freigegeben (R2-13)**, 05 §5.10): löscht 30 Tage nach dem Löschantrag alle Daten der Firma (`delete from companies`, CASCADE) und über die Storage-API alle Dateien unter `{company_id}/` in den Buckets `logos`, `quotes` und `exports`.
+  - `export-company` (intern, von `request_data_export()` per `pg_net` bzw. vom Job `exports_cleanup` mit `action: 'cleanup'` aufgerufen, jeweils mit `x-internal-secret`; Glossar-Ergänzung, **entschieden (R2-14)**, 02 §10.2): erzeugt den Export im Hintergrund (auch wenn der Admin den Browser schließt), setzt `running`, liest die Daten mit `service_role` streng gefiltert auf `company_id` (bei `customer` zusätzlich `customer_id`, bei `member` `requested_by_member_id`), kopiert die Angebots-PDFs aus `quotes` und schreibt das ZIP (CSV-Dateien je Bereich und PDFs, 01 US-59.1) in den privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip`, ohne Überschreiben. Danach `ready`, `ready_at`, `expires_at = ready_at + 7 Tage`, signierter Link (7 Tage gültig, wird nicht gespeichert) und E-Mail „Export bereit“ (02 D1) über `send-email` an die Login-E-Mail der anfordernden Person; bei Fehler `failed`, `error` und E-Mail „Export fehlgeschlagen“ (02 D2). Laufzeit messen (Ziel unter 10 min bei 1.000 Aufträgen, 01 US-59.5); reicht eine Function-Laufzeit nicht, wird der Export auf mehrere Läufe aufgeteilt (02 §10.2 Nr. 8).
   - `stripe-webhook`: Signaturprüfung, Idempotenz über die Tabelle `stripe_events`, liest den Abo-Zustand per API nach und schreibt ihn mit `apply_stripe_subscription()` (Zeilensperre, nur neuere Stände über `stripe_synced_at`, 03 §6.1).
 - **Durchsetzung:** Lebenszyklus von `subscriptions` nach 01 §6.3 und 03 §6.1: Stripe-Status 1:1, Schreibmodus allein über `writable_until`; Planlimits an allen Prüfpunkten aus 03 §6.3; Fußzeilenhinweis in der Stufe Start.
 - **Screens:**
   - SC-66 Abo: `subscription.web.tsx` mit Stufen, Checkout und Verwaltung; nativ nur der neutrale Status, ohne Preis, Button oder Link.
   - Banner für Testphase, „Zahlung offen“ und Lesemodus; WriteGuard überall aktiv (04 §3.3).
-  - SC-67 Datenschutz & Export (`privacy.web.tsx`): Datenexport im Browser (ZIP mit JSON/CSV, E-17, 02 §10.2) über `request_data_export(scope, customer_id)`, die nur das Protokoll in `data_exports` schreibt; AVV als PDF mit Annahmedatum und Version; Liste der Unterauftragsverarbeiter; „Firma löschen“ (`request_company_deletion()`, kündigt das Abo per `create-checkout-session`).
-  - In SC-36: Kunde anonymisieren mit `anonymize_customer()` (US-61).
-- **Jobs:** `billing_lifecycle` (Testphase-Mails nach 7, 3 und 1 Tag(en) Restlaufzeit, Löschankündigungen, Löschung; nur E-Mail und Web-Admin-Banner, keine Push mit Abo-Bezug), `data_retention`.
-- **E-Mails:** Testphase endet, Zahlung fehlgeschlagen, Löschankündigung.
+  - SC-67 Datenschutz & Export (`privacy.web.tsx`): „Export anfordern“ über `request_data_export('company', null)`; der Export entsteht im Hintergrund (`export-company`), der Web-Admin zeigt „Export wird erstellt – du bekommst eine E-Mail mit dem Download-Link“; Exportliste mit Status, „Link gültig bis {Datum}“, „Abgelaufen – neuen Export anfordern“ und „Fehlgeschlagen – erneut anfordern“ (**entschieden, R2-14**; ersetzt den Browser-Export aus E-17, 02 §10.2); AVV als PDF mit Annahmedatum und Version; Liste der Unterauftragsverarbeiter; „Firma löschen“ (`request_company_deletion()`, kündigt das Abo per `create-checkout-session`; vorher wird der Export angeboten, sein Link bleibt bis zum Ablauf gültig; endgültige Löschung durch `purge-company`, R2-13).
+  - In SC-36: Kunde anonymisieren mit `anonymize_customer()` (US-61); „Kundendaten exportieren“ (Should) über `request_data_export('customer', …)` mit Toast „Du bekommst eine E-Mail mit dem Download-Link“.
+  - In SC-68: eigene Daten exportieren über `request_data_export('member', null)`, Download-Link per E-Mail an die Login-E-Mail (R2-14).
+- **Jobs:** `billing_lifecycle` (Testphase-Mails nach 7, 3 und 1 Tag(en) Restlaufzeit, Löschankündigungen, Löschung; nur E-Mail und Web-Admin-Banner, keine Push mit Abo-Bezug), `data_retention`, `exports_cleanup` (stündlich: ruft `export-company` mit `action: 'cleanup'` auf, löscht Dateien mit `status = 'ready'` und `expires_at ≤ now()` über die Storage-API, setzt `status = 'expired'` und `file_path = null`; die Protokollzeile bleibt; Exporte, die länger als 30 min in `queued`/`running` stehen, → `failed`; **entschieden, R2-14**).
+- **E-Mails:** Testphase endet, Zahlung fehlgeschlagen, Löschankündigung, „Export bereit“ mit signiertem Download-Link, 7 Tage gültig (02 D1), „Export fehlgeschlagen“ (02 D2).
 
 **Appllama:** Muster aus Bereich A (Frage 5: Testphase ohne Kauf-Link auf iOS) für den neutralen Abo-Status umsetzen.
 
@@ -532,10 +539,11 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 3. Einen Zahlungsfehler mit einer Stripe-Testkarte simulieren: Das Banner „Zahlung fehlgeschlagen“ erscheint, nach der Kulanzzeit gilt der Lesemodus.
 4. Auf iPhone und Android prüfen: nirgends Preise, Kauf-Buttons oder Links zum Kauf.
 5. Mehr Mitglieder als in der Zielstufe erlaubt: Der Abschluss ist mit Hinweis gesperrt.
-6. Der Datenexport im Browser liefert ein vollständiges ZIP; der Export steht im Protokoll. Ein zweiter Stripe-Webhook mit derselben Event-ID ändert nichts. „Firma löschen“ entfernt bei einer Testfirma Daten und Dateien (Claude kontrolliert den Storage).
-7. Die Pilotfirma in der Produktion bleibt unberührt (`plan = 'pilot'`).
+6. Datenexport (R2-14): Im Web-Admin „Export anfordern“ wählen und den Browser sofort schließen. Die E-Mail „Export bereit“ kommt an; der signierte Link lädt ein vollständiges ZIP (CSV-Dateien und Angebots-PDFs). Die Exportliste zeigt den Export mit „Link gültig bis {Datum}“ (7 Tage). Claude zeigt: Ohne Link ist die Datei nicht abrufbar, ein Admin einer zweiten Testfirma sieht weder Eintrag noch Datei, und nach vorgestelltem `expires_at` und einem Lauf von `exports_cleanup` ist die Datei gelöscht, der Status `expired` und der Link ungültig.
+7. Ein zweiter Stripe-Webhook mit derselben Event-ID ändert nichts. „Firma löschen“ entfernt bei einer Testfirma über `purge-company` Daten und Dateien, auch die Exporte im Bucket `exports` (Claude kontrolliert den Storage).
+8. Die Pilotfirma in der Produktion bleibt unberührt (`plan = 'pilot'`).
 
-**Kürzbar bei Verzug:** jährliche Zahlweise, Export der Daten eines einzelnen Kunden (US-61.1, Should).
+**Kürzbar bei Verzug:** jährliche Zahlweise, Export der Daten eines einzelnen Kunden (US-61.1, Should). Nicht kürzbar: Hintergrund-Export mit E-Mail-Link und automatischer Löschung nach 7 Tagen (R2-14). Er ist aufwendiger als der frühere Browser-Export (Function, Bucket, Job, Tests); reicht die Zeit nicht, werden zuerst die kürzbaren Punkte verschoben.
 
 ---
 
@@ -553,6 +561,8 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
   - Secrets-Inventur: CI prüft, dass kein `service_role`-Schlüssel im Client-Bundle steckt; Apple-Secrets für `delete-account` liegen nur in den Function-Secrets.
   - Rechte-Test: keine Funktion für `anon` ausführbar, `authenticated` nur die Whitelist aus 03 §4.7 (03 §9.5).
   - Zwei-Mandanten-Durchgang aller Screens mit Demo-Firma und Pilotfirma.
+  - Storage-Tests aller Buckets (`logos`, `quotes`, `exports`); der Bucket `exports` ist für `authenticated` weder les- noch listbar, Download nur per signiertem Link (R2-14, 03 §9.5).
+  - Regressionslauf der Statuspaare: kein Rückwärts-Übergang, kein Job ändert `events.status` (R2-3, R2-4).
   - Prüfschritt Apple-Token-Widerruf in der Produktion: Kontolöschung mit einem Apple-Testkonto; der Widerruf ist in der Apple-Kontoübersicht sichtbar (4.4 Nr. 1).
 - **Qualität:** K-16 messen (absturzfreie Sitzungen, PDF p95, Push p95, Portal p95); Barrierefreiheit von Portal und Kern-Screens prüfen (04 §4.7); Leerzustände und Fehlertexte vollständig.
 - **Betrieb:** Restore-Probe aus dem Backup in ein separates Projekt; Alarme für Fehler in Edge Functions und Webhooks; Erreichbarkeitsprüfung für das Portal; Support-Postfach.
@@ -576,7 +586,7 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 | M | Features (01 §4.1) | Tabellen (Glossar, ergänzend 03 §3.7) | Edge Functions | Routen |
 |---|---|---|---|---|
 | M0 | F-01 (Login) | `companies`, `company_members`, `subscriptions` (+ `allergens`, `plan_limits`) | – | `app/(auth)` Login und Passwort, `app/(app)` leer, `app/portal/[token]` Platzhalter |
-| M1 | F-01, F-02, F-03, F-21, F-30 (Start der Testphase), F-31 (AVV-Checkbox, Konto löschen) | `invitations`, `tax_rates`, `qualifications`, `member_qualifications` | `accept-invitation`, `send-email` (+ `delete-account`, Glossar-Ergänzung **[Vorschlag]**) | `app/(auth)` vollständig, `app/(app)` mit Tabs je Rolle |
+| M1 | F-01, F-02, F-03, F-21, F-30 (Start der Testphase), F-31 (AVV-Checkbox, Konto löschen) | `invitations`, `tax_rates`, `qualifications`, `member_qualifications` | `accept-invitation`, `send-email` (+ `delete-account`, Glossar-Ergänzung, **freigegeben R2-12**) | `app/(auth)` vollständig, `app/(app)` mit Tabs je Rolle |
 | M2 | F-11, F-12, F-13 | `dishes`, `dish_allergens`, `ingredients`, `dish_ingredients`, `menu_packages`, `menu_package_dishes` | `render-quote-pdf` (Spike) | – |
 | M3 | F-04, F-05, F-06, F-07, F-08, F-09, F-10 (Teil), F-20 (interne Erfassung), F-29 (Grundlage) | `customers`, `events`, `event_schedule_items`, `event_dietary_requirements` (+ `event_status_changes`) | – | – |
 | M4 | F-14, F-32 (Angebots-Chat), F-06 (mit Angebot) | `quotes`, `quote_items` (+ `intake_questions`) | – | – |
@@ -584,10 +594,10 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 | M6 | F-16, F-17, F-27 (Liste), F-10 (Teil) | `notifications` | `portal-api` | `app/portal/[token]` |
 | M7 | F-22 – F-26, F-27 (Push), F-29 (Einsätze), F-10 (Teil) | `shift_slots`, `shift_applications`, `push_tokens` (+ `push_tickets`) | `push-dispatch` | – |
 | M8 | F-18, F-19, F-20, F-28, F-29 (Küche) | – (Views; + `usage_events`) | `ical-feed` | – |
-| M9 | F-30, F-31, F-04 (Anonymisierung) | (+ `data_exports`, `stripe_events`) | `create-checkout-session`, `stripe-webhook` (+ `purge-company`, Glossar-Ergänzung **[Vorschlag]**) | – |
+| M9 | F-30, F-31 (Hintergrund-Export mit Download-Link per E-Mail, Firmenlöschung), F-04 (Anonymisierung) | (+ `data_exports` mit `status`, `file_path`, `ready_at`, `expires_at`, `error`; `stripe_events`); Bucket `exports` | `create-checkout-session`, `stripe-webhook` (+ `purge-company`, freigegeben R2-13; + `export-company`, entschieden R2-14; Glossar-Ergänzungen) | – |
 | M10 | Querschnitt: Sicherheit, Qualität, Store | – | – | – |
 
-Alle 24 Kerntabellen, alle 8 Edge Functions (dazu `delete-account` und `purge-company` als vorgeschlagene Glossar-Ergänzungen) und alle Must-Features F-01 – F-32 sind einem Meilenstein zugeordnet. Die Migrationsdateien entstehen je Meilenstein. Inhaltlich folgen sie 03 §7; die Bündelung in 03 §9.2 wird dafür aufgeteilt.
+Alle 24 Kerntabellen, alle 8 Edge Functions (dazu die entschiedenen Glossar-Ergänzungen `delete-account` (R2-12), `purge-company` (R2-13) und `export-company` (R2-14)) und alle Must-Features F-01 – F-32 sind einem Meilenstein zugeordnet. Die Migrationsdateien entstehen je Meilenstein. Inhaltlich folgen sie 03 §7; die Bündelung in 03 §9.2 wird dafür aufgeteilt.
 
 ---
 
@@ -787,7 +797,7 @@ Zieltermin: Fr 05.02.2027. Wird der Weihnachtspuffer nicht gebraucht und M8 vorg
 | AVV (Art. 28 DSGVO) mit TOM-Anlage und Liste der Unterauftragsverarbeiter | Pflichtannahme bei der Firmenanlage (US-62), Version und Zeitpunkt werden gespeichert (02 §10.1) | SC-08, SC-67 | M1 (Entwurf v0 für den Pilot) | M10 |
 | Verzeichnis von Verarbeitungstätigkeiten (Art. 30 Abs. 1 und 2) | eigene Verarbeitung und Auftragsverarbeitung | intern | M6 | M10 |
 | Schwellwertprüfung zur Datenschutz-Folgenabschätzung | Gesundheitsdaten der Gäste (Art. 9), Löschfristen, TOM | intern | M6 | M10 |
-| Löschkonzept | Fristen aus 02 §10.4 und 01 §6.2 | intern, Anlage zur AVV | M9 | M10 |
+| Löschkonzept | Fristen aus 02 §10.4 und 01 §6.2, darunter Export-Dateien 7 Tage ab Bereitstellung (`exports_cleanup`, R2-14) und endgültige Firmenlöschung 30 Tage nach dem Löschantrag (`purge-company`, R2-13) | intern, Anlage zur AVV | M9 | M10 |
 | Textbaustein für Caterer | Hinweis auf die Plattform in der Datenschutzerklärung des Caterers; Umgang mit Gästedaten | Hilfe-Bereich | M6 | M10 |
 
 - Einwilligungsbanner sind nicht nötig, solange App und Portal nur technisch notwendige Speicherung nutzen und nichts tracken (§ 25 Abs. 2 TDDDG). Diese Bedingung gilt für jede neue Bibliothek.
@@ -811,7 +821,7 @@ Zieltermin: Fr 05.02.2027. Wird der Weihnachtspuffer nicht gebraucht und M8 vorg
 
 | # | Risiko | Regel | Maßnahme | geprüft in |
 |---|---|---|---|---|
-| 1 | Login mit Apple fehlt oder ist schlechter gestellt | Apple 4.8 | Sign in with Apple auf iOS gleichrangig neben Google. Beim Löschen eines Apple-Kontos holt die App per erneuter Apple-Anmeldung einen frischen `authorizationCode`; die Edge Function `delete-account` (Glossar-Ergänzung, **[Vorschlag]**, 05 §5.10) tauscht ihn über `/auth/token` gegen ein Token, widerruft es über `/auth/revoke` und ruft danach `delete_my_account()` auf. Prüfschritt in M1 und M10 | M1, M10 |
+| 1 | Login mit Apple fehlt oder ist schlechter gestellt | Apple 4.8 | Sign in with Apple auf iOS gleichrangig neben Google. Beim Löschen eines Apple-Kontos holt die App per erneuter Apple-Anmeldung einen frischen `authorizationCode`; die Edge Function `delete-account` (Glossar-Ergänzung, **freigegeben (R2-12)**, 05 §5.10) tauscht ihn über `/auth/token` gegen ein Token, widerruft es über `/auth/revoke` und ruft danach `delete_my_account()` auf. Prüfschritt in M1 und M10 | M1, M10 |
 | 2 | Abo-Kauf außerhalb des Stores | Apple 3.1.1, 3.1.3(f) (kostenlose Begleit-App zu einem Web-Werkzeug), 3.1.3(c) (Verkauf an Organisationen); Zahlungsrichtlinie von Google Play | Die App enthält keinen Kauf, keine Preise, keine Links und keine Aufforderung zum Kauf außerhalb (00 §5, US-56.7). Texte zu Testphase und Lesemodus sind neutral; die Store-Beschreibung enthält keine Kaufhinweise. Review-Notiz: „B2B-Software; Unternehmen erwerben den Zugang im Web; die App enthält keine Kaufmöglichkeit.“ **Plan B [Vorschlag]:** neue Firmen nur noch im Web-Admin anlegen, die App dient bestehenden Firmen und Eingeladenen | M9, M10 |
 | 3 | Demo-Zugang fehlt oder funktioniert nicht | Apple 2.1; App-Zugriff bei Google Play | Demo-Firma in der Produktion (`plan = 'pilot'`, von den Löschjobs ausgenommen) mit Zugängen für `admin`, `kitchen` und `staff`, realistischen Daten und bestätigten E-Mails. In den Review-Notizen: Einladungsablauf, Portal im Browser, Web-Admin-URL. Vor der Einreichung selbst durchspielen | M10 |
 | 4 | Konto lässt sich nicht in der App löschen | Apple 5.1.1(v); Kontolöschung bei Google Play | SC-68 „Konto löschen“ ab M1. Für den letzten Admin führt ein Weg zur Firmenlöschung (in der App oder per Direktlink auf die Web-Seite). Eine öffentliche Web-Seite für Löschanfragen (Pflichtangabe bei Google) | M1, M9, M10 |
@@ -826,7 +836,7 @@ Zieltermin: Fr 05.02.2027. Wird der Weihnachtspuffer nicht gebraucht und M8 vorg
 
 - [ ] Bundle-ID bzw. Package-Name sind seit M0 festgelegt (E-2), neutral und nach der Veröffentlichung unveränderlich. Den App-Namen bei der Anlage des App-Eintrags reservieren (nach E-4).
 - [ ] Store-Texte auf Deutsch: Name, Untertitel, Beschreibung, Schlüsselwörter; Kategorie „Business“ **[Vorschlag]**.
-- [ ] Screenshots in den aktuell geforderten Größen (iPhone; iPad nach E-18; Android-Telefon) aus der Demo-Firma, ohne echte Kundendaten.
+- [ ] Screenshots in den aktuell geforderten Größen (iPhone und Android-Telefon) aus der Demo-Firma, ohne echte Kundendaten. Keine iPad- oder Tablet-Screenshots: Der Build enthält im MVP keine Tablet-Unterstützung (`ios.supportsTablet: false`; **entschieden, R2-8**, Tablet-Optimierung P-23 nach dem MVP).
 - [ ] Support-, Marketing- und Datenschutz-URL; Altersfreigabe-Fragebogen; App-Privacy- und Datensicherheitsangaben (4.3).
 - [ ] Review-Notizen und Demo-Zugänge (4.4 Nr. 3); Exportkonformität; Händlerstatus.
 - [ ] Veröffentlichung auf „manuell“ stellen (Apple) bzw. die Veröffentlichung selbst steuern (Google).
@@ -852,6 +862,7 @@ Zieltermin: Fr 05.02.2027. Wird der Weihnachtspuffer nicht gebraucht und M8 vorg
 | 9 | Volles Rezeptmodul (P-06, mit P-18) | Zubereitung, Ausbeute, Skalierung; Allergene je Zutat | L | Nutzen für die Küche, aber hoher Pflegeaufwand für die Betriebe | Q4 2027 |
 | 10 | Schweiz aktivieren (P-14, Teil CH) | CHF, MWST-Sätze, revDSG, Rechtstexte CH | M | Währung und Recht weichen ab | 2028 |
 | 11 | Lieferung und Touren (P-08) | Tourenplanung, Fahrer-Rolle | L | bewusst nicht ausgewählt (00 §3); nur bei klarer Nachfrage | offen |
+| 12 | Tablet-Optimierung (P-23) | eigene Tablet-Layouts (z. B. Küche quer mit 2 Spalten), iPad- bzw. Android-Tablet-Unterstützung im Build (`ios.supportsTablet`), Tablet-Testgeräte, Tablet-Screenshots in den Stores | M | im MVP nutzt die Küche Smartphones mit der nativen App (**entschieden, R2-8**); Priorität nach den Rückmeldungen der Küche aus Pilot und Beta | nach Pilot-Signal, frühestens Q2 2027 |
 
 Weitere Kandidaten aus 01 §4.3 werden nach Pilot und Beta einsortiert. Erste Einschätzung: P-10 Anfrageformular (M), P-13 Auswertungen (M), P-12 Serienaufträge (M), P-20 2FA/Passkeys (S), P-15 Offline-Bearbeitung (L).
 
@@ -880,12 +891,15 @@ W = Wahrscheinlichkeit, A = Auswirkung (gering · mittel · hoch · kritisch).
 | R-15 | Expo Web als Web-Admin und Portal: Ladezeit auf 4G, Editor und Tabellen im Browser | mittel | mittel | Portal-Ladezeit in M6 messen (p95 < 2,5 s); Portal-Route schlank halten (ohne App-Shell, Code-Splitting); den Editor schon in M4 im Web testen |
 | R-16 | Der Appllama-Katalog deckt B2B-Muster (Schichtplaner, Angebots-Editor) schlecht ab | mittel | gering | Analog-Apps und semantische Suche nach 04 §5; Abbruchregeln; Reserve von 25 Credits |
 | R-17 | Preise oder Zahlungsbereitschaft passen nicht | mittel | hoch | 5–10 Preisgespräche bis E-6; Beta mit 3–5 Firmen; Preise lassen sich in Stripe ohne App-Release ändern |
+| R-18 | Fehlbedienung beim Statuswechsel lässt sich nicht zurücknehmen, weil es keine Rückwärts-Übergänge gibt (R2-4) | gering | mittel | Bestätigungsdialog vor jedem Statuswechsel mit Zielstatus, Folgen und Hinweis „nicht rückgängig“, „Abbrechen“ als Standard (SC-31, 02 §1.1.1); Warnung bei `completed` vor Eventbeginn; Sammelaktion zeigt die Liste der Aufträge; neuer Anlauf nach `declined`/`cancelled` per „Auftrag kopieren“; Fehlbedienungen im Pilot als Issue erfassen und im Wochenreview auswerten |
+| R-19 | Smartphone statt Tablet in der Küche: kleine Anzeige, Bedienung mit nassen oder fettigen Händen (R2-8) | mittel | gering | Einspaltige Küchen-Screens mit großen Zielen und großen Mengenangaben (04 §4); Druckansicht A4 im Web als Rückfall; Rückmeldungen der Küche ab Pilot-Stufe 4 sammeln; Tablet-Optimierung als Backlog-Paket (5, Prio 12, P-23) |
+| R-20 | Datenexport im Hintergrund: Laufzeitgrenze der Edge Function, abgebrochene Läufe, weitergeleiteter Download-Link (R2-14) | mittel | mittel | Laufzeit in M9 und im Pilot messen, bei Bedarf Export auf mehrere Läufe aufteilen (02 §10.2); hängende Läufe nach 30 min → `failed` mit E-Mail D2 (`exports_cleanup`); signierter Link nur an die Login-E-Mail der anfordernden Person, 7 Tage gültig, danach Datei automatisch gelöscht; Bucket `exports` ohne Lese-Policy |
 
 ---
 
 ## 7. Offene Entscheidungen mit Deadline
 
-Sortiert nach Deadline. Fett: die im Auftrag genannten Pflichtpunkte.
+Sortiert nach Deadline. Fett: die im Auftrag genannten Pflichtpunkte. Punkte, die der Gründer in Runde 2 entschieden hat (00 §9), bleiben zur Nachverfolgung in der Tabelle, sind als **entschieden (R2-x)** markiert und tragen als Deadline „erledigt 17.10.2026“. Offen bzw. als Vorschlag festgelegt sind noch E-1 – E-7, E-9, E-11 – E-13, E-15 und E-16.
 
 | # | Entscheidung | Optionen / Vorschlag | Deadline | Davon hängt ab |
 |---|---|---|---|---|
@@ -895,18 +909,30 @@ Sortiert nach Deadline. Fett: die im Auftrag genannten Pflichtpunkte.
 | E-12 | Web-Hosting für Expo Web | **[Vorschlag]** Netlify nach 05 §9.4 (Header je Pfad, Domain-Weiterleitungen und iCal-Proxy über zwei statische Dateien; AVV/DPA, USA-Transfer in der Datenschutzerklärung). EAS Hosting nur, wenn beim ersten Web-Deploy nachgewiesen ist, dass es Header, Weiterleitungen und den iCal-Proxy gleichwertig abdeckt | Fr 23.10. (staging); final bis Mi 25.11. | M0, M6 (Portal produktiv) |
 | E-9 | Ende der Testphase (D-5) | Tag 14 um 23:59 Europe/Berlin (01, Vorschlag) oder exakt 14 × 24 h | Mo 26.10. (vor M1) | `create_company()` |
 | **E-4** | **App-Name und Marke** | Shortlist in M1 (5 Kandidaten); prüfen: Marke (DPMA/EUIPO), Domain, Store-Namen, Wirkung im DACH-Raum | Do 05.11. (Ende M2) | Domain, Absenderdomain, Store-Einträge, Rechtstexte, Akzentfarbe (04 §4.2) |
-| E-8 | Statusübergänge und „Durchgeführt“ (D-2, D-3, D-4) | **festgelegt [Vorschlag], Bestätigung ausstehend:** eine verbindliche Übergangstabelle in 02 §1.1 (03 §10.2): Direktbestätigung aus `inquiry`/`optioned` mit Bestätigungsweg, `inquiry` → `declined`, „Durchgeführt“ manuell mit Erinnerung um 09:00 am Folgetag (Job `events_completion`), Korrekturwege `completed` → `confirmed` und `invoiced` → `completed` | Do 05.11. (vor M3) | `set_event_status()`, Job `events_completion` |
+| E-8 | Statusübergänge und „Durchgeführt“ (D-2, D-3, D-4) | **entschieden (R2-2, R2-3, R2-4):** eine verbindliche Übergangstabelle in 02 §1.1 (03 §10.2, geprüft in `private.is_allowed_event_transition()`): Direktbestätigung aus `inquiry`/`optioned` ohne versendetes Angebot mit Bestätigungsweg ist erlaubt (R2-2); `inquiry` → `declined`; „Durchgeführt“ setzt nur der Admin, nie automatisch, Erinnerung um 09:00 am Folgetag (Job `events_completion`, R2-3); **keine Rückwärts-Übergänge** (kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted`), keine Reaktivierung von `declined`/`cancelled`, keine Funktion „Status korrigieren“; stattdessen Bestätigungsdialog vor jedem Statuswechsel (SC-31, 02 §1.1.1); neuer Anlauf per „Auftrag kopieren“ (R2-4) | erledigt 17.10.2026 | `set_event_status()`, `commit_quote_send()`, `copy_event()`, SC-31, Job `events_completion` |
 | E-11 | PDF-Technik | Ergebnis des Spikes in M2: Erzeugung direkt in der Edge Function oder externer Render-Dienst (EU) | Do 05.11. (Ende M2) | M5 |
 | **E-5** | **Domain** | eine Domain für Web-Admin, Portal (`/portal/[token]`) und Absender | Kauf bis Fr 06.11.; live mit DNS, Hosting, Universal Links und E-Mail bis Mi 25.11. | Portal-Links in versendeten Angeboten müssen dauerhaft gültig bleiben (echte Kunden ab M6) |
-| E-10 | Kundenänderungen im Portal (D-1) | **festgelegt [Vorschlag], Bestätigung ausstehend:** Menüwahl vor der Annahme direkt (`portal_selection`, keine Revision); Gästezahl und übrige Änderungen als Änderungswunsch an den Admin (`pending_change`, Hinweis ab ± 20 %); Sonderessen direkt; Änderungsschluss 72 h vor dem Event, 24 h bei Business-Lunch (01 §4.2.3, 02 §4) | Mo 16.11. (vor M4) | Spalten in `quotes`, SC-28, SC-74, SC-75 |
+| E-10 | Kundenänderungen im Portal (D-1) | **entschieden (R2-1, R2-6):** Menüwahl vor der Annahme wirkt direkt (`portal_selection`, keine Revision); Gästezahl und alle Änderungen nach der Bestätigung als Änderungswunsch an den Admin, der bestätigt oder ablehnt (`pending_change`); ab ± 20 % Gästezahl Hinweis „bitte anrufen“; Sonderessen und Allergien gelten sofort (R2-1). Änderungsschluss Standard 72 h vor Beginn bei Event-Catering, 24 h bei Business-Lunch, pro Auftrag änderbar (R2-6; 01 §4.2.3, 02 §4) | erledigt 17.10.2026 | Spalten in `quotes`, `events.changes_until`, SC-28, SC-74, SC-75 |
 | E-16 | Datenbasis der Küchenlisten (04 §0.5) | **festgelegt [Vorschlag], Bestätigung ausstehend:** verbindlicher Stand (`binding_snapshot`, 01); ohne verbindlichen Stand der Snapshot der aktuellen Revision mit Menüwahl („vorläufig“), bei Revision 0 der Live-Stand; offene Änderungen sieht die Küche nur als Hinweis „Änderung offen“ (02 §8) | Mo 16.11. (vor M4, wegen der Spalten in `quotes`) | Spalten in `quotes`, Views der Produktionsliste, Banner in SC-25/44/46 |
 | E-13 | Steuersätze bestätigt | Vorbelegung aus 01 §4.2.6, Prüfung durch den Steuerberater des Pilotbetriebs | Mi 25.11. (vor dem ersten echten Versand) | M5, M6 |
-| E-14 | Absagefrist der Schichtbörse | 48 h, pro Firma einstellbar (Vorschlag aus 00) | Do 10.12. (vor M7) | Standardwert in SC-62, `cancel_my_application()` |
+| E-14 | Absagefrist der Schichtbörse | **entschieden (R2-10):** immer die normale Absagefrist, Standard 48 h vor Slot-Beginn, pro Firma einstellbar (`companies.shift_cancel_deadline_hours`); danach nur über den Admin. **Kein** Sonderabsagerecht bei Verschiebung eines Events; Eingeplante werden über die Zeitänderung benachrichtigt (`shift_slot_times_changed()`) | erledigt 17.10.2026 | Standardwert in SC-10/SC-62, `cancel_my_application()`, `my_shifts.cancel_deadline_at` |
 | E-15 | Crash-Reporting | **[Vorschlag]** ein Dienst mit EU-Datenregion und AVV | Do 10.12. (vor M7, Geräte der Aushilfen) | K-16, Datenschutzerklärung, App-Privacy |
-| E-18 | Küchen-Tablet und iPad-Unterstützung | **festgelegt [Vorschlag], Bestätigung ausstehend:** Das Küchen-Tablet läuft als native App (Offline nur nativ, 01 §3.1) und ist für den Pilot Pflicht; offen ist nur das Gerät: iPad (dann `supportsTablet` und iPad-Screenshots) oder Android-Tablet | Mo 04.01. (vor M8) | Build-Konfiguration, Layout, Store-Screenshots |
+| E-18 | Küchen-Tablet und iPad-Unterstützung | **entfällt – entschieden (R2-8):** kein Küchen-Tablet; die Küche nutzt Smartphones mit der nativen App (offline lesbar, 01 §3.1). Keine Tablet-Pflicht für den Pilot, keine Geräteentscheidung iPad/Android-Tablet, keine Tablet-Testgeräte, keine Tablet-Layouts, keine Tablet-Unterstützung im Build (`ios.supportsTablet: false`) und keine iPad-Screenshots im MVP; Tablet-Optimierung im Post-MVP-Backlog (5, Prio 12, P-23) | erledigt 17.10.2026 | Build-Konfiguration, Layouts der Küchen-Screens, Store-Screenshots |
 | **E-6** | **Abo-Stufen und Preise** | Vorschlag aus 01 §6.1: Start 29 €, Team 59 €, Profi 99 € netto/Monat; 5–10 Gespräche mit Caterern zwischen M3 und M8 | Fr 08.01.2027 (Ende M8) | Stripe-Produkte (M9), `plan_limits`, AGB |
-| E-17 | Datenexport | **festgelegt [Vorschlag], Bestätigung ausstehend:** clientseitig im Browser des Web-Admins (01 US-59.2, 02 §10.2); `data_exports` ist nur Protokoll, kein Export-Bucket, keine „Export bereit“-Mail | Mo 11.01. (vor M9) | SC-67, `data_exports` |
+| E-17 | Datenexport | **entschieden (R2-14), ersetzt den früheren Vorschlag „Export im Browser“:** Download-Link per E-Mail. `request_data_export()` legt einen Auftrag in `data_exports` an (`status`, `file_path`, `ready_at`, `expires_at`, `error`); die Edge Function `export-company` erzeugt den Export im Hintergrund und legt das ZIP im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip` ab; der Admin bekommt die E-Mail „Export bereit“ mit einem signierten Link, 7 Tage gültig; danach löscht der Job `exports_cleanup` die Datei automatisch (01 US-59, 02 §10.2) | erledigt 17.10.2026 | M9: SC-67, `data_exports`, Bucket `exports`, `export-company`, `exports_cleanup`, E-Mails D1/D2 |
 | **E-7** | **Buchhaltung** | nicht im MVP (00 §5); lexoffice, sevDesk oder DATEV. **[Vorschlag]** Steuerberater des Pilotbetriebs und Beta-Firmen befragen; die Variante „Rechnung im Buchhaltungs-Tool“ prüfen (5, Prio 3) | Ende Februar 2027 (vor dem Start des Rechnungsmoduls) | Backlog Prio 3 und 4 |
+
+**Durch Runde 2 außerdem entschieden (ohne eigene E-Nummer, 00 §9):**
+
+| R2 | Punkt | eingearbeitet in |
+|---|---|---|
+| R2-5 | Preisvorschläge aus der Wareneinsatz-Kalkulation auf volle 10 Cent aufrunden (26,32 € → 26,40 €) | M4 |
+| R2-7 | „Menge p. P.“ = Rohware vor dem Garen; 5 % Puffer nur in der Einkaufsliste | M8 |
+| R2-9 | Genau eine Qualifikation je Slot (Pflichtfeld); ohne sie ist der Slot unsichtbar | M7 |
+| R2-11 | Keine Kinderportionen im MVP; Kinder als eigene Angebotsposition | M4 |
+| R2-12 | Edge Function `delete-account` freigegeben (nicht mehr „zur Freigabe“) | M1, M10, 4.4 |
+| R2-13 | Edge Function `purge-company` freigegeben (nicht mehr „zur Freigabe“) | M9 |
+| R2-14 | Edge Function `export-company`, Bucket `exports`, Job `exports_cleanup` (siehe E-17) | M9 |
 
 ---
 
@@ -942,9 +968,9 @@ Sortiert nach Deadline. Fett: die im Auftrag genannten Pflichtpunkte.
 **Fr 23.10.**
 
 - [ ] Abnahme M0 nach DoD (45 min); Kickoff M1 vorbereiten.
-- [ ] Gründer: 60-min-Termin zur Bestätigung der als Vorschlag festgelegten E-8, E-10, E-16, E-17 und E-18, zur Entscheidung von E-9 und zur Freigabe der Glossar-Ergänzungen `delete-account` und `purge-company`; die Vorschläge aus 01–05 (jeweils „Vorschläge zur Freigabe“) gesammelt durchgehen.
+- [ ] Gründer: Termin (ca. 30 min) zur Bestätigung von E-16 und zur Entscheidung von E-9; die übrigen Vorschläge aus 01–05 (jeweils „Vorschläge zur Freigabe“) gesammelt durchgehen. Bereits erledigt durch Runde 2 (00 §9): E-8, E-10, E-14, E-17 und E-18 sowie die Freigabe von `delete-account` (R2-12), `purge-company` (R2-13) und `export-company` (R2-14).
 - [ ] Gründer: Excel-Liste von Gerichten, Paketen und Zutaten für den Import in M2 bereitstellen; Termin beim Steuerberater vereinbaren (E-13, vor dem 25.11.); Namens-Shortlist mit 5 Kandidaten (E-4); 5–10 Caterer für Preisgespräche notieren (E-6).
-- [ ] Testgeräte klären: iPhone und Android-Gerät des Gründers; Tablet für die Küche ab M8 (native App, Gerät nach E-18).
+- [ ] Testgeräte klären: iPhone und Android-Gerät des Gründers; ab M7 die Smartphones der Aushilfen, ab M8 das Smartphone des Kochs mit der nativen App (kein Küchen-Tablet, R2-8).
 
 ---
 
@@ -972,4 +998,7 @@ Sortiert nach Deadline. Fett: die im Auftrag genannten Pflichtpunkte.
 | 18 | Gesundheitsdaten in den App-Privacy-Angaben konservativ angeben | 4.3 |
 | 19 | Plan B bei Ablehnung wegen des Abos: Firmenanlage nur im Web-Admin | 4.4 |
 | 20 | Backlog-Reihenfolge mit CSV-Import und Etiketten vor dem Rechnungsmodul; Rechnung zuerst über das Buchhaltungs-Tool prüfen | 5 |
-| 21 | Vorschläge zu E-Mail-Dienst (Resend/Postmark), Web-Hosting (Netlify, EAS Hosting nur nach Nachweis), Crash-Reporting mit EU-Region, Küchen-Tablet als native App; als Vorschlag festgelegt: E-8, E-10, E-16, E-17, E-18 | 7 |
+| 21 | Vorschläge zu E-Mail-Dienst (Resend/Postmark), Web-Hosting (Netlify, EAS Hosting nur nach Nachweis), Crash-Reporting mit EU-Region; als Vorschlag festgelegt: E-16 | 7 |
+| 22 | Neue Risiken R-18 (Fehlbedienung ohne Rückweg), R-19 (Smartphone in der Küche), R-20 (Hintergrund-Export); Tablet-Optimierung als Backlog-Paket Prio 12 | 5, 6 |
+
+Nicht mehr Vorschlag, sondern **entschieden in Runde 2** (00 §9): E-8 (R2-2, R2-3, R2-4), E-10 (R2-1, R2-6), E-14 (R2-10), E-17 (R2-14, Hintergrund-Export statt Browser-Export), E-18 entfällt (R2-8, kein Küchen-Tablet), die Glossar-Ergänzungen `delete-account` (R2-12), `purge-company` (R2-13) und `export-company` (R2-14) sowie R2-5, R2-7, R2-9 und R2-11 (Übersicht in Abschnitt 7).

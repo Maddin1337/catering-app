@@ -146,6 +146,7 @@ Legende: **V** = voll (anlegen, ändern, löschen) · **L** = nur lesen · **E**
 | Daten der Firma exportieren | V | – | – | – |
 | Firma löschen | V | – | – | – |
 | Eigenes Profil pflegen, eigenes Konto löschen | E | E | E | – |
+| Eigene Daten exportieren (Profil, Download-Link per E-Mail, R2-14) | E | E | E | – |
 | Eigenen iCal-Link abrufen oder zurücksetzen | E | E | E | – |
 | **Kunden & Aufträge** | | | | |
 | Kunden anlegen, bearbeiten, anonymisieren | V | – | – | – |
@@ -298,7 +299,7 @@ Kurzfassung der Regeln aus 02 §1.1:
 - **Direktbestätigung** (`inquiry`/`optioned` → `confirmed`, auch ganz ohne versendetes Angebot) ist erlaubt – entschieden (R2-2). Sie verlangt den Bestätigungsweg (Telefon, E-Mail, persönlich), z. B. für Stammkunden am Telefon und Business-Lunch-Kopien.
 - Eine Anfrage, die nicht zustande kommt, wird `declined` (Grund Pflicht). Löschen gibt es nur für Fehleingaben ohne Versand.
 - **Keine Rückwärts-Übergänge** – entschieden (R2-4): kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted`, keine Reaktivierung von `declined` oder `cancelled` und keine Funktion „Status korrigieren“. `declined`, `cancelled` und `invoiced` sind Endzustände; die Wiederaufnahme eines abgelehnten oder stornierten Auftrags läuft über „Auftrag kopieren“ (US-13).
-- **Bestätigungsdialog vor jedem Statuswechsel** (R2-4): Jeder Wechsel durch den Admin – einzeln oder als Sammelaktion – zeigt vorher alten und neuen Status, die Folgen (z. B. Benachrichtigung von Küche, Eingeplanten oder Kunde, geschlossene Slots) und den Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden“; erst „Bestätigen“ führt ihn aus (US-11.10).
+- **Bestätigungsdialog vor jedem Statuswechsel** (R2-4): Jeder Wechsel durch den Admin – einzeln oder als Sammelaktion – zeigt vorher alten und neuen Status, die Folgen (z. B. Benachrichtigung von Küche, Eingeplanten oder Kunde, geschlossene Slots) und den Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden.“; erst die Aktion mit dem Zielstatus als Text (z. B. „Als abgerechnet markieren“) führt ihn aus, „Abbrechen“ ist die Standardschaltfläche (US-11.10, 02 §1.1.1).
 - „Durchgeführt“ (`completed`) setzt ausschließlich der Admin; es gibt keinen automatischen Wechsel, auch keinen nächtlichen Job. Die App erinnert am Tag nach dem Event um 09:00 (Job `events_completion`, US-11.5) – entschieden (R2-3).
 
 Weitere Regeln:
@@ -380,7 +381,7 @@ stateDiagram-v2
 - **Warteliste:** Ist ein Slot voll, bleiben übrige `applied`-Bewerbungen bestehen und gelten als Warteliste **[Vorschlag]**. Es gibt kein automatisches Nachrücken; der Admin entscheidet.
 - **Sichtbarkeit:** veröffentlichte, nicht begonnene Slots mit freiem Platz, deren Qualifikation das Mitglied besitzt. Slots in Aufträgen mit Status vor `confirmed` tragen das Kennzeichen „vorläufig“ **[Vorschlag]**.
 - **Absagefrist:** Firmeneinstellung, Standard 48 h vor Slot-Beginn – entschieden (R2-10). Nach Fristablauf ist Absage nur telefonisch über den Admin möglich; der Admin trägt sie als `cancelled_by_staff` mit Vermerk „nach Frist“ ein.
-- **Zeitänderung durch Admin:** Verschiebt der Admin Beginn oder Ende eines Slots (oder den Auftrag), werden Eingeplante über die Zeitänderung benachrichtigt („Einsatz geändert“ mit neuer Zeit). Ein Sonderabsagerecht gibt es **nicht** – entschieden (R2-10): Es gilt immer die normale Absagefrist, gerechnet vom neuen Slot-Beginn; ist sie dadurch bereits abgelaufen, ist eine Absage nur noch über den Admin möglich (Nachtrag „nach Frist“). Benachrichtigung: `shift_slot_times_changed()` in 03.
+- **Zeitänderung durch Admin:** Verschiebt der Admin Beginn oder Ende eines Slots (oder den Auftrag), werden Eingeplante (und Bewerber) über die Zeitänderung benachrichtigt („Einsatz geändert“ mit neuer Zeit, 02 S12). Ein Sonderabsagerecht gibt es **nicht** – entschieden (R2-10): Es gilt immer die normale Absagefrist, gerechnet vom neuen Slot-Beginn; ist sie dadurch bereits abgelaufen, ist eine Absage nur noch über den Admin möglich (Nachtrag „nach Frist“). Benachrichtigung: `shift_slot_times_changed()` in 03.
 - **Slot schließen/Auftrag storniert:** Der Slot wird geschlossen und verschwindet aus der Schichtbörse; Bewerbungen behalten ihren Status und werden als „Einsatz entfällt“ angezeigt **[Vorschlag]** (kein zusätzlicher Status nötig).
 - **Ausplanen:** Nimmt der Admin eine Zusage oder Einplanung zurück, wird der Status `rejected` mit Vermerk „ausgeplant“ **[Vorschlag]**.
 - Überschneidende Einsätze eines Mitglieds werden beim Zusagen und Einplanen gewarnt, aber nicht blockiert (z. B. Aufbau und Service direkt nacheinander).
@@ -396,7 +397,7 @@ Kanäle: **Push** (Expo Notifications über `push-dispatch`) und **Liste** (`not
 | Direkt eingeplant | betroffenes Mitglied | Push | nein |
 | Absage durch Mitglied (inkl. Nachtrag) | admin | Push | nein |
 | Neue passende Slots veröffentlicht | qualifizierte Mitglieder | Push, gebündelt **[Vorschlag]** | ja |
-| Einsatz geändert (Zeit, Adresse, Treffpunkt, Ablauf); bei Zeitänderung mit neuer Zeit und der Absagefrist, kein Sonderabsagerecht (R2-10) | eingeplante Mitglieder | Push | nein |
+| Einsatz geändert (Zeit, Adresse, Treffpunkt, Ablauf); bei Zeitänderung mit neuer Zeit und der Absagefrist, kein Sonderabsagerecht (R2-10) | eingeplante Mitglieder; bei Zeitänderung auch Bewerber (02 S12) | Push | nein |
 | Einsatz entfällt (Slot geschlossen, Auftrag storniert) | Bewerber und Eingeplante | Push | nein |
 | Erinnerung 24 h vor Einsatz (Should) | eingeplante Mitglieder | Push | ja |
 | Angebot angenommen/abgelehnt, Änderung bestätigt | admin | Push + E-Mail | nein |
@@ -412,8 +413,8 @@ Kanäle: **Push** (Expo Notifications über `push-dispatch`) und **Liste** (`not
 | Bestätigung einer Revision offen (US-36.7) | admin | Push | ja |
 | Testphase endet (7, 3, 1 Tage vorher) | admin | E-Mail + Banner im Web-Admin | nein |
 | Zahlung fehlgeschlagen | admin | E-Mail + Banner im Web-Admin | nein |
-| Datenexport bereit („Export bereit“, signierter Download-Link 7 Tage gültig, R2-14) | anfordernder admin | E-Mail | nein |
-| Datenexport fehlgeschlagen (US-59.6) | anfordernder admin | E-Mail | nein |
+| Datenexport bereit („Export bereit“, signierter Download-Link 7 Tage gültig, R2-14) | anfordernde Person (admin; beim Export der eigenen Daten das Mitglied, US-08.5) | E-Mail | nein |
+| Datenexport fehlgeschlagen (US-59.6) | anfordernde Person | E-Mail | nein |
 | Angebot versendet / neue Revision | Endkunde | E-Mail mit Portal-Link + PDF | – |
 | Annahme bzw. Änderung bestätigt | Endkunde | E-Mail mit PDF | – |
 | Änderungswunsch übernommen/abgelehnt | Endkunde | E-Mail | – |
@@ -577,6 +578,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 2. **Gegeben** „Firma verlassen“ **[Vorschlag]**, **dann** gelten dieselben Folgen für die Firma; das Konto bleibt ohne Firma bestehen (für eine neue Einladung oder eine eigene Firma).
 3. *Randfall:* **Gegeben** der letzte `admin`, **dann** sind beide Aktionen gesperrt mit Hinweis „Admin-Rolle übertragen oder Firma löschen (US-60)“.
 4. **Gegeben** Lesemodus, **dann** sind beide Aktionen trotzdem möglich.
+5. **Gegeben** „Profil → Eigene Daten exportieren“, **dann** entsteht wie in US-59 im Hintergrund ein ZIP mit Profil, Rolle, Qualifikationen, Bewerbungen und Einsätzen des Mitglieds (`request_data_export()` mit Umfang `member`, 02 §10.2), und das Mitglied erhält die E-Mail „Export bereit“ mit dem Download-Link an seine Login-E-Mail (7 Tage gültig, danach automatische Löschung) – entschieden (R2-14). Auch im Lesemodus möglich.
 
 ### 5.2 Kunden und Aufträge
 
@@ -620,7 +622,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 7. **Gegeben** ein Statuswechsel, **dann** zeigt die Auftragshistorie Zeitpunkt, alten und neuen Status, Auslöser und Grund.
 8. **Gegeben** „Direkt bestätigen“ an einem Auftrag `inquiry` oder `optioned` (z. B. Stammkunde am Telefon, Business-Lunch), auch ohne versendetes Angebot, **wenn** der Admin den Bestätigungsweg (Telefon, E-Mail, persönlich) angibt, **dann** wird der Status `confirmed` ohne Portal-Annahme – entschieden (R2-2); die Bestätigungs-E-Mail an den Kunden ist abwählbar. Ohne versendetes Angebot gilt für die Küche der aktuelle Stand des Auftrags.
 9. **Gegeben** eine Anfrage, die nicht zustande kommt, **wenn** der Admin „Anfrage kommt nicht zustande“ mit Grund wählt, **dann** wird der Status `declined` und der Auftrag verschwindet aus den Standardansichten; „Löschen“ gibt es nur für Fehleingaben ohne versendetes Angebot.
-10. **Gegeben** ein beliebiger Statuswechsel durch den Admin (einzeln oder als Sammelaktion), **wenn** er die Aktion wählt, **dann** erscheint zuerst ein Bestätigungsdialog mit altem und neuem Status, den Folgen (z. B. „Küche und 4 Eingeplante werden benachrichtigt“, „3 Slots werden geschlossen“, „E-Mail an den Kunden“) und dem Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden“; erst „Bestätigen“ führt den Wechsel aus, „Abbrechen“ ändert nichts – entschieden (R2-4).
+10. **Gegeben** ein beliebiger Statuswechsel durch den Admin (einzeln oder als Sammelaktion), **wenn** er die Aktion wählt, **dann** erscheint zuerst ein Bestätigungsdialog mit altem und neuem Status, den Folgen (z. B. „Küche und 4 Eingeplante werden benachrichtigt“, „3 Slots werden geschlossen“, „E-Mail an den Kunden“) und dem Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden.“; erst die Aktion mit dem Zielstatus als Text (z. B. „Als abgerechnet markieren“) führt den Wechsel aus, „Abbrechen“ (Standard) ändert nichts – entschieden (R2-4).
 11. *Randfall:* **Gegeben** ein Auftrag `completed`, `invoiced`, `declined` oder `cancelled`, **dann** bietet die Oberfläche keinen Wechsel zurück an (kein „Korrektur“, kein „Status korrigieren“, kein „Reaktivieren“) und `set_event_status()` lehnt Rückwärts-Übergänge ab (R2-4). Einen abgelehnten oder stornierten Auftrag nimmt der Admin über „Kopieren“ wieder auf (US-13).
 
 #### US-12 · Auftrag stornieren
@@ -922,7 +924,7 @@ sequenceDiagram
 3. **Gegeben** ein neuer Änderungswunsch, **dann** erhält der Admin sofort eine Push-Nachricht und Küchenlisten zeigen „Änderung offen: Gästezahl {alt} → {neu}“.
 4. *Randfall Kunde ändert Gästezahl nach Bestätigung:* **Gegeben** ein Auftrag `confirmed` mit 80 Gästen, Beginn 24.10., 18:00, Änderungsschluss 72 h, **wenn** der Kunde am 20.10. auf 95 ändert, **dann** entsteht ein Änderungswunsch, der Status bleibt `confirmed` und verbindlich bleiben 80 Gäste, bis der Admin übernimmt und der Kunde die Revision bestätigt (US-36).
 5. *Randfall nach Änderungsschluss:* **Gegeben** derselbe Auftrag, **wenn** der Kunde am 22.10. ändern will, **dann** ist das Feld gesperrt mit „Kurzfristige Änderungen bitte telefonisch: {Telefon}“; der Admin kann die Gästezahl selbst ändern und die Revision „Zur Info“ versenden.
-6. **Gegeben** eine Änderung der Gästezahl um 20 % oder mehr (nach oben oder unten), **dann** erscheint im Portal „Bitte stimmen Sie größere Änderungen kurz telefonisch ab“ (Senden bleibt möglich), und der Admin erhält den Wunsch als „wichtig“ mit dem Hinweis „Personalbedarf und Equipment prüfen“ – entschieden (R2-1, Schwelle ± 20 %); dieselbe Schwelle gilt in 02 §4.2.
+6. **Gegeben** eine Änderung der Gästezahl um 20 % oder mehr (nach oben oder unten), **dann** erscheint im Portal „Bei größeren Änderungen bitte kurz anrufen: {Telefon}“ (Senden bleibt möglich; Text wie 02 §4.2 und 04 SC-74), und der Admin erhält den Wunsch als „wichtig“ mit dem Hinweis „Personalbedarf und Equipment prüfen“ – entschieden (R2-1, Schwelle ± 20 %); dieselbe Schwelle gilt in 02 §4.2.
 
 #### US-35 · Allergien und Sonderessen im Portal erfassen
 `F-17`, `F-20` · **Must**
@@ -1243,9 +1245,9 @@ sequenceDiagram
 > Als **Inhaberin** möchte ich alle Daten meiner Firma exportieren, damit ich sie archivieren oder in ein anderes System übernehmen kann.
 
 1. **Gegeben** Web-Admin „Daten exportieren“, **dann** entsteht ein ZIP mit CSV-Dateien (UTF-8, Semikolon) je Bereich – Firma, Team, Kunden, Aufträge, Ablauf, Angebote mit Positionen und Revisionen, Gerichte mit Allergenen und Zutaten, Pakete, Steuersätze, Slots und Bewerbungen, Sonderessen – sowie allen Angebots-PDFs.
-2. **Gegeben** die Anforderung, **dann** legt `request_data_export()` einen Eintrag in `data_exports` mit Status `queued` an und der Web-Admin zeigt „Export wird erstellt – Sie erhalten eine E-Mail, sobald er bereit ist“. Der Export entsteht **im Hintergrund** (Edge Function `export-company`), auch wenn der Admin den Browser schließt; das ZIP liegt im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip`. Ist es fertig, erhält der anfordernde Admin die E-Mail „Export bereit“ mit einem signierten Download-Link, der 7 Tage gültig ist. Der Download läuft nur über diesen Link, nicht als Erzeugung im Browser – entschieden (R2-14; ersetzt den Browser-Export aus 06 E-17).
+2. **Gegeben** die Anforderung, **dann** legt `request_data_export()` einen Eintrag in `data_exports` mit Status `queued` an und der Web-Admin zeigt „Export wird erstellt – du bekommst eine E-Mail mit dem Download-Link“ (04 SC-67). Der Export entsteht **im Hintergrund** (Edge Function `export-company`), auch wenn der Admin den Browser schließt; das ZIP liegt im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip`. Ist es fertig, erhält der anfordernde Admin die E-Mail „Export bereit“ mit einem signierten Download-Link, der 7 Tage gültig ist. Der Download läuft nur über diesen Link, nicht als Erzeugung im Browser – entschieden (R2-14; ersetzt den Browser-Export aus 06 E-17).
 3. **Gegeben** Lesemodus oder Kündigung, **dann** bleibt der Export bis zur endgültigen Löschung möglich.
-4. **Gegeben** jeder Export, **dann** wird in `data_exports` protokolliert, wer ihn wann angefordert hat, mit Status (`queued`, `running`, `ready`, `failed`, `expired`), Dateipfad und Ablaufzeitpunkt; der Web-Admin listet die Exporte mit Status und „Link gültig bis {Datum}“. Nur `admin` darf exportieren.
+4. **Gegeben** jeder Export, **dann** wird in `data_exports` protokolliert, wer ihn wann angefordert hat, mit Status (`queued`, `running`, `ready`, `failed`, `expired`), Dateipfad und Ablaufzeitpunkt; der Web-Admin listet die Exporte mit Status und „Link gültig bis {Datum}“. Firma und Kunden exportiert nur `admin`; die eigenen Daten exportiert jedes Mitglied im Profil (Umfang `member`, US-08.5).
 5. *Randfall:* **Gegeben** 1.000 Aufträge, **dann** ist der Export vollständig und in unter 10 Minuten bereit **[Vorschlag]**.
 6. *Randfall:* **Gegeben** die Erzeugung scheitert, **dann** erhält der Eintrag Status `failed`, der anfordernde Admin erhält die E-Mail „Export fehlgeschlagen“ und der Web-Admin bietet „Erneut anfordern“ an.
 7. **Gegeben** 7 Tage nach Bereitstellung, **dann** löscht der Job `exports_cleanup` die Datei automatisch (Storage-API), der Eintrag erhält Status `expired` und der Link ist ungültig; der Web-Admin zeigt „Abgelaufen – neuen Export anfordern“ (R2-14).

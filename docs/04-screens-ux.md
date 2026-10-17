@@ -413,7 +413,7 @@ Weitere Portal-Zustände von SC-71 (kein eigener Screen): Angebot abgelaufen (An
 
 ### 2.10 Statusaktionen im Auftragskopf (SC-18)
 
-Gilt für `admin`. Die angebotenen Übergänge kommen aus der Übergangstabelle in 02 §1.1 (0.3, entschieden R2-2, R2-3, R2-4); hier ist nur festgelegt, welche Aktion **primär** erscheint **[Vorschlag]**. Es gibt nur Vorwärts-Übergänge: keine Aktion „Korrektur“, „Status korrigieren“ oder „Reaktivieren“, kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted` (R2-4). Jede Statusaktion – einzeln oder als Sammelaktion – öffnet zuerst den Bestätigungsdialog SC-31; erst „Bestätigen“ ruft `set_event_status()` auf. „Kopieren“, „Bearbeiten“ und „Erneut senden“ sind keine Statuswechsel.
+Gilt für `admin`. Die angebotenen Übergänge kommen aus der Übergangstabelle in 02 §1.1 (0.3, entschieden R2-2, R2-3, R2-4); hier ist nur festgelegt, welche Aktion **primär** erscheint **[Vorschlag]**. Es gibt nur Vorwärts-Übergänge: keine Aktion „Korrektur“, „Status korrigieren“ oder „Reaktivieren“, kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted` (R2-4). Jede Statusaktion – einzeln oder als Sammelaktion – öffnet zuerst den Bestätigungsdialog SC-31; erst dessen Aktionsschaltfläche mit dem Zielstatus („Als abgerechnet markieren“ usw.) ruft `set_event_status()` auf. „Kopieren“, „Bearbeiten“ und „Erneut senden“ sind keine Statuswechsel.
 
 | Status | Badge-Text | Primäraktion | weitere Aktionen (Überlauf-Menü) |
 |---|---|---|---|
