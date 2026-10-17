@@ -12,9 +12,10 @@ select p.oid,
    and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
 
 select is(
-  (select count(*)::int from fns where has_function_privilege('anon', oid, 'execute')),
-  0,
-  'Keine Funktion in public oder private ist für anon ausführbar'
+  (select coalesce(array_agg(sig order by sig), '{}')
+     from fns where has_function_privilege('anon', oid, 'execute')),
+  array['public.invitation_preview'],
+  'Für anon ist nur die Einladungs-Vorschau ausführbar (der Token ist das Geheimnis)'
 );
 
 select is(
@@ -27,12 +28,22 @@ select is(
   (select coalesce(array_agg(sig order by sig), '{}')
      from fns where has_function_privilege('authenticated', oid, 'execute')),
   array[
+    'public.accept_invitation',
     'public.assert_writable',
     'public.auth_company_id',
     'public.auth_member_id',
     'public.auth_role',
     'public.company_is_writable',
-    'public.create_company'
+    'public.create_company',
+    'public.create_invitation',
+    'public.delete_my_account',
+    'public.invitation_preview',
+    'public.leave_company',
+    'public.remove_member',
+    'public.resend_invitation',
+    'public.revoke_invitation',
+    'public.set_member_qualifications',
+    'public.set_member_role'
   ],
   'authenticated darf genau die Whitelist ausführen (Hilfsfunktionen aus §4.2 und RPCs)'
 );

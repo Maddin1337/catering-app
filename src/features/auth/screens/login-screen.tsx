@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -18,9 +18,10 @@ import { loginSchema, type LoginValues } from '../schemas';
 export function LoginScreen() {
   const { t } = useTranslation();
   const signIn = useSignIn();
+  const { email: presetEmail = '' } = useLocalSearchParams<{ email?: string }>();
   const { control, handleSubmit, formState } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: presetEmail, password: '' },
   });
 
   const submit = handleSubmit((v) => signIn.mutate(v));

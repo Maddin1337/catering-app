@@ -23,6 +23,11 @@ describe('toAppError', () => {
     expect(toAppError({ code: 'P0001', hint: 'avv_required' }).code).toBe('avv_required');
     expect(toAppError({ code: 'P0001', hint: 'already_member' }).code).toBe('already_member');
     expect(toAppError({ code: 'P0001', hint: 'read_only' }).code).toBe('read_only');
+    expect(toAppError({ code: 'P0001', hint: 'last_admin' }).code).toBe('last_admin');
+    expect(toAppError({ code: 'P0001', hint: 'invitation_expired' }).code).toBe(
+      'invitation_expired',
+    );
+    expect(toAppError({ code: 'P0001', hint: 'member_limit' }).code).toBe('member_limit');
     expect(toAppError({ code: '42501' }).code).toBe('forbidden');
   });
 

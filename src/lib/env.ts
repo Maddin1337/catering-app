@@ -25,3 +25,9 @@ export const envProblem = parsed.success
  * Bestätigung und Passwort-Reset nur über den Link der Standard-Mails; die Code-Felder bleiben aus.
  */
 export const authEmailCode = process.env.EXPO_PUBLIC_AUTH_EMAIL_CODE === 'true';
+
+/**
+ * Öffentliche Adresse der Web-App für Einladungslinks aus der nativen App (z. B. https://xyz.vercel.app).
+ * Im Web gilt die eigene Adresse; ohne beides fällt der Link auf das App-Schema zurück.
+ */
+export const webUrl = (process.env.EXPO_PUBLIC_WEB_URL ?? '').replace(/\/+$/, '');

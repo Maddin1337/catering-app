@@ -2,7 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
+import { useRouter } from 'expo-router';
+
 import { Button } from '@/components/ui/button';
+import { ActionCard } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatDate } from '@/lib/dates';
@@ -31,6 +34,8 @@ export function MoreScreen() {
   const profile = useCompanyProfile();
   const subscription = useSubscription();
   const signOut = useSignOut();
+  const router = useRouter();
+  const role = membership.data?.role;
   const trialEnd =
     subscription.data?.status === 'trialing' ? subscription.data.trial_ends_at : null;
 
@@ -49,6 +54,27 @@ export function MoreScreen() {
           value={membership.data ? t(`role.${membership.data.role}`) : ''}
         />
         <Row label={t('more.company')} value={profile.data?.name ?? ''} />
+      </View>
+      <View style={{ gap: 12 }}>
+        {role === 'admin' || role === 'kitchen' ? (
+          <ActionCard
+            title={t('more.team')}
+            body={t('more.teamBody')}
+            onPress={() => router.push('/team')}
+          />
+        ) : null}
+        {role === 'admin' ? (
+          <ActionCard
+            title={t('more.settings')}
+            body={t('more.settingsBody')}
+            onPress={() => router.push('/settings/company')}
+          />
+        ) : null}
+        <ActionCard
+          title={t('more.profileLink')}
+          body={t('more.profileBody')}
+          onPress={() => router.push('/profile')}
+        />
       </View>
       <Button
         label={t('more.signOut')}

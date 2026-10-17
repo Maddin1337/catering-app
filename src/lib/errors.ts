@@ -15,6 +15,18 @@ export type AppErrorCode =
   | 'already_member'
   | 'read_only'
   | 'forbidden'
+  | 'invitation_invalid'
+  | 'invitation_expired'
+  | 'invitation_revoked'
+  | 'invitation_accepted'
+  | 'invitation_exists'
+  | 'invitation_closed'
+  | 'email_mismatch'
+  | 'member_limit'
+  | 'admin_limit'
+  | 'last_admin'
+  | 'invalid_qualification'
+  | 'member_not_found'
   | 'unknown';
 
 export class AppError extends Error {
@@ -45,6 +57,20 @@ export const messages: Record<AppErrorCode, string> = {
   already_member: 'Du bist bereits Mitglied einer Firma.',
   read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
   forbidden: 'Dafür fehlt dir die Berechtigung.',
+  invitation_invalid: 'Diese Einladung gibt es nicht. Bitte prüfe den Link.',
+  invitation_expired: 'Die Einladung ist abgelaufen. Bitte den Admin um eine neue Einladung.',
+  invitation_revoked: 'Die Einladung wurde zurückgezogen. Bitte den Admin um eine neue Einladung.',
+  invitation_accepted: 'Diese Einladung wurde schon verwendet.',
+  invitation_exists: 'Für diese E-Mail-Adresse gibt es schon eine offene Einladung.',
+  invitation_closed: 'Die Einladung ist nicht mehr offen.',
+  email_mismatch:
+    'Die Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit der Adresse an, an die sie geschickt wurde.',
+  member_limit:
+    'Das Limit der aktuellen Stufe ist erreicht. Bitte entferne ein Mitglied oder eine offene Einladung.',
+  admin_limit: 'Das Limit für Admins in der aktuellen Stufe ist erreicht.',
+  last_admin: 'Du bist der einzige Admin. Ernenne zuerst jemand anderen zum Admin.',
+  invalid_qualification: 'Eine Qualifikation gibt es nicht mehr. Bitte lade die Seite neu.',
+  member_not_found: 'Dieses Mitglied gibt es nicht mehr.',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',
 };
 
@@ -66,6 +92,18 @@ export function toAppError(error: unknown): AppError {
     case 'country_unavailable':
     case 'already_member':
     case 'read_only':
+    case 'invitation_invalid':
+    case 'invitation_expired':
+    case 'invitation_revoked':
+    case 'invitation_accepted':
+    case 'invitation_exists':
+    case 'invitation_closed':
+    case 'email_mismatch':
+    case 'member_limit':
+    case 'admin_limit':
+    case 'last_admin':
+    case 'invalid_qualification':
+    case 'member_not_found':
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');

@@ -88,9 +88,15 @@ Hinweise:
 - **App:** SC-07 Willkommen, SC-08 Firma, SC-09 Branding, SC-10 Arbeitsweise, SC-11 Fertig; Tabs je Rolle (admin: Start, Kalender, Mehr · Küche: Heute, Kalender, Mehr · Service: Meine Schichten, Schichtbörse, Mehr); „Mehr“ zeigt Konto, Firma, Testphase (nur admin) und Abmelden. Start, Kalender, Heute, Meine Schichten und Schichtbörse sind Platzhalter bis M3, M7 und M8.
 - **Geprüft:** Typecheck, Lint, 29 Jest-Tests, Web-Export; der Ablauf vom Willkommen bis zum Start-Tab (und die Tabs je Rolle) im Browser gegen eine simulierte Datenbank. Gegen das echte Supabase-Projekt erst nach dem SQL-Update.
 
-### Etappe 2 (offen)
+### Etappe 2 (gebaut): Team und Einladungen
 
-Einladungen (`invitations`, `create/resend/revoke_invitation`, `accept-invitation`, SC-06), Team und Rollen (SC-54 bis SC-56), Einstellungen (SC-57 bis SC-62), Profil (SC-68), Logo-Upload, Konto löschen, Apple- und Google-Anmeldung.
+- **Datenbank:** `supabase/migrations/20261021090000_m1_team.sql` (`invitations`, Schutz des letzten Admins, RPCs `create_invitation`, `resend_invitation`, `revoke_invitation`, `invitation_preview`, `accept_invitation`, `set_member_role`, `set_member_qualifications`, `remove_member`, `leave_company`, `delete_my_account`; Planlimits für Mitglieder und Admins). Für das Dashboard: `supabase/remote-update-20261021090000.sql` im SQL Editor ausführen. 118 pgTAP-Tests laufen lokal.
+- **App:** SC-06 Einladung annehmen (mit und ohne Sitzung, Token überlebt Registrierung und Bestätigungs-Mail), SC-54 Team (Mitglieder, Einladungen), SC-55 Einladen (Link teilen), SC-56 Mitglied (Rolle, Qualifikationen, Entfernen), SC-68 Profil (Name, Telefon, Firma verlassen, Konto löschen), Firmendaten (Name, Kontakt, Adresse, Steuernummern) aus „Mehr“.
+- **Geprüft:** Typecheck, Lint, 33 Jest-Tests; im Browser gegen eine simulierte Datenbank: Team-Liste, Link erzeugen und erneuern, Einladung annehmen mit und ohne Sitzung. Gegen das echte Supabase erst nach dem SQL-Update.
+
+### Noch offen aus M1
+
+Logo-Upload, Einstellungen SC-58 bis SC-62 (Preise, Steuersätze, Fristen), Mail-Versand der Einladung (braucht eigenen Mail-Dienst, E-3), Apple- und Google-Anmeldung.
 
 ### Abweichungen M1
 
@@ -100,6 +106,9 @@ Einladungen (`invitations`, `create/resend/revoke_invitation`, `accept-invitatio
 | A-13 | SC-09 Logo | Logo-Upload im Branding-Schritt | **nur Akzentfarbe**, Logo mit den Einstellungen in Etappe 2 | Der Bucket `logos` und seine Regeln gehören zu Etappe 2 |
 | A-14 | SC-10 Änderungsschluss | Event-Catering 72 h, Business-Lunch 24 h | **nur Event-Catering einstellbar** (48/72/120 h), Business-Lunch bleibt bei 24 h | Business-Lunch gibt es erst ab M3; die Einstellung folgt mit SC-59 |
 | A-15 | AVV | Zustimmung mit Link auf das Dokument | **Checkbox ohne Link** | Der Vertragstext liegt noch nicht vor (juristische Prüfung offen); bis dahin ist die Zustimmung nur formal |
+| A-16 | Annehmen und Konto löschen | Edge Functions `accept-invitation` und `delete-account` (03 §4.8) | **RPCs `accept_invitation` und `delete_my_account`** | Beide brauchen nur Datenbankzugriff; so entfällt das Deployment von Functions, das ohne Terminal schwierig ist. Das Apple-Token beim Löschen wird mit der Apple-Anmeldung nachgerüstet |
+| A-17 | Einladung per E-Mail | Mail an die eingeladene Person (US-05.1) | **nur „Link teilen“** | Der Standard-Mailversand von Supabase erreicht nur Teammitglieder des Projekts. Der Link geht per Nachricht raus; der Mail-Versand folgt mit dem eigenen SMTP-Dienst (E-3) |
+| A-18 | Einladungslink | im Klartext abrufbar | **nur einmal sichtbar**, danach „Neuer Link“ | In der Datenbank liegt nur der SHA-256-Hash des Tokens |
 
 ## Nicht in M0 gebaut (bewusst)
 

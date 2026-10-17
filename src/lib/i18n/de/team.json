@@ -8,7 +8,11 @@
     "next": "Weiter",
     "skip": "Überspringen",
     "retry": "Erneut versuchen",
-    "error": "Das hat nicht geklappt. Bitte versuche es noch einmal."
+    "error": "Das hat nicht geklappt. Bitte versuche es noch einmal.",
+    "cancel": "Abbrechen",
+    "done": "Fertig",
+    "save": "Speichern",
+    "saved": "Gespeichert."
   },
   "auth": {
     "onlineOnly": "Anmeldung nur online.",
@@ -182,11 +186,98 @@
     "role": "Rolle",
     "company": "Firma",
     "trial": "Testphase bis {{date}}",
-    "signOut": "Abmelden"
+    "signOut": "Abmelden",
+    "team": "Team",
+    "teamBody": "Mitglieder, Rollen und Einladungen",
+    "settings": "Firma",
+    "settingsBody": "Name, Adresse und Steuerdaten",
+    "profileLink": "Mein Profil",
+    "profileBody": "Name, Telefon, Konto löschen"
   },
   "role": {
     "admin": "Admin",
     "kitchen": "Küche",
     "staff": "Service"
+  },
+  "team": {
+    "title": "Team",
+    "invite": "Mitglied einladen",
+    "members": "Mitglieder",
+    "invitations": "Einladungen ({{count}})",
+    "noInvitations": "Keine offenen Einladungen.",
+    "status": {
+      "open": "Gültig bis {{date}}",
+      "expired": "Abgelaufen am {{date}}",
+      "revoked": "Zurückgezogen",
+      "accepted": "Angenommen"
+    },
+    "newLink": "Neuer Link",
+    "revoke": "Zurückziehen",
+    "inviteTitle": "Mitglied einladen",
+    "invitedTitle": "Einladung erstellt",
+    "invitedBody": "Schick den Link per Nachricht an die Person. Er ist 7 Tage gültig und nur einmal verwendbar.",
+    "name": "Name",
+    "role": "Rolle",
+    "qualifications": "Qualifikationen",
+    "emailOptional": "E-Mail (optional)",
+    "emailHint": "Mit Adresse kann nur diese Adresse die Einladung annehmen.",
+    "createLink": "Einladungslink erstellen",
+    "roleHint": {
+      "admin": "Verwaltet Firma, Team und Angebote",
+      "kitchen": "Sieht Aufträge und Produktion",
+      "staff": "Bewirbt sich auf Schichten und sieht die eigenen Einsätze"
+    },
+    "link": {
+      "title": "Einladungslink",
+      "hint": "Gültig bis {{date}}. Aus Sicherheitsgründen zeigen wir den Link nur jetzt. Bei Verlust erzeugst du über „Neuer Link“ einen neuen.",
+      "share": "Link teilen",
+      "copied": "Link kopiert. Du kannst ihn jetzt einfügen und verschicken."
+    },
+    "shareMessage": "Du wurdest zu unserem Team eingeladen: {{link}}",
+    "memberTitle": "Mitglied",
+    "gone": "Dieses Mitglied gibt es nicht mehr.",
+    "remove": "Aus dem Team entfernen",
+    "removeTitle": "{{name}} entfernen?",
+    "removeBody": "Das Mitglied verliert sofort den Zugang zur Firma. Das Konto selbst bleibt bestehen.",
+    "validation": {
+      "nameRequired": "Bitte gib einen Namen ein.",
+      "nameLong": "Der Name darf höchstens 80 Zeichen haben."
+    }
+  },
+  "invite": {
+    "title": "Einladung",
+    "heading": "{{company}} lädt dich ein",
+    "asRole": "Als {{role}} im Team",
+    "qualifications": "Vorgesehen: {{list}}",
+    "validUntil": "Gültig bis {{date}}",
+    "needAccount": "Dafür brauchst du ein Konto. Registriere dich oder melde dich an – danach kannst du beitreten.",
+    "register": "Registrieren",
+    "login": "Ich habe schon ein Konto",
+    "join": "Jetzt beitreten",
+    "home": "Zur Startseite"
+  },
+  "profile": {
+    "title": "Mein Profil",
+    "name": "Name",
+    "phone": "Telefon",
+    "nameRequired": "Bitte gib deinen Namen ein.",
+    "leave": "Firma verlassen",
+    "leaveTitle": "Firma verlassen?",
+    "leaveBody": "Du verlierst den Zugang zu dieser Firma. Dein Konto bleibt bestehen; mit einer neuen Einladung kannst du wieder beitreten.",
+    "delete": "Konto löschen",
+    "deleteTitle": "Konto endgültig löschen?",
+    "deleteBody": "Dein Zugang und deine persönlichen Daten werden gelöscht. Das lässt sich nicht rückgängig machen."
+  },
+  "settings": {
+    "title": "Firmendaten",
+    "body": "Diese Angaben erscheinen später auf Angeboten und Rechnungen.",
+    "name": "Firmenname",
+    "email": "Kontakt-E-Mail",
+    "phone": "Telefon",
+    "street": "Straße und Hausnummer",
+    "postalCode": "PLZ",
+    "city": "Ort",
+    "vatId": "USt-IdNr.",
+    "taxNumber": "Steuernummer"
   }
 }

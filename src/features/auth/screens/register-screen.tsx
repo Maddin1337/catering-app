@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -19,9 +19,10 @@ export function RegisterScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const signUp = useSignUp();
+  const { email: presetEmail = '' } = useLocalSearchParams<{ email?: string }>();
   const { control, handleSubmit } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: presetEmail, password: '' },
   });
 
   const submit = handleSubmit((values) =>

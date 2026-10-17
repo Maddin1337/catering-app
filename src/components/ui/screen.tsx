@@ -4,16 +4,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tokens } from '@/theme/tokens';
 
+import { Button } from './button';
 import { Text } from './text';
 
 /** Seitenrahmen für Formularseiten: sicherer Bereich, Tastatur, begrenzte Breite im Web. */
 export function Screen({
   title,
   subtitle,
+  onBack,
+  backLabel = 'Zurück',
   children,
 }: {
   title: string;
   subtitle?: string;
+  /** Zeigt oben „Zurück“, z. B. auf Detailseiten außerhalb der Tabs. */
+  onBack?: () => void;
+  backLabel?: string;
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -34,6 +40,7 @@ export function Screen({
         ]}
       >
         <View style={styles.column}>
+          {onBack ? <Button label={backLabel} variant="ghost" onPress={onBack} /> : null}
           <View style={styles.header}>
             <Text variant="title1" accessibilityRole="header">
               {title}

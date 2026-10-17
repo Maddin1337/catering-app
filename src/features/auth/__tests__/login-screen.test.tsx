@@ -11,6 +11,7 @@ jest.mock('../api', () => ({
 
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: ReactNode }) => children,
+  useLocalSearchParams: () => ({}),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({

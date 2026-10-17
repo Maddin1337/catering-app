@@ -65,8 +65,11 @@ select ok(not public.company_is_writable(), 'Carla: ohne Firma nie schreibbar');
 
 -- ---------- Entfernte Mitglieder und Firmenlöschung wirken sofort ----------
 reset role;
+-- Anna ist der einzige Admin: den Schutz des letzten Admins (Trigger) hier bewusst umgehen
+set local session_replication_role = replica;
 update public.company_members set removed_at = now()
  where id = 'a2000000-0000-4000-8000-000000000001';
+set local session_replication_role = origin;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"a0000000-0000-4000-8000-000000000001","role":"authenticated"}';
 select is(public.auth_company_id(), null::uuid, 'Entfernte Mitglieder verlieren den Zugriff sofort');
