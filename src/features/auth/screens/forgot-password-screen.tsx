@@ -1,0 +1,65 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
+
+import { Banner } from '@/components/ui/banner';
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
+import { TextField } from '@/components/ui/text-field';
+import { toAppError } from '@/lib/errors';
+
+import { useRequestPasswordReset } from '../api';
+import { forgotPasswordSchema, type ForgotPasswordValues } from '../schemas';
+
+/** SC-04 Passwort vergessen: neutrale Bestätigung, verrät nicht, ob es ein Konto gibt. */
+export function ForgotPasswordScreen() {
+  const { t } = useTranslation();
+  const request = useRequestPasswordReset();
+  const { control, handleSubmit } = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
+
+  const submit = handleSubmit((v) => request.mutate(v.email));
+
+  return (
+    <Screen title={t('auth.forgot.title')} subtitle={t('auth.forgot.body')}>
+      {request.isSuccess ? <Banner tone="success">{t('auth.forgot.sent')}</Banner> : null}
+      {request.error ? <Banner tone="danger">{toAppError(request.error).message}</Banner> : null}
+      <Controller
+        control={control}
+        name="email"
+        render={({ field, fieldState }) => (
+          <TextField
+            label={t('auth.email')}
+            value={field.value}
+            onChangeText={field.onChange}
+            onBlur={field.onBlur}
+            error={fieldState.error ? t(fieldState.error.message ?? '') : undefined}
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect={false}
+            inputMode="email"
+            keyboardType="email-address"
+            textContentType="emailAddress"
+          />
+        )}
+      />
+      <Button
+        label={t('auth.forgot.submit')}
+        loading={request.isPending}
+        onPress={() => void submit()}
+      />
+      <View style={{ alignItems: 'center' }}>
+        <Link href="/login" asChild>
+          <Text variant="small" color="accent" accessibilityRole="link">
+            {t('auth.forgot.back')}
+          </Text>
+        </Link>
+      </View>
+    </Screen>
+  );
+}

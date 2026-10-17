@@ -1,0 +1,71 @@
+{
+  "common": {
+    "back": "Zurück",
+    "loading": "Lädt …",
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "offline": "Keine Verbindung. Du kannst nur ansehen, was schon geladen ist."
+  },
+  "auth": {
+    "onlineOnly": "Anmeldung nur online.",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "passwordConfirm": "Passwort wiederholen",
+    "login": {
+      "title": "Anmelden",
+      "submit": "Anmelden",
+      "forgot": "Passwort vergessen?",
+      "toRegister": "Noch kein Konto? Registrieren"
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "submit": "Konto erstellen",
+      "passwordHint": "Mindestens 10 Zeichen.",
+      "terms": "Mit der Registrierung stimmst du den Nutzungsbedingungen zu. Informationen zur Verarbeitung deiner Daten findest du in der Datenschutzerklärung.",
+      "toLogin": "Schon ein Konto? Anmelden"
+    },
+    "verify": {
+      "title": "Bestätige deine E-Mail",
+      "body": "Wir haben dir einen Link an {{email}} geschickt. Du kannst schon alles einrichten – Angebote versenden und Mitglieder einladen kannst du aber erst nach der Bestätigung.",
+      "resend": "Link erneut senden",
+      "resendIn": "Erneut senden in {{seconds}} s",
+      "resent": "Wir haben dir einen neuen Link geschickt.",
+      "continue": "Weiter einrichten"
+    },
+    "forgot": {
+      "title": "Passwort vergessen",
+      "body": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link zum Zurücksetzen.",
+      "submit": "Link senden",
+      "sent": "Falls ein Konto existiert, ist ein Link unterwegs.",
+      "back": "Zurück zur Anmeldung"
+    },
+    "reset": {
+      "title": "Neues Passwort",
+      "submit": "Speichern und anmelden",
+      "expired": "Der Link ist abgelaufen oder wurde schon verwendet.",
+      "newLink": "Neuen Link anfordern",
+      "checking": "Link wird geprüft …"
+    },
+    "welcome": {
+      "title": "Willkommen",
+      "body": "Du bist angemeldet als {{email}}. Als Nächstes legst du deine Firma an oder nimmst eine Einladung an. Das richten wir im nächsten Schritt ein.",
+      "signOut": "Abmelden"
+    },
+    "validation": {
+      "emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
+      "emailInvalid": "Diese E-Mail-Adresse sieht nicht richtig aus.",
+      "passwordRequired": "Bitte gib dein Passwort ein.",
+      "passwordShort": "Das Passwort braucht mindestens 10 Zeichen.",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein."
+    }
+  },
+  "config": {
+    "title": "App nicht konfiguriert",
+    "body": "Es fehlen Zugangsdaten für den Server: {{missing}}. Lege eine Datei .env.local nach dem Muster von .env.example an und starte die App neu."
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "body": "Diese Seite gibt es nicht oder du hast keinen Zugriff.",
+    "home": "Zur Startseite"
+  }
+}
