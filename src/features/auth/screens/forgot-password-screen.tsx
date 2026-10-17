@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { authEmailCode } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
 
 import { useRequestPasswordReset } from '../api';
@@ -27,13 +28,23 @@ export function ForgotPasswordScreen() {
   // Die Mail enthält Link und Code. Wer den Link nicht öffnen kann, gibt den Code auf der nächsten Seite ein.
   const submit = handleSubmit((v) =>
     request.mutate(v.email, {
-      onSuccess: () =>
-        router.push({ pathname: '/reset-password', params: { email: v.email.trim() } }),
+      // Mit Code in der Mail geht es auf die Code-Seite; sonst bleibt die neutrale Bestätigung stehen.
+      onSuccess: () => {
+        if (authEmailCode) {
+          router.push({ pathname: '/reset-password', params: { email: v.email.trim() } });
+        }
+      },
     }),
   );
 
   return (
-    <Screen title={t('auth.forgot.title')} subtitle={t('auth.forgot.body')}>
+    <Screen
+      title={t('auth.forgot.title')}
+      subtitle={t(authEmailCode ? 'auth.forgot.body' : 'auth.forgot.bodyLinkOnly')}
+    >
+      {request.isSuccess && !authEmailCode ? (
+        <Banner tone="success">{t('auth.forgot.sent')}</Banner>
+      ) : null}
       {request.error ? <Banner tone="danger">{toAppError(request.error).message}</Banner> : null}
       <Controller
         control={control}

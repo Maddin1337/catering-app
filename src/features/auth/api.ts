@@ -90,6 +90,16 @@ export function useVerifyOtp() {
   });
 }
 
+/** Tauscht den `code` aus dem Link der Standard-Mails gegen eine Sitzung (PKCE). Nur nativ nötig. */
+export function useExchangeCode() {
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const { error } = await client().auth.exchangeCodeForSession(code);
+      if (error) throw toAppError(error);
+    },
+  });
+}
+
 export function useUpdatePassword() {
   return useMutation({
     mutationFn: async (password: string) => {

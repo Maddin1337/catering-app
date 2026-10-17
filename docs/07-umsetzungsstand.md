@@ -43,7 +43,7 @@ Ein Test hat beim Schreiben eine Lücke gezeigt: Die Prüfung „keine Funktion 
 | A-8 | Migrationsdaten | Dateinamen `20261102…` (03 §9.2) | **`20261019…`** und Aufteilung nach Meilensteinen | M0 legt Typen, Mandant, Referenzdaten und Rechte an; die übrigen Tabellen folgen mit den Meilensteinen (03 §9.2, „Aufteilung nach Meilensteinen“) |
 | A-9 | Social-Login-Schaltflächen (M0) | Apple und Google „vorbereitet“ (06 §1.3) | **nicht eingebaut** | Ohne Zugangsdaten der Anbieter wären es tote Schaltflächen; sie kommen mit M1 |
 | A-10 | Typografie Beschriftungen | `text.caption` Gewicht 500 (04 §4.4) | **Inter SemiBold (600)** | 04 §4.4 sieht nur die Schnitte 400 und 600 vor; ein dritter Schnitt wäre eine zusätzliche Schriftdatei |
-| A-11 | Link-Art in Mails | `token_hash` (05 §6.3) | **Link und 6-stelliger Code** (R3-2), umgesetzt in SC-03 und SC-05 | Der Code funktioniert auf jedem Gerät, auch ohne Universal Links |
+| A-11 | Link-Art in Mails | `token_hash` (05 §6.3) | **Link und 6-stelliger Code** (R3-2), umgesetzt in SC-03 und SC-05, **Code-Felder hinter `EXPO_PUBLIC_AUTH_EMAIL_CODE`** (aus, bis eigener SMTP-Dienst und Vorlagen stehen); bis dahin Rückkehr über den Link der Standard-Mail (`?code=`, PKCE) | Der Code funktioniert auf jedem Gerät, auch ohne Universal Links; Vorlagen sind bei Supabase nur mit eigenem SMTP bearbeitbar |
 
 ## Supabase-Projekt einrichten (einmalig)
 
@@ -63,7 +63,7 @@ npx supabase config push    # überträgt Auth-Einstellungen und Mail-Vorlagen a
    - E-Mail-Anmeldung an, **„Confirm email“ an**
    - Mindestlänge des Passworts **10**
    - URL Configuration: Redirect-URLs `http://localhost:8081/**` und `cateringapp://**` eintragen (Site URL für den Moment `http://localhost:8081`)
-3. **Mail-Vorlagen** (Authentication, Emails, Templates): „Confirm signup“ und „Reset password“. Betreff „Bestätige deine E-Mail-Adresse“ bzw. „Passwort zurücksetzen“, Inhalt aus `supabase/templates/confirmation.html` bzw. `recovery.html` einfügen.
+3. **Mail-Vorlagen: vorerst weglassen.** Supabase lässt Vorlagen nur mit eigenem SMTP-Dienst bearbeiten (E-3). Bis dahin gelten die englischen Standard-Mails mit Link. Die App funktioniert damit (Link führt zurück in die App, die Adresse ist bestätigt, der Reset-Link öffnet „Neues Passwort“); die Code-Felder sind per `EXPO_PUBLIC_AUTH_EMAIL_CODE=false` ausgeblendet. Mit eigenem SMTP: Vorlagen aus `supabase/templates/` einfügen und das Flag auf `true` setzen.
 
 Wer später doch die CLI nutzt, markiert die Migrationen vorher mit `npx supabase migration repair --status applied <Version>` als eingespielt, sonst versucht `db push` sie erneut.
 

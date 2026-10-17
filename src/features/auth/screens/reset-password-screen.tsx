@@ -9,6 +9,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
+import { authEmailCode } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
 
 import { useUpdatePassword, useVerifyOtp } from '../api';
@@ -20,11 +21,13 @@ import {
   type ResetWithCodeValues,
 } from '../schemas';
 import { useSession } from '../session-provider';
+import { useUrlCodeSession } from '../use-url-code-session';
 
 /**
- * SC-05 Neues Passwort. Die Mail enthält Link und Code (Entscheidung R3-2):
+ * SC-05 Neues Passwort. Die Mail enthält Link und (mit `authEmailCode`) Code (Entscheidung R3-2):
  * - Link: `token_hash` und `type=recovery`; die Seite löst ihn einmal ein und legt damit eine
  *   Wiederherstellungs-Sitzung an, danach genügen zwei Passwortfelder.
+ * - Link der Standard-Mail: `code` in der URL (PKCE), die Sitzung entsteht beim Rücksprung.
  * - Code: Die Seite öffnet sich mit `email` (von „Passwort vergessen“); Code und neues Passwort
  *   stehen in einem Formular.
  * - Ohne beides (direkter Aufruf, alter Link): Hinweis mit Weg zu einem neuen Link.
@@ -35,11 +38,13 @@ export function ResetPasswordScreen() {
     token_hash: tokenHash,
     type,
     email,
-  } = useLocalSearchParams<{ token_hash?: string; type?: string; email?: string }>();
+    code,
+  } = useLocalSearchParams<{ token_hash?: string; type?: string; email?: string; code?: string }>();
   const { status } = useSession();
   const verify = useVerifyOtp();
   const verified = useRef(false);
   const hasLink = !!tokenHash && type === 'recovery';
+  const urlCode = useUrlCodeSession(hasLink ? undefined : code);
 
   useEffect(() => {
     // Der Link ist einmalig: nie zweimal einlösen (z. B. durch erneutes Rendern).
@@ -62,7 +67,20 @@ export function ResetPasswordScreen() {
     return <NewPasswordForm />;
   }
 
-  if (email) return <CodeForm email={email} />;
+  // Link der Standard-Mail (`code` in der URL): erst die Sitzung abwarten, dann das Passwort setzen.
+  if (urlCode.active) {
+    if (urlCode.failed) return <Expired />;
+    if (!urlCode.ready) {
+      return (
+        <Screen title={t('auth.reset.title')} subtitle={t('auth.reset.checking')}>
+          {null}
+        </Screen>
+      );
+    }
+    return <NewPasswordForm />;
+  }
+
+  if (email && authEmailCode) return <CodeForm email={email} />;
 
   return <Expired />;
 }

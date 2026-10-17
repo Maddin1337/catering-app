@@ -18,3 +18,10 @@ export const env = parsed.success ? parsed.data : null;
 export const envProblem = parsed.success
   ? null
   : parsed.error.issues.map((i) => i.path.join('.')).join(', ');
+
+/**
+ * Enthalten die Auth-Mails den 6-stelligen Code? Das setzt eigene Mail-Vorlagen voraus, und die
+ * lassen sich bei Supabase erst mit eigenem SMTP-Dienst bearbeiten (docs/07). Bis dahin laufen
+ * Bestätigung und Passwort-Reset nur über den Link der Standard-Mails; die Code-Felder bleiben aus.
+ */
+export const authEmailCode = process.env.EXPO_PUBLIC_AUTH_EMAIL_CODE === 'true';

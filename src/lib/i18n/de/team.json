@@ -36,13 +36,17 @@
       "expired": "Der Link ist abgelaufen oder wurde schon verwendet. Gib den Code aus der E-Mail ein oder registriere dich erneut – dann schicken wir dir eine neue Mail.",
       "codeLabel": "Code aus der E-Mail",
       "codeHint": "6 Ziffern",
-      "codeSubmit": "Bestätigen"
+      "codeSubmit": "Bestätigen",
+      "bodyLinkOnly": "Wir haben dir eine E-Mail an {{email}} geschickt. Öffne den Link darin, danach kannst du dich anmelden.",
+      "confirmedLogin": "Wenn du den Link in der E-Mail angetippt hast, ist deine Adresse bestätigt. Melde dich jetzt an."
     },
     "forgot": {
       "title": "Passwort vergessen",
       "body": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link und einen Code zum Zurücksetzen.",
       "submit": "Link senden",
-      "back": "Zurück zur Anmeldung"
+      "back": "Zurück zur Anmeldung",
+      "bodyLinkOnly": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link zum Zurücksetzen.",
+      "sent": "Falls ein Konto existiert, ist ein Link unterwegs."
     },
     "reset": {
       "title": "Neues Passwort",
