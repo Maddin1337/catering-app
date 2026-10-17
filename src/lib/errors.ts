@@ -10,6 +10,11 @@ export type AppErrorCode =
   | 'link_expired'
   | 'offline'
   | 'not_configured'
+  | 'avv_required'
+  | 'country_unavailable'
+  | 'already_member'
+  | 'read_only'
+  | 'forbidden'
   | 'unknown';
 
 export class AppError extends Error {
@@ -34,15 +39,36 @@ export const messages: Record<AppErrorCode, string> = {
     'Der Link oder Code ist abgelaufen, ungültig oder wurde schon verwendet. Fordere einen neuen an.',
   offline: 'Keine Verbindung. Anmelden geht nur online.',
   not_configured: 'Die App ist nicht konfiguriert (Supabase-Zugangsdaten fehlen).',
+  avv_required: 'Bitte akzeptiere die Auftragsverarbeitungsvereinbarung (AVV).',
+  country_unavailable:
+    'Dieses Land ist noch nicht verfügbar. Zurzeit gibt es die App für Deutschland.',
+  already_member: 'Du bist bereits Mitglied einer Firma.',
+  read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
+  forbidden: 'Dafür fehlt dir die Berechtigung.',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',
 };
 
-type AuthLikeError = { code?: string; message?: string; status?: number; name?: string };
+type AuthLikeError = {
+  code?: string;
+  message?: string;
+  status?: number;
+  name?: string;
+  hint?: string | null;
+};
 
 /** Übersetzt Fehler von supabase-js (AuthError) und Netzwerkfehler in einen AppError. */
 export function toAppError(error: unknown): AppError {
   if (error instanceof AppError) return error;
   const e = (error ?? {}) as AuthLikeError;
+  // Fehler unserer Datenbankfunktionen tragen einen `hint` (docs/03 §4.1 Nr. 5).
+  switch (e.hint) {
+    case 'avv_required':
+    case 'country_unavailable':
+    case 'already_member':
+    case 'read_only':
+      return new AppError(e.hint);
+  }
+  if (e.code === '42501') return new AppError('forbidden');
   switch (e.code) {
     case 'invalid_credentials':
       return new AppError('invalid_credentials');

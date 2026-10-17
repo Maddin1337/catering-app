@@ -35,7 +35,7 @@ Ein Test hat beim Schreiben eine Lücke gezeigt: Die Prüfung „keine Funktion 
 |---|---|---|---|---|
 | A-1 | Routenordner | `app/` im Repo-Root (05 §3.1, 04 §1.2) | **`src/app/`** | Vorgabe des Expo-SDK-58-Templates; Expo Router unterstützt beides. `AGENTS.md` des Templates verweist darauf |
 | A-2 | Gruppe `(public)` | `verify-email`, `reset-password`, `invite/[token]` in `(auth)` | **eigene Gruppe `(public)`**, immer erreichbar | Der Reset-Link legt selbst eine Sitzung an; läge die Route in `(auth)` (nur ohne Sitzung), würde das Gate sie wegschalten |
-| A-3 | SC-07 Willkommen | `(auth)/welcome` | **`(app)/welcome`** | Mit Sitzung gehört die Seite in die geschützte Gruppe. Das Gate bekommt mit M1 eine dritte Stufe „Sitzung ohne Mitgliedschaft“ |
+| A-3 | SC-07 Willkommen und Onboarding | `(auth)/welcome`, `(auth)/onboarding/*` | **`(setup)/welcome`, `(setup)/onboarding/*`** | Mit Sitzung, aber ohne Firma oder mit offenem Onboarding gehören die Seiten in eine eigene geschützte Gruppe. Das Gate (`useSetupStage`) kennt seit M1 die Stufen `signedOut`, `noCompany`, `onboarding`, `ready` und `error` |
 | A-4 | UI-Bibliothek | NativeWind + react-native-reusables (05 §2.2) | **`StyleSheet` mit Design-Tokens** (`src/theme/tokens.ts`), eigene Basis-Komponenten | NativeWind ist für SDK 58 und React Native 0.88 nur als Vorabversion (5.0.0-rc) verfügbar; die stabile 4.x ist dafür nicht belegt. Eigene Komponenten sind ohne Risiko lauffähig, auch im Web. Die Entscheidung wird mit dem Expo-SDK-Upgrade neu bewertet |
 | A-5 | Speicher der Sitzung (nativ) | verschlüsseltes MMKV, Schlüssel im SecureStore (05 §2.3) | **SecureStore in Blöcken** (`src/lib/secure-kv.ts`) | MMKV braucht ein natives Modul und einen Development-Build, den es hier nicht gibt. MMKV kommt mit dem Offline-Lesen in M7 |
 | A-6 | Mail-Bestätigung | Bestätigung optional; einrichten darf man vorher (01 US-01.7) | **Bestätigung vor der ersten Anmeldung** (`enable_confirmations = true`), **entschieden R3-1** | Supabase legt ohne Bestätigung keine Mail an und bestätigt automatisch. „Erst einrichten, dann bestätigen“ ginge nur mit eigener Logik. Die Schutzwirkung (kein Versand und keine Einladungen ohne bestätigte Adresse) ist damit ohnehin erfüllt. Der Gründer hat zugestimmt: US-01.7 entfällt (R3-1) |
@@ -80,13 +80,34 @@ Hinweise:
 
 `expo-updates` ist eingebunden (`runtimeVersion` folgt der App-Version, Update-URL des Expo-Projekts). `.eas/workflows/publish-preview-update.yml` veröffentlicht bei jedem Push auf `planung` einen Stand auf den EAS-Branch `preview`. Die öffentlichen Supabase-Werte stehen dafür in `.env` (im Repo, nur öffentliche Werte); persönliche Abweichungen gehören in `.env.local`. Das Workflow ist noch **nicht** gelaufen; ob Expo Go den Stand öffnet, ist ungeprüft.
 
+## M1 · Firma, Team, Einladung
+
+### Etappe 1 (gebaut): Firma anlegen und Tabs je Rolle
+
+- **Datenbank:** `supabase/migrations/20261020090000_m1_company.sql` (`tax_rates`, `qualifications`, `member_qualifications`, Rechte und Policies für `companies`, `company_members`, `subscriptions`, Views `company_profile` und `team_directory`, RPC `create_company()` mit Standarddaten). Für das Supabase-Dashboard: `supabase/remote-update-20261020090000.sql` im SQL Editor ausführen (nur diese Datei, nicht noch einmal `remote-setup.sql`). 74 pgTAP-Tests laufen lokal.
+- **App:** SC-07 Willkommen, SC-08 Firma, SC-09 Branding, SC-10 Arbeitsweise, SC-11 Fertig; Tabs je Rolle (admin: Start, Kalender, Mehr · Küche: Heute, Kalender, Mehr · Service: Meine Schichten, Schichtbörse, Mehr); „Mehr“ zeigt Konto, Firma, Testphase (nur admin) und Abmelden. Start, Kalender, Heute, Meine Schichten und Schichtbörse sind Platzhalter bis M3, M7 und M8.
+- **Geprüft:** Typecheck, Lint, 29 Jest-Tests, Web-Export; der Ablauf vom Willkommen bis zum Start-Tab (und die Tabs je Rolle) im Browser gegen eine simulierte Datenbank. Gegen das echte Supabase-Projekt erst nach dem SQL-Update.
+
+### Etappe 2 (offen)
+
+Einladungen (`invitations`, `create/resend/revoke_invitation`, `accept-invitation`, SC-06), Team und Rollen (SC-54 bis SC-56), Einstellungen (SC-57 bis SC-62), Profil (SC-68), Logo-Upload, Konto löschen, Apple- und Google-Anmeldung.
+
+### Abweichungen M1
+
+| # | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-12 | SC-08 Land | Auswahl DE, AT, CH | **nur Deutschland wählbar**, AT und CH „bald verfügbar“ | `create_company()` lehnt andere Länder ab, bis Steuersätze und Rechtstexte dafür stehen |
+| A-13 | SC-09 Logo | Logo-Upload im Branding-Schritt | **nur Akzentfarbe**, Logo mit den Einstellungen in Etappe 2 | Der Bucket `logos` und seine Regeln gehören zu Etappe 2 |
+| A-14 | SC-10 Änderungsschluss | Event-Catering 72 h, Business-Lunch 24 h | **nur Event-Catering einstellbar** (48/72/120 h), Business-Lunch bleibt bei 24 h | Business-Lunch gibt es erst ab M3; die Einstellung folgt mit SC-59 |
+| A-15 | AVV | Zustimmung mit Link auf das Dokument | **Checkbox ohne Link** | Der Vertragstext liegt noch nicht vor (juristische Prüfung offen); bis dahin ist die Zustimmung nur formal |
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |
 |---|---|---|
 | Deploy nach staging (Migrationen, Functions, EAS Update, Web-Hosting) | braucht Supabase-Projekt, Expo-Konto, Hosting (E-12) | sobald die Konten stehen |
 | `expo-updates`, EAS-Projekt-ID, Build-Läufe | braucht Expo-Konto | M0 oder M1, nach Kontoanlage |
-| Apple- und Google-Anmeldung | siehe A-9 | M1 |
+| Apple- und Google-Anmeldung | siehe A-9 | M1, Etappe 2 |
 | Bundle-ID | Platzhalter `com.example.cateringapp` in `app.config.ts` | vor dem ersten Store-Build, mit dem App-Namen (E-2) |
 | Icon und Splash | Platzhalter-Dateien des Templates | mit Name und Marke (E-4) |
 | Sentry, Maestro-E2E | in 05 §10 für später vorgesehen | M10 |

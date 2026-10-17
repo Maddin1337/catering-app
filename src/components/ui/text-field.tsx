@@ -117,6 +117,8 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.regular,
     fontSize: 16,
     color: tokens.color.text,
+    // Der Rahmen des Feldes zeigt den Fokus; kein zweiter Browser-Rahmen im Web.
+    outlineWidth: 0,
   },
   reveal: { minHeight: 44, justifyContent: 'center', paddingLeft: tokens.space[2] },
 });

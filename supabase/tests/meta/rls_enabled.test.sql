@@ -22,14 +22,15 @@ select is(
   'anon hat keine Rechte auf Tabellen oder Views in public'
 );
 
+-- Anlegen und Löschen laufen nur über RPCs bzw. service_role (docs/03 §4.5)
 select is(
   (select count(*)::int
      from pg_class c
     where c.oid in ('public.companies'::regclass, 'public.company_members'::regclass,
                     'public.subscriptions'::regclass)
-      and has_table_privilege('authenticated', c.oid, 'select,insert,update,delete,truncate')),
+      and has_table_privilege('authenticated', c.oid, 'insert,delete,truncate')),
   0,
-  'authenticated hat in M0 keine direkten Rechte auf die Mandanten-Tabellen (default deny)'
+  'authenticated darf Firmen, Mitglieder und Abos weder anlegen noch löschen'
 );
 
 select * from finish();

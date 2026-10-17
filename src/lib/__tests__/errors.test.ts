@@ -19,6 +19,13 @@ describe('toAppError', () => {
     expect(toAppError(new TypeError('Network request failed')).code).toBe('offline');
   });
 
+  it('liest den hint der Datenbankfunktionen', () => {
+    expect(toAppError({ code: 'P0001', hint: 'avv_required' }).code).toBe('avv_required');
+    expect(toAppError({ code: 'P0001', hint: 'already_member' }).code).toBe('already_member');
+    expect(toAppError({ code: 'P0001', hint: 'read_only' }).code).toBe('read_only');
+    expect(toAppError({ code: '42501' }).code).toBe('forbidden');
+  });
+
   it('reicht AppError unverändert durch und fällt sonst auf „unknown“ zurück', () => {
     const e = new AppError('not_configured');
     expect(toAppError(e)).toBe(e);

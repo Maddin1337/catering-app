@@ -8,8 +8,10 @@ create schema extensions;
 create schema auth;
 
 create table auth.users (
-  id    uuid primary key,
-  email text
+  id                 uuid primary key,
+  email              text,
+  raw_user_meta_data jsonb default '{}'::jsonb,
+  raw_app_meta_data  jsonb default '{}'::jsonb
 );
 
 -- wie in Supabase: Nutzer-ID aus den JWT-Claims der Anfrage

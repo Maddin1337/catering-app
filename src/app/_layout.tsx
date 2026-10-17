@@ -9,9 +9,13 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { Screen } from '@/components/ui/screen';
 import { Banner } from '@/components/ui/banner';
-import { SessionProvider, useSession } from '@/features/auth/session-provider';
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
+import { useSignOut } from '@/features/auth/api';
+import { SessionProvider } from '@/features/auth/session-provider';
+import { useMembership } from '@/features/company/api';
+import { useSetupStage } from '@/features/company/use-setup-stage';
 import { envProblem } from '@/lib/env';
 import { queryClient } from '@/lib/query-client';
 
@@ -35,31 +39,57 @@ export default function RootLayout() {
 }
 
 /**
- * Auth-Gate (docs/04 §1.1 Nr. 2): ohne Sitzung nur `(auth)`, mit Sitzung nur `(app)`.
- * `(public)` (Passwort zurücksetzen, Einladung) und das Kundenportal sind immer erreichbar,
- * denn der Reset-Link legt selbst eine Sitzung an.
+ * Gate (docs/04 §1.1 Nr. 2): Je nach Stand ist genau eine Gruppe erreichbar – `(auth)` ohne Sitzung,
+ * `(setup)` ohne Firma bzw. im Onboarding, `(app)` für die Team-App. `(public)` (Passwort
+ * zurücksetzen, Einladung) und das Kundenportal sind immer erreichbar, denn der Link legt selbst
+ * eine Sitzung an.
  */
 function Gate({ fontsReady }: { fontsReady: boolean }) {
-  const { status } = useSession();
-  const ready = fontsReady && status !== 'loading';
+  const { stage } = useSetupStage();
+  const ready = fontsReady && stage !== 'loading';
 
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
 
   if (!ready) return null;
+  if (stage === 'error') return <MembershipError />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={status === 'signedIn'}>
+      <Stack.Protected guard={stage === 'ready'}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
-      <Stack.Protected guard={status === 'signedOut'}>
+      <Stack.Protected guard={stage === 'noCompany' || stage === 'onboarding'}>
+        <Stack.Screen name="(setup)" />
+      </Stack.Protected>
+      <Stack.Protected guard={stage === 'signedOut'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
       <Stack.Screen name="(public)" />
       <Stack.Screen name="portal/[token]" />
     </Stack>
+  );
+}
+
+/** Die Mitgliedschaft ließ sich nicht lesen: nicht ins Willkommen schicken, sondern neu laden lassen. */
+function MembershipError() {
+  const { t } = useTranslation();
+  const membership = useMembership();
+  const signOut = useSignOut();
+  return (
+    <Screen title={t('shell.error.title')} subtitle={t('shell.error.body')}>
+      <Button
+        label={t('common.retry')}
+        loading={membership.isFetching}
+        onPress={() => void membership.refetch()}
+      />
+      <Button
+        label={t('company.welcome.signOut')}
+        variant="ghost"
+        onPress={() => signOut.mutate()}
+      />
+    </Screen>
   );
 }
 

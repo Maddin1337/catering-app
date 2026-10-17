@@ -3,6 +3,9 @@
 begin;
 select plan(18);
 
+-- Hinweis: Seit M1 sind die Tabellen per Policy lesbar; der Zugriffstest der Tabellen steht in
+-- m1_company.test.sql. Hier bleiben die Hilfsfunktionen.
+
 -- Fixtures (als Eigentümer, RLS gilt nicht)
 insert into auth.users (id, email) values
   ('a0000000-0000-4000-8000-000000000001', 'anna@firma-a.test'),
@@ -36,12 +39,12 @@ select ok(public.company_is_writable(), 'Anna: Firma A ist schreibbar');
 select ok(not public.company_is_writable('b1000000-0000-4000-8000-000000000001'),
           'Anna: Firma B ist für sie nicht schreibbar (Abo abgelaufen)');
 select lives_ok('select public.assert_writable()', 'Anna: assert_writable() läuft durch');
-select throws_ok('select count(*) from public.companies', '42501', null,
-                 'Anna: companies ist in M0 nicht lesbar (default deny)');
-select throws_ok('select count(*) from public.company_members', '42501', null,
-                 'Anna: company_members ist in M0 nicht lesbar');
-select throws_ok('select count(*) from public.subscriptions', '42501', null,
-                 'Anna: subscriptions ist in M0 nicht lesbar');
+select is((select count(*)::int from public.companies), 1,
+          'Anna: sieht nur die eigene Firma, nie Firma B');
+select is((select count(*)::int from public.company_members), 1,
+          'Anna: sieht nur Mitglieder der eigenen Firma');
+select is((select count(*)::int from public.subscriptions), 1,
+          'Anna: sieht nur das Abo der eigenen Firma');
 
 -- ---------- Bernd (kitchen, Firma B, Abo abgelaufen = Lesemodus) ----------
 set local request.jwt.claims = '{"sub":"b0000000-0000-4000-8000-000000000001","role":"authenticated"}';

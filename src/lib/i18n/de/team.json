@@ -4,7 +4,11 @@
     "loading": "Lädt …",
     "show": "Anzeigen",
     "hide": "Verbergen",
-    "offline": "Keine Verbindung. Du kannst nur ansehen, was schon geladen ist."
+    "offline": "Keine Verbindung. Du kannst nur ansehen, was schon geladen ist.",
+    "next": "Weiter",
+    "skip": "Überspringen",
+    "retry": "Erneut versuchen",
+    "error": "Das hat nicht geklappt. Bitte versuche es noch einmal."
   },
   "auth": {
     "onlineOnly": "Anmeldung nur online.",
@@ -56,11 +60,6 @@
       "checking": "Link wird geprüft …",
       "codeBody": "Falls ein Konto zu {{email}} existiert, ist eine E-Mail unterwegs. Öffne den Link darin oder gib hier den Code ein und lege dein neues Passwort fest."
     },
-    "welcome": {
-      "title": "Willkommen",
-      "body": "Du bist angemeldet als {{email}}. Als Nächstes legst du deine Firma an oder nimmst eine Einladung an. Das richten wir im nächsten Schritt ein.",
-      "signOut": "Abmelden"
-    },
     "validation": {
       "emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
       "emailInvalid": "Diese E-Mail-Adresse sieht nicht richtig aus.",
@@ -78,5 +77,116 @@
     "title": "Seite nicht gefunden",
     "body": "Diese Seite gibt es nicht oder du hast keinen Zugriff.",
     "home": "Zur Startseite"
+  },
+  "company": {
+    "step": "Schritt {{current}} von {{total}}",
+    "welcome": {
+      "title": "Willkommen",
+      "body": "Du bist angemeldet als {{email}}. Wie möchtest du starten?",
+      "create": {
+        "title": "Neue Firma anlegen",
+        "body": "Du richtest deine Firma und dein Team ein. Die Testphase dauert 14 Tage."
+      },
+      "invite": {
+        "title": "Ich habe eine Einladung",
+        "body": "Du wurdest von deiner Firma eingeladen und möchtest beitreten."
+      },
+      "signOut": "Abmelden"
+    },
+    "invite": {
+      "title": "Einladung annehmen",
+      "body": "Öffne den Link aus der Einladungs-E-Mail. Er führt dich direkt zu deiner Firma. Hast du keine E-Mail bekommen, bitte den Admin deiner Firma um eine neue Einladung."
+    },
+    "country": {
+      "DE": "Deutschland",
+      "AT": "Österreich",
+      "CH": "Schweiz"
+    },
+    "company": {
+      "title": "Deine Firma",
+      "body": "Diese Angaben erscheinen später auf Angeboten und im Kundenportal.",
+      "name": "Firmenname",
+      "country": "Land",
+      "soon": "bald verfügbar",
+      "email": "Kontakt-E-Mail der Firma",
+      "emailHint": "An diese Adresse gehen Antworten deiner Kunden.",
+      "avv": "Ich stimme dem Vertrag zur Auftragsverarbeitung (AVV) zu.",
+      "submit": "Firma anlegen"
+    },
+    "validation": {
+      "nameRequired": "Bitte gib den Firmennamen ein.",
+      "nameLong": "Der Name darf höchstens 120 Zeichen haben.",
+      "emailRequired": "Bitte gib eine Kontakt-E-Mail ein.",
+      "avvRequired": "Ohne Zustimmung zur AVV können wir die Firma nicht anlegen."
+    },
+    "branding": {
+      "title": "Deine Farbe",
+      "body": "Die Akzentfarbe erscheint in Angeboten und im Kundenportal. Du kannst sie später ändern.",
+      "hex": "Farbwert (Hex)",
+      "hexInvalid": "Bitte gib einen Farbwert wie #0F766E ein.",
+      "contrast": "Weißer Text ist auf dieser Farbe schlecht lesbar. Wähle eine dunklere Farbe.",
+      "previewLabel": "Vorschau",
+      "previewButton": "Angebot ansehen",
+      "logoLater": "Dein Logo kannst du später in den Einstellungen hochladen."
+    },
+    "defaults": {
+      "title": "So arbeitest du",
+      "body": "Wir haben sinnvolle Standardwerte vorbelegt. Du kannst alles später ändern.",
+      "pricing": "Kalkulation von Angeboten",
+      "pricingFlat": "Pauschalpreis pro Person",
+      "pricingFlatHint": "Du nennst einen festen Preis.",
+      "pricingCost": "Wareneinsatz plus Aufschlag",
+      "pricingCostHint": "Der Preis folgt aus deinen Kosten.",
+      "cancel": "Absagefrist für Schichten",
+      "lead": "Änderungsschluss im Portal (Event-Catering)",
+      "hours": "{{hours}} Stunden vorher",
+      "leadHint": "Empfohlen",
+      "tax": "Steuersätze (Deutschland)",
+      "taxReviewed": "Ich habe die Steuersätze geprüft.",
+      "taxHint": "Die Sätze sind Vorschläge. Bitte prüfe sie mit deinem Steuerberater.",
+      "submit": "Übernehmen"
+    },
+    "done": {
+      "title": "Alles bereit",
+      "body": "Deine Firma ist angelegt.",
+      "trial": "Testphase bis {{date}}. Bis dahin kannst du alles ausprobieren.",
+      "next": "Das kannst du als Nächstes tun",
+      "tasks": {
+        "team": "Dein Team einladen",
+        "dish": "Erste Gerichte anlegen",
+        "quote": "Ein Angebot erstellen"
+      },
+      "submit": "Los geht’s"
+    }
+  },
+  "tabs": {
+    "start": "Start",
+    "calendar": "Kalender",
+    "more": "Mehr",
+    "today": "Heute",
+    "myShifts": "Meine Schichten",
+    "shiftBoard": "Schichtbörse"
+  },
+  "shell": {
+    "soon": "Kommt in {{milestone}}.",
+    "error": {
+      "title": "Keine Verbindung",
+      "body": "Wir konnten deine Firma nicht laden. Prüfe deine Verbindung und versuche es noch einmal."
+    }
+  },
+  "more": {
+    "title": "Mehr",
+    "profile": "Dein Konto",
+    "name": "Name",
+    "email": "E-Mail",
+    "role": "Rolle",
+    "company": "Firma",
+    "trial": "Testphase bis {{date}}",
+    "signOut": "Abmelden"
+  },
+  "role": {
+    "admin": "Admin",
+    "kitchen": "Küche",
+    "staff": "Service"
   }
 }

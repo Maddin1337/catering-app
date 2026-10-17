@@ -1,9 +1,10 @@
 import { Redirect } from 'expo-router';
 
-import { useSession } from '@/features/auth/session-provider';
+import { defaultRoute } from '@/features/company/routes';
+import { useSetupStage } from '@/features/company/use-setup-stage';
 
 // Einstiegspunkt „/“: Das Gate im Root-Layout lässt nur die passende Gruppe zu.
 export default function Index() {
-  const { status } = useSession();
-  return <Redirect href={status === 'signedIn' ? '/welcome' : '/login'} />;
+  const { stage, role } = useSetupStage();
+  return <Redirect href={defaultRoute(stage, role)} />;
 }

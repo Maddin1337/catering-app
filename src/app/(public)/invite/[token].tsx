@@ -6,5 +6,5 @@ import { Screen } from '@/components/ui/screen';
 // funktionieren. Die Logik (`accept-invitation`) folgt in M1.
 export default function InviteRoute() {
   const { t } = useTranslation();
-  return <Screen title={t('auth.welcome.title')}>{null}</Screen>;
+  return <Screen title={t('company.invite.title')}>{null}</Screen>;
 }

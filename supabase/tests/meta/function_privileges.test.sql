@@ -5,7 +5,7 @@ select plan(8);
 -- Funktionen, die Erweiterungen mitbringen (z. B. pgTAP in public), zählen nicht.
 create temp table fns on commit drop as
 select p.oid,
-       n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as sig
+       n.nspname || '.' || p.proname as sig
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
  where n.nspname in ('public', 'private')
@@ -27,13 +27,14 @@ select is(
   (select coalesce(array_agg(sig order by sig), '{}')
      from fns where has_function_privilege('authenticated', oid, 'execute')),
   array[
-    'public.assert_writable()',
-    'public.auth_company_id()',
-    'public.auth_member_id()',
-    'public.auth_role()',
-    'public.company_is_writable(p_company_id uuid)'
+    'public.assert_writable',
+    'public.auth_company_id',
+    'public.auth_member_id',
+    'public.auth_role',
+    'public.company_is_writable',
+    'public.create_company'
   ],
-  'authenticated darf genau die Whitelist ausführen (Hilfsfunktionen aus §4.2)'
+  'authenticated darf genau die Whitelist ausführen (Hilfsfunktionen aus §4.2 und RPCs)'
 );
 
 select ok(
