@@ -16,6 +16,11 @@ export type AppErrorCode =
   | 'read_only'
   | 'forbidden'
   | 'duplicate'
+  | 'dish_not_found'
+  | 'ingredient_not_found'
+  | 'package_not_found'
+  | 'invalid_name'
+  | 'unit_in_use'
   | 'invitation_invalid'
   | 'invitation_expired'
   | 'invitation_revoked'
@@ -59,6 +64,11 @@ export const messages: Record<AppErrorCode, string> = {
   read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
   forbidden: 'Dafür fehlt dir die Berechtigung.',
   duplicate: 'Diesen Eintrag gibt es schon.',
+  dish_not_found: 'Dieses Gericht gibt es nicht mehr.',
+  ingredient_not_found: 'Diese Zutat gibt es nicht mehr.',
+  package_not_found: 'Dieses Paket gibt es nicht mehr.',
+  invalid_name: 'Bitte gib einen Namen ein.',
+  unit_in_use: 'Die Einheit lässt sich nicht ändern, solange Gerichte die Zutat nutzen.',
   invitation_invalid: 'Diese Einladung gibt es nicht. Bitte prüfe den Link.',
   invitation_expired: 'Die Einladung ist abgelaufen. Bitte den Admin um eine neue Einladung.',
   invitation_revoked: 'Die Einladung wurde zurückgezogen. Bitte den Admin um eine neue Einladung.',
@@ -106,6 +116,11 @@ export function toAppError(error: unknown): AppError {
     case 'last_admin':
     case 'invalid_qualification':
     case 'member_not_found':
+    case 'dish_not_found':
+    case 'ingredient_not_found':
+    case 'package_not_found':
+    case 'invalid_name':
+    case 'unit_in_use':
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');

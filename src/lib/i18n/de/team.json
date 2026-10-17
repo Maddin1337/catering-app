@@ -12,7 +12,8 @@
     "cancel": "Abbrechen",
     "done": "Fertig",
     "save": "Speichern",
-    "saved": "Gespeichert."
+    "saved": "Gespeichert.",
+    "remove": "Entfernen"
   },
   "auth": {
     "onlineOnly": "Anmeldung nur online.",
@@ -192,7 +193,9 @@
     "settings": "Einstellungen",
     "settingsBody": "Firma, Steuersätze, Fristen und Texte",
     "profileLink": "Mein Profil",
-    "profileBody": "Name, Telefon, Konto löschen"
+    "profileBody": "Name, Telefon, Konto löschen",
+    "catalog": "Katalog",
+    "catalogBody": "Gerichte, Pakete und Zutaten"
   },
   "role": {
     "admin": "Admin",
@@ -409,6 +412,151 @@
       "quote_terms_text_hint": "Zahlungsziel, Stornoregeln, Lieferbedingungen.",
       "quote_closing_text": "Schluss",
       "quote_closing_text_hint": "Grußformel und Hinweis auf Rückfragen."
+    }
+  },
+  "allergen": {
+    "gluten": "Gluten",
+    "crustaceans": "Krebstiere",
+    "eggs": "Eier",
+    "fish": "Fisch",
+    "peanuts": "Erdnüsse",
+    "soybeans": "Soja",
+    "milk": "Milch",
+    "nuts": "Schalenfrüchte",
+    "celery": "Sellerie",
+    "mustard": "Senf",
+    "sesame": "Sesam",
+    "sulphites": "Sulfite",
+    "lupin": "Lupinen",
+    "molluscs": "Weichtiere"
+  },
+  "diet": {
+    "vegetarian": "Vegetarisch",
+    "vegan": "Vegan",
+    "halal": "Halal",
+    "kosher": "Koscher",
+    "gluten_free": "Glutenfrei",
+    "lactose_free": "Laktosefrei"
+  },
+  "catalog": {
+    "tabs": {
+      "dishes": "Gerichte",
+      "packages": "Pakete",
+      "ingredients": "Zutaten"
+    },
+    "search": "Suchen",
+    "all": "Alle",
+    "archive": "Archiv",
+    "unreviewed": "Ungeprüft",
+    "unreviewedBadge": "Allergene ungeprüft",
+    "withoutAllergen": "Ohne Allergen …",
+    "withoutAllergenHint": "Zeigt nur Gerichte, deren Allergene geprüft sind und die nichts davon enthalten.",
+    "allergens": "Allergene",
+    "category": {
+      "starter": "Vorspeise",
+      "soup": "Suppe",
+      "main": "Hauptgang",
+      "side": "Beilage",
+      "dessert": "Dessert",
+      "finger_food": "Fingerfood",
+      "beverage": "Getränk",
+      "other": "Sonstiges"
+    },
+    "unit": {
+      "g": "g",
+      "ml": "ml",
+      "piece": "Stück"
+    },
+    "perUnit": {
+      "g": "je kg",
+      "ml": "je l",
+      "piece": "je Stück"
+    },
+    "dishes": {
+      "title": "Gerichte",
+      "add": "Gericht anlegen",
+      "empty": "Lege dein erstes Gericht an. Mit Allergenen ist es sofort angebotsfertig."
+    },
+    "dish": {
+      "title": "Gericht",
+      "new": "Neues Gericht",
+      "edit": "Gericht bearbeiten",
+      "gone": "Dieses Gericht gibt es nicht mehr.",
+      "name": "Name",
+      "description": "Beschreibung (für das Angebot)",
+      "category": "Kategorie",
+      "portionLabel": "Portionsbezeichnung",
+      "nameError": "Bitte gib einen Namen ein.",
+      "qtyError": "Bitte gib eine Menge größer 0 ein, zum Beispiel 180 oder 0,25.",
+      "priceError": "Bitte gib einen Betrag wie 11,70 ein.",
+      "dietsTitle": "Diätformen",
+      "veganConflict": "Vegan, aber enthält laut Angabe: {{list}}. Bitte prüfen.",
+      "allergensTitle": "Allergene",
+      "allergensHint": "Markiere alle Allergene, die das Gericht enthält. Ohne Markierung enthält es keine der 14 Pflichtallergene.",
+      "reviewedOn": "Geprüft am {{date}}",
+      "notReviewed": "Ungeprüft: Bitte Allergene bestätigen.",
+      "confirm": "Ich habe die Allergene geprüft und bestätige sie.",
+      "resetWarning": "Du hast die Allergene geändert. Ohne Bestätigung gilt das Gericht wieder als ungeprüft.",
+      "ingredientsTitle": "Zutaten",
+      "ingredientsHint": "Menge pro Person als Einkaufsmenge der Rohware vor dem Garen, z. B. 180 g rohe Rinderschulter.",
+      "perPerson": "pro Person",
+      "addIngredient": "Zutat hinzufügen",
+      "priceTitle": "Preis und Kalkulation",
+      "costNone": "Ohne Zutaten gibt es keinen Wareneinsatz.",
+      "cost": "Wareneinsatz pro Portion: {{cost}}",
+      "costIncomplete": "Wareneinsatz unvollständig: Bei mindestens einer Zutat fehlt der Einkaufspreis.",
+      "price": "Preis pro Portion (netto, in Euro)",
+      "suggestion": "Preisvorschlag: {{price}} (Wareneinsatzquote {{quote}} %)",
+      "applySuggestion": "Vorschlag übernehmen",
+      "markup": "Aufschlag für dieses Gericht (Prozent, optional)",
+      "markupHint": "Leer = Firmenstandard ({{value}} %).",
+      "taxRate": "Steuersatz",
+      "taxDefault": "Standard der Kategorie",
+      "archive": "Archivieren",
+      "unarchive": "Wieder aktivieren"
+    },
+    "picker": {
+      "search": "Zutat suchen oder neu anlegen",
+      "createHint": "„{{name}}“ gibt es noch nicht. Wähle die Einheit und lege sie an.",
+      "create": "„{{name}}“ anlegen"
+    },
+    "ingredients": {
+      "title": "Zutaten",
+      "add": "Zutat anlegen",
+      "usedIn_one": "in {{count}} Gericht",
+      "usedIn_other": "in {{count}} Gerichten",
+      "noPrice": "Preis fehlt",
+      "nameError": "Bitte gib einen Namen ein.",
+      "name": "Name",
+      "unit": "Basiseinheit",
+      "unitLocked": "Die Einheit lässt sich nicht ändern, solange Gerichte die Zutat nutzen.",
+      "group": "Warengruppe (optional)",
+      "price": "Einkaufspreis {{unit}} (netto, in Euro)"
+    },
+    "packages": {
+      "title": "Pakete",
+      "add": "Paket anlegen",
+      "empty": "Noch keine Pakete. Ein Paket fasst Gerichte mit einem Preis pro Person zusammen.",
+      "perPerson": "p. P.",
+      "dishCount_one": "{{count}} Gericht",
+      "dishCount_other": "{{count}} Gerichte",
+      "unreviewed": "Allergene ungeprüft"
+    },
+    "package": {
+      "title": "Paket",
+      "new": "Neues Paket",
+      "edit": "Paket bearbeiten",
+      "gone": "Dieses Paket gibt es nicht mehr.",
+      "dishesTitle": "Gerichte im Paket",
+      "factor": "Portionsfaktor (1 = jeder Gast, 0,5 = jeder zweite)",
+      "factorError": "Bitte gib einen Faktor größer 0 ein, zum Beispiel 1 oder 0,5.",
+      "up": "Nach oben",
+      "down": "Nach unten",
+      "addDish": "Gericht hinzufügen",
+      "derived": "Allergene und Diätformen des Pakets",
+      "cost": "Wareneinsatz pro Person: {{cost}}",
+      "price": "Preis pro Person (netto, in Euro)",
+      "margin": "Rohertrag pro Person: {{margin}} (Wareneinsatzquote {{quote}} %)"
     }
   }
 }

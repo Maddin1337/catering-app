@@ -116,6 +116,27 @@ Logo-Upload (braucht Bildauswahl als natives Modul, also einen neuen Build), Mai
 | A-17 | Einladung per E-Mail | Mail an die eingeladene Person (US-05.1) | **nur „Link teilen“** | Der Standard-Mailversand von Supabase erreicht nur Teammitglieder des Projekts. Der Link geht per Nachricht raus; der Mail-Versand folgt mit dem eigenen SMTP-Dienst (E-3) |
 | A-18 | Einladungslink | im Klartext abrufbar | **nur einmal sichtbar**, danach „Neuer Link“ | In der Datenbank liegt nur der SHA-256-Hash des Tokens |
 
+## M2 · Gerichte, Zutaten, Pakete
+
+### Etappe 1 (gebaut): Katalog
+
+- **Datenbank:** `supabase/migrations/20261022090000_m2_catalog.sql` (`dishes`, `dish_allergens`, `ingredients`, `dish_ingredients`, `menu_packages`, `menu_package_dishes`; RPCs `save_dish`, `save_ingredient`, `save_menu_package`; preisfreie Views `kitchen_dishes`, `kitchen_ingredients`, `kitchen_menu_packages` mit abgeleiteten Paket-Allergenen und -Diätformen). Für das Dashboard: `supabase/remote-update-20261022090000.sql` im SQL Editor ausführen. 161 pgTAP-Tests laufen lokal, darunter: Küche liest die Basistabellen mit Preisen nicht, keine `kitchen_*`-View hat eine Spalte mit `price`, `cost` oder `markup`, Prüfstatus der Allergene fällt bei Änderung, Mandantentrennung, Lesemodus.
+- **Rechenmodul:** `supabase/functions/_shared/domain/costing.ts` (Wareneinsatz je Portion und Paket, Preisvorschlag mit Aufrunden aufs Raster, Wareneinsatzquote) und `dietary.ts` (Paket-Allergene und -Diätformen, Vegan-Widerspruch), getestet mit dem Rechenbeispiel aus docs/02 §3.3 (Schmorbraten: 3,642 € Wareneinsatz, Faktor 3,2 → 11,70 €, Quote 31,1 %). Jest führt jetzt auch diese Domänentests aus (vorher wurden sie wegen `testPathIgnorePatterns` nie ausgeführt).
+- **App (über „Mehr“ → „Katalog“, für admin und Küche):** SC-38 Gerichte mit Suche, Kategorie-, Diät-, „Ohne Allergen“-, „Ungeprüft“- und Archiv-Filter, Allergen-Codes, Prüfstatus und Preis (nur admin); SC-39 Gericht mit Allergen-Raster, Diätformen, Zutaten (Menge pro Person, neue Zutat inline), Wareneinsatz und Preisvorschlag live (nur admin); SC-40/SC-41 Pakete mit Portionsfaktor, Reihenfolge, abgeleiteten Allergenen und Rohertrag (nur admin); SC-42/SC-43 Zutaten mit Einkaufspreis (nur admin).
+- **Geprüft:** Typecheck, Lint, 75 Jest-Tests (Filter „vegan“ und „ohne Gluten“, Wareneinsatz, Eingabeformate); im Browser gegen eine simulierte Datenbank als admin (Liste, Filter, Gericht mit Wareneinsatz 2,92 € und Vorschlag 9,40 €, Speichern, Pakete, Zutaten) und als Küche (keine Preise sichtbar).
+
+### Noch offen aus M2
+
+Einmal-Import der Excel-Liste des Gründers (braucht die Datei), Produktions-Supabase-Projekt und Deploy-Workflow, Spike PDF (`render-quote-pdf`), Appllama-Recherche Bereich B, Löschen von Gerichten ohne Verwendung (bis dahin nur Archivieren), Zutaten-Vorschlag per Ähnlichkeitssuche (aktuell Teilstring-Suche).
+
+### Abweichungen M2
+
+| # | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-19 | Menge pro Person | `numeric(10,1)` (03 §3.4) | **`numeric(10,2)`** | Das Rechenbeispiel selbst nutzt 0,25 Stück Ei (02 §3.3); eine Nachkommastelle würde das auf 0,3 verfälschen. Zwischenwerte des Wareneinsatzes daher in 1/100000 Cent |
+| A-20 | Schreibweg Katalog | admin schreibt direkt in die Tabellen, Küche über RPC (03 §4.3) | **alle schreiben nur über die RPCs** | Prüfstatus der Allergene, Preisfelder und Zutatenlisten werden so einheitlich und atomar behandelt; stärker abgesichert als geplant |
+| A-21 | `menu_packages` | Küche liest Pakete über View, Gerichte des Pakets über `menu_package_dishes` | wie geplant, plus RPC `save_menu_package` (nur admin) | Pakete und ihre Gerichte werden atomar ersetzt |
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |
