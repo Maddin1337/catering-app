@@ -1,0 +1,15 @@
+# Bei jedem Push auf `planung` einen Over-the-air-Update auf den Branch „preview“ veröffentlichen.
+# Den Stand öffnet man in Expo Go oder in einem Preview-Build (Kanal „preview“).
+name: Publish preview update
+
+on:
+  push:
+    branches:
+      - planung
+
+jobs:
+  update:
+    type: update
+    params:
+      branch: preview
+      message: ${{ github.event.head_commit.message }}

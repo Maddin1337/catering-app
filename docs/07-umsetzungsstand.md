@@ -72,6 +72,10 @@ Hinweise:
 - **Mailversand:** Das eingebaute Supabase-SMTP verschickt nur an Mitglieder des Supabase-Teams und nur wenige Mails pro Stunde. Für echte Nutzer braucht es einen eigenen Mail-Dienst (E-3, Resend oder Postmark) als SMTP in den Auth-Einstellungen.
 - Die Schlüssel stehen lokal in `.env.local` (nicht im Repo). Für die Profile `development` und `preview` in `eas.json` stehen die **öffentlichen** Werte (Projekt-URL und `sb_publishable_…`-Schlüssel) direkt als `env`, weil sie ohnehin in jeder fertigen App stecken. Für `production` kommen sie später als Umgebungsvariablen ins Expo-Projekt. Nie ein `service_role`-Schlüssel.
 
+## Updates ohne neuen Build (EAS Update)
+
+`expo-updates` ist eingebunden (`runtimeVersion` folgt der App-Version, Update-URL des Expo-Projekts). `.eas/workflows/publish-preview-update.yml` veröffentlicht bei jedem Push auf `planung` einen Stand auf den EAS-Branch `preview`. Die öffentlichen Supabase-Werte stehen dafür in `.env` (im Repo, nur öffentliche Werte); persönliche Abweichungen gehören in `.env.local`. Das Workflow ist noch **nicht** gelaufen; ob Expo Go den Stand öffnet, ist ungeprüft.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

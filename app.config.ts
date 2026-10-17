@@ -55,6 +55,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     eas: { projectId: 'dc2b5867-d672-4490-8674-1515348853cc' },
   },
+  // Over-the-air-Updates (EAS Update): neue JS-Stände ohne neuen Store-Build. Die Laufzeitversion
+  // folgt der App-Version; ein Build nimmt nur Updates mit gleicher Laufzeitversion an.
+  runtimeVersion: { policy: 'appVersion' },
+  updates: { url: 'https://u.expo.dev/dc2b5867-d672-4490-8674-1515348853cc' },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
