@@ -134,4 +134,3 @@ Diese Punkte haben Vorrang vor abweichenden Vorschlägen in 01–06.
 - App-Name und Marke
 - Inhalt und Preise der Abo-Stufen
 - Buchhaltungs-Anbindung (lexoffice, sevDesk, DATEV …)
-- Genaue Absagefrist der Schichtbörse (Vorschlag: pro Firma einstellbar, Standard 48 h)

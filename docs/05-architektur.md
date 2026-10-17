@@ -739,7 +739,7 @@ sequenceDiagram
 | `invitation` | T1 | eingeladene Person | – |
 | `trial_ending`, `trial_ended`, `subscription_active`, `payment_failed`, `subscription_canceled` | B1–B5, 01 US-55.3 (nur E-Mail plus Banner im Web-Admin, kein Push, 02 §6.3) | Admins | – |
 | `deletion_announcement`, `company_deleted` | 01 US-57.6, US-60.2 | Admins bzw. alle Mitglieder | – |
-| `export_ready`, `export_failed` | D1, D2 (01 US-59.2, US-59.6; entschieden R2-14) | nur die anfordernde Person (Login-E-Mail aus `data_exports.requested_by_member_id`) | – (`export_ready` enthält den signierten Download-Link, 7 Tage gültig, mit Hinweis „nicht weitergeben“) |
+| `export_ready`, `export_failed` | D1, D2 (01 US-59.2, US-59.6, US-08.5; entschieden R2-14) | nur die anfordernde Person (Login-E-Mail aus `data_exports.requested_by_member_id`) | – (`export_ready` enthält den signierten Download-Link, 7 Tage gültig, mit Hinweis „nicht weitergeben“) |
 
 Umsetzung: Vorlagen als TypeScript-Funktionen in `_shared/email/templates/` liefern Betreff, HTML und Text; zwei Layouts (`customerLayout(branding)`, `teamLayout()`); alle Nutzertexte werden escaped; ein Skript rendert alle Vorlagen als Vorschau-HTML; Snapshot-Tests sichern Änderungen ab. Die Auth-Mails stehen als HTML-Vorlagen in `supabase/templates/` und nutzen Links mit `token_hash` (6.3).
 

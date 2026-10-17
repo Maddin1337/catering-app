@@ -813,7 +813,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 5. *Randfall:* **Gegeben** ein Doppelklick oder eine wiederholte Anfrage, **dann** entstehen genau ein Versand und genau eine Revision.
 6. *Randfall:* **Gegeben** die E-Mail ist unzustellbar (Bounce, Should), **dann** erhält der Admin „Angebot an {E-Mail} nicht zugestellt“ mit Aktion „Link kopieren“.
 7. *Randfall:* **Gegeben** die PDF-Erzeugung scheitert, **dann** wird nichts versendet, die Revision nicht erhöht und der Admin erhält eine Fehlermeldung mit „Erneut versuchen“.
-8. *Randfall:* **Gegeben** ein Auftrag `declined` oder `cancelled`, **dann** ist „Versenden“ gesperrt mit „Abgelehnte oder stornierte Aufträge lassen sich nicht wieder öffnen – bitte Auftrag kopieren“; eine neue Revision setzt den Auftrag nicht zurück auf `quoted` (R2-4, US-13).
+8. *Randfall:* **Gegeben** ein Auftrag `declined` oder `cancelled`, **dann** ist „Versenden“ gesperrt mit „Abgelehnte oder stornierte Aufträge lassen sich nicht wieder öffnen – bitte Auftrag kopieren“; eine neue Revision setzt den Auftrag nicht zurück auf `quoted` (R2-4, US-13). Ebenso ist „Versenden“ bei `completed` und `invoiced` gesperrt (02 §2.3, `prepare_quote_send()`).
 
 #### US-28 · Angebot nach Versand ändern
 `F-15` · **Must**
@@ -1244,7 +1244,7 @@ sequenceDiagram
 
 > Als **Inhaberin** möchte ich alle Daten meiner Firma exportieren, damit ich sie archivieren oder in ein anderes System übernehmen kann.
 
-1. **Gegeben** Web-Admin „Daten exportieren“, **dann** entsteht ein ZIP mit CSV-Dateien (UTF-8, Semikolon) je Bereich – Firma, Team, Kunden, Aufträge, Ablauf, Angebote mit Positionen und Revisionen, Gerichte mit Allergenen und Zutaten, Pakete, Steuersätze, Slots und Bewerbungen, Sonderessen – sowie allen Angebots-PDFs.
+1. **Gegeben** Web-Admin „Daten exportieren“, **dann** entsteht ein ZIP mit CSV-Dateien (UTF-8, Semikolon) je Bereich – Firma, Team, Kunden, Aufträge, Ablauf, Angebote mit Positionen und Revisionen, Gerichte mit Allergenen und Zutaten, Pakete, Steuersätze, Slots und Bewerbungen, Sonderessen –, zusätzlich JSON je Tabelle (maschinenlesbar, Art. 20 DSGVO) sowie allen Angebots-PDFs (Format wie 02 §10.2).
 2. **Gegeben** die Anforderung, **dann** legt `request_data_export()` einen Eintrag in `data_exports` mit Status `queued` an und der Web-Admin zeigt „Export wird erstellt – du bekommst eine E-Mail mit dem Download-Link“ (04 SC-67). Der Export entsteht **im Hintergrund** (Edge Function `export-company`), auch wenn der Admin den Browser schließt; das ZIP liegt im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip`. Ist es fertig, erhält der anfordernde Admin die E-Mail „Export bereit“ mit einem signierten Download-Link, der 7 Tage gültig ist. Der Download läuft nur über diesen Link, nicht als Erzeugung im Browser – entschieden (R2-14; ersetzt den Browser-Export aus 06 E-17).
 3. **Gegeben** Lesemodus oder Kündigung, **dann** bleibt der Export bis zur endgültigen Löschung möglich.
 4. **Gegeben** jeder Export, **dann** wird in `data_exports` protokolliert, wer ihn wann angefordert hat, mit Status (`queued`, `running`, `ready`, `failed`, `expired`), Dateipfad und Ablaufzeitpunkt; der Web-Admin listet die Exporte mit Status und „Link gültig bis {Datum}“. Firma und Kunden exportiert nur `admin`; die eigenen Daten exportiert jedes Mitglied im Profil (Umfang `member`, US-08.5).

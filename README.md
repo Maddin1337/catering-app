@@ -70,4 +70,4 @@ Die Dokumente 01–06 sind bewusst ausführlich und dienen als Nachschlagewerk. 
 - App-Name und Marke
 - Abo-Stufen und Preise (Vorschlag: 29 € / 59 € / 99 €)
 - Buchhaltungs-Anbindung (fällt mit dem Rechnungsmodul)
-- Vorschläge aus 01–06, gesammelt in den Abschnitten „Vorschläge zur Freigabe“ (u. a. Portal-Regeln, Statusübergänge, Rundung, Änderungsschluss, Küchen-Tablet)
+- Restliche Vorschläge aus 01–06 in den Abschnitten „Vorschläge zur Freigabe“. Portal-Regeln, Statusübergänge, Rundung, Änderungsschluss, Küchengerät, Schichtbörse, Konto-/Firmenlöschung und Datenexport sind entschieden (siehe [00-entscheidungen.md](docs/00-entscheidungen.md) §9)

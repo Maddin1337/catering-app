@@ -168,7 +168,7 @@ Senden ist gesperrt, solange eine Regel verletzt ist (Fehlerliste im Formular):
 - Firmenprofil: Name, Anschrift, Reply-To-E-Mail; Logo/Farbe optional (Fallback: App-Standard).
 - Event hat Datum, Startzeit, Ort (Adresse oder „Abholung“).
 - Abo schreibfähig (nicht im Lesemodus, → 7).
-- Auftragsstatus `inquiry`, `quoted`, `optioned` oder `confirmed` (aus Endzuständen kein Versand, R2-4).
+- Auftragsstatus `inquiry`, `quoted`, `optioned` oder `confirmed` (aus `completed` und den Endzuständen `declined`, `cancelled`, `invoiced` kein Versand, R2-4).
 
 ### 2.4 Versand
 
@@ -906,7 +906,7 @@ Nicht mehr vorhandene Katalogeinträge (Gericht gelöscht/archiviert) bleiben al
 
 | Export | `scope` | Wer | Inhalt |
 |---|---|---|---|
-| **Firma komplett** | `company` | `admin`, Web-Admin (04 SC-67), auch im Lesemodus | ZIP: JSON je Tabelle; CSV für Kunden, Aufträge, Angebote + Positionen, Gerichte + Allergene + Zutaten, Team; PDFs aller versendeten Revisionen; Logo. Ohne Passwort-Hashes, Push-Tokens, Token-Hashes von Portal/Einladungen. |
+| **Firma komplett** | `company` | `admin`, Web-Admin (04 SC-67), auch im Lesemodus | ZIP: CSV-Dateien je Bereich (UTF-8, Semikolon; Umfang wie 01 US-59.1) und zusätzlich JSON je Tabelle (maschinenlesbar, Art. 20 DSGVO); PDFs aller versendeten Revisionen; Logo. Ohne Passwort-Hashes, Push-Tokens, Token-Hashes von Portal/Einladungen. |
 | **Ein Endkunde** (Auskunft nach Art. 15 DSGVO durch den Caterer) | `customer` | `admin` (Kundendetail, 04 SC-36) | ZIP: JSON + PDFs zu Kunde, seinen Aufträgen, Angeboten, Sonderessen, Annahme-/Änderungsprotokollen |
 | **Eigene Daten** (Mitarbeiter) | `member` | jedes Mitglied im Profil (04 SC-68) | ZIP: JSON mit Profil, Rolle, Qualifikationen, Bewerbungen und Einsätzen |
 
