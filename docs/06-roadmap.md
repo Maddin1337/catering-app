@@ -1,10 +1,11 @@
 # 06 – Roadmap & Umsetzungsplan
 
-Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheidungen.md` (verbindlich), `docs/01-produkt.md`, `docs/02-ablaeufe.md`, `docs/03-datenmodell.md`, `docs/04-screens-ux.md`
+Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheidungen.md` (verbindlich, einschließlich §9 „Entscheidungen Runde 2“), `docs/01-produkt.md`, `docs/02-ablaeufe.md`, `docs/03-datenmodell.md`, `docs/04-screens-ux.md`
 
 **Lesehilfe**
 
 - Inhalte ohne Markierung setzen 00–04 um. **[Vorschlag]** markiert eine begründete Empfehlung zu einem offenen Punkt; bis zur Freigabe durch den Gründer gilt sie als Arbeitsannahme.
+- **entschieden (R2-x)** markiert einen Punkt aus den Entscheidungen der Runde 2 (00 §9, R2-1 bis R2-14). Sie haben Vorrang vor allen früheren Vorschlägen und sind in diesem Dokument eingearbeitet: Direktbestätigung erlaubt (R2-2), „Durchgeführt“ nie automatisch (R2-3), keine Rückwärts-Übergänge im Auftragsstatus, stattdessen Bestätigungsdialog vor jedem Statuswechsel (R2-4), kein Küchen-Tablet (R2-8), kein Sonderabsagerecht bei Verschiebung (R2-10), `delete-account` und `purge-company` freigegeben (R2-12, R2-13), Datenexport per Download-Link per E-Mail (R2-14).
 - **AT** = Arbeitstag (Mo–Fr). Daten ohne Jahr: Oktober–Dezember = 2026, Januar–Februar = 2027.
 - Verweise: „01 §4.1“ = Abschnitt 4.1 in `01-produkt.md`. `SC-xx` = Screen aus 04, `F-xx`/`US-xx`/`K-xx` aus 01, `D-x` aus 03 §10.2, `E-xx` = offene Entscheidung in Abschnitt 7 dieses Dokuments, `R-xx` = Risiko in Abschnitt 6.
 - Rollen, Status, Tabellen, Edge Functions und Routen heißen exakt wie im Glossar (01 §0).
@@ -203,7 +204,7 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 - **Datenbank:** `invitations`, `tax_rates`, `qualifications`, `member_qualifications`; Firmenfelder für Stammdaten, Branding und Fristen & Standardwerte (01 §4.2.6); Bucket `logos` (03 §8).
 - **RPCs:** `create_company()` mit `private.seed_company_defaults()` (Steuersätze DE; AT/CH angelegt, aber nicht aktivierbar; Qualifikationsvorlagen; Standardwerte; AVV-Version), `create_invitation()`, `resend_invitation()`, `revoke_invitation()`, `set_member_role()`, `set_member_qualifications()`, `remove_member()`, `leave_company()`, `delete_my_account()`. Planlimits für Einladungen und Admins (`plan_limits`; in der Testphase gilt `profi`). View `team_directory` für die Teamliste der Küche (03 §4.6). Jede RPC mit ausdrücklichem `grant execute` (03 §4.7).
-- **Edge Functions:** `accept-invitation`; `send-email` mit den Vorlagen „Einladung“ und „Mitglied beigetreten“; **`delete-account`** (Glossar-Ergänzung, **[Vorschlag]**, 05 §5.10): Widerruf des Apple-Tokens bei der Kontolöschung mit frischem `authorizationCode` (Secrets Apple Key ID, Team ID, .p8), danach `delete_my_account()`.
+- **Edge Functions:** `accept-invitation`; `send-email` mit den Vorlagen „Einladung“ und „Mitglied beigetreten“; **`delete-account`** (Glossar-Ergänzung, **freigegeben (R2-12)**, App-Store-Pflicht, 05 §5.10): Widerruf des Apple-Tokens bei der Kontolöschung mit frischem `authorizationCode` (Secrets Apple Key ID, Team ID, .p8), danach `delete_my_account()`.
 - **Screens:** SC-06 – SC-11 (Einladung annehmen, Willkommen, Onboarding Firma/Branding/Arbeitsweise, Fertig), SC-54 – SC-56 (Team, Einladen, Mitglied), SC-57 – SC-62 (Einstellungen, Firma, Branding, Steuersätze, Qualifikationen, Fristen & Standardwerte), SC-68 Profil mit „Konto löschen“, SC-53 Mehr. SC-12 Start zunächst mit der Setup-Checkliste.
 - **Navigation:** Tabs je `member_role` nach 04 §1.3 (Inhalte noch als Platzhalter), Web-Sidebar ab 1024 px.
 - **Login:** Sign in with Apple (iOS, Web) und Google aktiv; nach der ersten Apple-Anmeldung speichert die App `credential.fullName` per `supabase.auth.updateUser({ data: { full_name } })` (Apple liefert den Namen nur einmal, 05 §6.1). Universal Links für `/invite/*` und `/reset-password` auf der staging-Domain. Absenderdomain beim Apple-Relay-Dienst registrieren (4.1).
@@ -263,20 +264,21 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.6 M3 · Kunden, Aufträge, Kalender
 
-**Zeitraum:** Fr 06.11. – Mo 16.11. · 7 AT · **Abhängigkeiten:** M1; E-8 (D-2, D-3, D-4; als Vorschlag festgelegt in 02 §1.1, Bestätigung bis 05.11.); Musterwahl aus Bereich B
+**Zeitraum:** Fr 06.11. – Mo 16.11. · 7 AT · **Abhängigkeiten:** M1; E-8 (D-2, D-3, D-4; **entschieden (R2-2, R2-3, R2-4)**, Übergangstabelle in 02 §1.1); Musterwahl aus Bereich B
 
 **Ziel:** Alle Anfragen und Aufträge laufen über die App, und der Kalender zeigt den echten Betrieb.
 
 **Lieferumfang**
 
-- **Datenbank:** `customers`, `events`, `event_schedule_items`, `event_dietary_requirements`, `event_status_changes` (03 §3.7). RPCs `set_event_status()` mit der Übergangstabelle aus 02 §1.1 (inklusive Direktbestätigung, „Termin vormerken“ und `inquiry` → `declined`) und `copy_event()` (zunächst ohne Angebot, mit Startstatus `inquiry`/`confirmed`). `kitchen` sieht Aufträge ab `optioned`, ohne Kundendaten.
+- **Datenbank:** `customers`, `events`, `event_schedule_items`, `event_dietary_requirements`, `event_status_changes` (03 §3.7). RPCs `set_event_status()` mit der Übergangstabelle aus 02 §1.1 über `private.is_allowed_event_transition()` (03 §7.8): nur Vorwärts-Übergänge, inklusive Direktbestätigung `inquiry`/`optioned` → `confirmed` ohne versendetes Angebot mit Pflicht-Bestätigungsweg (**entschieden, R2-2**), „Termin vormerken“ und `inquiry` → `declined`; jeder Rückwärts-Übergang (`completed` → `confirmed`, `invoiced` → `completed`, `declined` → `quoted`) und jede Reaktivierung von `declined`/`cancelled` endet mit `invalid_transition` (**entschieden, R2-4**); `completed` setzt nur der Admin, nie ein Job (**entschieden, R2-3**). `copy_event()` (zunächst ohne Angebot, mit Startstatus `inquiry`/`confirmed`) ist aus jedem Status möglich, auch aus `declined`, `cancelled` und `invoiced`, und damit der einzige Weg für einen neuen Anlauf (R2-4). `kitchen` sieht Aufträge ab `optioned`, ohne Kundendaten.
+- **Tests:** pgTAP prüft alle 64 Statuspaare gegen `private.is_allowed_event_transition()` und `set_event_status()`: jeder Rückwärts-Übergang und jede Reaktivierung → `invalid_transition`; `set_event_status()` ohne `auth.uid()` (Kontext pg_cron) → Fehler, damit kein Job den Status ändert (03 §9.5).
 - **Migrationsreihenfolge:** Die Policies von `event_schedule_items` und `event_dietary_requirements` nutzen `can_read_event()`. Weil Postgres den Rumpf einer `language sql`-Funktion beim Anlegen prüft und `shift_slots`/`shift_applications` erst in M7 entstehen, wird `can_read_event()` in M3 **ohne** den `staff`-Zweig angelegt (`staff` → false); M7 ergänzt ihn per `create or replace` (03 §9.2).
 - **Screens:**
   - Kunden: SC-35 – SC-37, mit Duplikatwarnung.
   - Aufträge: SC-15 Liste mit Suche und Filter, SC-16 Schnellerfassung.
-  - Auftragsdetail: SC-18 mit SC-19 Übersicht, SC-26 Zeitplan inklusive Standardablauf, SC-29 Bearbeiten, SC-30 Kopieren, SC-31 Statuswechsel.
+  - Auftragsdetail: SC-18 mit SC-19 Übersicht, SC-26 Zeitplan inklusive Standardablauf, SC-29 Bearbeiten, SC-30 Kopieren, SC-31 Statuswechsel als Bestätigungsdialog vor **jedem** Statuswechsel (**entschieden, R2-4**, 02 §1.1.1): Zielstatus im Titel, Pflichtangaben, Folgen (wer benachrichtigt wird, was gesperrt wird, welche Slots abgesagt werden), fester Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden.“, „Abbrechen“ als Standard; bei `completed` vor Eventbeginn zusätzliche Warnung. Es gibt keine Aktion „Status korrigieren“ und keine Rückwärts- oder Reaktivierungsaktionen.
   - SC-14 Kalender: Monat, Woche, Liste; Statusdarstellung nach 04 §4.3.
-  - SC-12 Start: Karten „Heute und morgen“ sowie „Zu erledigen“ mit Anfragen ohne Angebot und ablaufenden Optionen.
+  - SC-12 Start: Karten „Heute und morgen“ sowie „Zu erledigen“ mit Anfragen ohne Angebot, ablaufenden Optionen und „als durchgeführt markieren“ (`confirmed` mit Ende gestern; Sammelaktion über SC-31, R2-3).
   - SC-25 Tab Küche in erster Fassung (Hinweise Küche, Sonderessen) mit SC-27 Sonderessen-Eintrag.
 - **Querschnitt:**
   - Persistenter Abfrage-Cache und Offline-Banner „Offline – Stand: …“: die Grundlage für F-29.
@@ -288,11 +290,13 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 **Definition of Done – das probiert der Gründer aus**
 
 1. Alle offenen Anfragen und Aufträge der nächsten 8 Wochen samt Kunden aus Excel und Kalender übertragen. Damit beginnt Pilot-Stufe 1 (3.2).
-2. Statuswege ohne Angebot (Angebote entstehen erst in M4/M5; Regeln 02 §1.1): Auftrag A: Anfrage → Optioniert („Termin vormerken“ mit „optioniert bis“) → Bestätigt (Direktbestätigung mit Bestätigungsweg) → Durchgeführt → Abgerechnet. Auftrag B: Anfrage → Bestätigt (Direktbestätigung). Auftrag C: Anfrage → „Anfrage kommt nicht zustande“ (`declined`, Grund). Auftrag B mit Grund stornieren. Die Statushistorie stimmt. Den vollständigen Weg über ein versendetes Angebot prüft M5.
-3. Einen Business-Lunch auf den gleichen Wochentag der Folgewoche kopieren; der Zeitplan ist mitverschoben.
-4. Der Kalender (Monat, Woche, Liste) deckt sich mit dem bisherigen Kalender; vorläufige Termine sind erkennbar.
-5. Der Koch sieht optionierte und bestätigte Aufträge mit Zeitplan, aber keine Anfragen und keine Kundenkontakte.
-6. Im Flugmodus bleiben geladene Aufträge lesbar; Speichern ist deaktiviert („Nur online möglich“).
+2. Statuswege ohne Angebot (Angebote entstehen erst in M4/M5; Regeln 02 §1.1): Auftrag A: Anfrage → Optioniert („Termin vormerken“ mit „optioniert bis“) → Bestätigt (Direktbestätigung mit Bestätigungsweg, R2-2) → Durchgeführt (vom Gründer selbst gesetzt, R2-3) → Abgerechnet. Auftrag B: Anfrage → Bestätigt (Direktbestätigung). Auftrag C: Anfrage → „Anfrage kommt nicht zustande“ (`declined`, Grund). Auftrag B mit Grund stornieren. Vor jedem Wechsel erscheint der Bestätigungsdialog (SC-31) mit Folgen und Hinweis „nicht rückgängig“; „Abbrechen“ lässt den Status unverändert. Die Statushistorie stimmt. Den vollständigen Weg über ein versendetes Angebot prüft M5.
+3. Keine Rückwärts-Übergänge (R2-4): Bei Auftrag A (`invoiced`), B (`cancelled`) und C (`declined`) bietet die App keine Statusaktion zurück und keine Reaktivierung. Ein neuer Anlauf für C entsteht per „Auftrag kopieren“ als neuer Auftrag (`inquiry`); der alte bleibt im Archiv.
+4. Einen Business-Lunch auf den gleichen Wochentag der Folgewoche kopieren; der Zeitplan ist mitverschoben.
+5. Der Kalender (Monat, Woche, Liste) deckt sich mit dem bisherigen Kalender; vorläufige Termine sind erkennbar.
+6. Der Koch sieht optionierte und bestätigte Aufträge mit Zeitplan, aber keine Anfragen und keine Kundenkontakte.
+7. Im Flugmodus bleiben geladene Aufträge lesbar; Speichern ist deaktiviert („Nur online möglich“).
+8. Claude zeigt den grünen pgTAP-Lauf aller Statuspaare (Rückwärts-Übergänge → `invalid_transition`).
 
 **Kürzbar bei Verzug:** Volltextsuche (F-09, Should), Mehrfachkopie (F-06, Should), Wochenansicht auf dem Handy.
 
@@ -300,18 +304,18 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.7 M4 · Angebots-Chat, Angebots-Editor, Kalkulation
 
-**Zeitraum:** Di 17.11. – Mi 25.11. · 7 AT · **Abhängigkeiten:** M2, M3; E-10 (D-1) und E-16 (Datenbasis der Küche), beide wirken auf die Spalten von `quotes` und sind als Vorschlag festgelegt (Bestätigung bis 16.11.); Steuersätze vom Steuerberater bestätigt (E-13) oder vorläufig markiert
+**Zeitraum:** Di 17.11. – Mi 25.11. · 7 AT · **Abhängigkeiten:** M2, M3; E-10 (D-1, **entschieden (R2-1, R2-6)**) und E-16 (Datenbasis der Küche, als Vorschlag festgelegt, Bestätigung bis 16.11.), beide wirken auf die Spalten von `quotes`; Steuersätze vom Steuerberater bestätigt (E-13) oder vorläufig markiert
 
 **Ziel:** Ein vollständiges Angebot entsteht in unter 20 Minuten: geführt über den Chat, fertiggestellt im Editor, mit korrekter Kalkulation (K-01).
 
 **Lieferumfang**
 
 - **Datenbank:**
-  - `quotes`: Entwurf und Snapshot-Felder, Revisionsnummer, Angebotsnummer `A-JJJJ-NNNN`; von Anfang an auch `binding_snapshot`/`binding_revision` (E-16), `portal_selection`, `pending_change` (E-10), `pdf_path`, `send_log` (03 §3.3), damit keine spätere Migration diese Spalten nachzieht.
+  - `quotes`: Entwurf und Snapshot-Felder, Revisionsnummer, Angebotsnummer `A-JJJJ-NNNN`; von Anfang an auch `binding_snapshot`/`binding_revision` (E-16), `portal_selection`, `pending_change` (E-10, R2-1), `pdf_path`, `send_log` (03 §3.3), damit keine spätere Migration diese Spalten nachzieht.
   - `quote_items` mit allen sieben `quote_item_type`: `package`, `dish`, `service`, `equipment`, `travel`, `beverage`, `custom`.
   - `intake_questions` (03 §3.7) mit den Antworttypen `customer` und `time_range`; der Standard-Fragenkatalog (16 Fragen) kommt über `private.seed_company_defaults()`. RPC `create_event_from_intake()` (03 §4.7, 02 §11).
   - `copy_event()` kopiert jetzt auch das Angebot (Revision 0, neue Nummer).
-- **Rechenmodul (vollständig, 02 §3):** nur Ganzzahlen; Pauschal oder Wareneinsatz + Aufschlag (Preisraster aufrunden), Rechenseite = Anzeigeart, USt je Steuersatz auf die Summe, Rabatt nur über Rabattfelder, Wahlgruppen, Rohertrag. Regressionstest mit dem Rechenbeispiel aus 02 §3.6 (3.261,69 € brutto) und den ,5-Grenzfällen (1,15 × 3,50 € = 4,03 €). Dieselbe Datei läuft in App und Edge Functions.
+- **Rechenmodul (vollständig, 02 §3):** nur Ganzzahlen; Pauschal oder Wareneinsatz + Aufschlag (Preisvorschlag immer auf volle 10 Cent **aufrunden**, 26,32 € → 26,40 €, `companies.price_rounding_cents` = `10`; **entschieden, R2-5**), Rechenseite = Anzeigeart, USt je Steuersatz auf die Summe, Rabatt nur über Rabattfelder, Wahlgruppen, Rohertrag. Regressionstest mit dem Rechenbeispiel aus 02 §3.6 (3.261,69 € brutto) und den ,5-Grenzfällen (1,15 × 3,50 € = 4,03 €). Dieselbe Datei läuft in App und Edge Functions.
 - **Screens:**
   - SC-17 Angebots-Chat (F-32, US-63, US-64): alle Antworttypen, Pflichtfragen, Verzweigung über `show_if`, Antwort ändern, Abschlusskarte mit Titelvorschlag, Start aus bestehender Anfrage.
   - SC-64/SC-65 Fragenkatalog (US-65, US-66) mit Testlauf.
@@ -324,8 +328,8 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 **Definition of Done – das probiert der Gründer aus**
 
 1. Rollenspiel „Kundentelefonat“ (Koch oder Partner spielt den Kunden): Eine Hochzeitsanfrage komplett im Chat erfassen. Die Folgefrage „Sektempfang?“ erscheint nur beim Anlass Hochzeit; nach dem Ändern des Anlasses verschwindet sie samt Antwort. Der Auftrag trägt danach Titel „Hochzeit {Kunde}“, Anlass, Sonderessen-Einträge für die vegetarisch/vegan-Zahlen und die übrigen Antworten als Notiz.
-2. Drei echte Angebote bauen: eine Hochzeit mit der Wahlgruppe „Menü Klassik oder Mediterran“, eine Firmenfeier mit Rabatt und Personal, einen Business-Lunch mit Paket p. P.
-3. Summen, USt je Satz und Rohertrag stimmen auf den Cent mit der eigenen Kalkulation überein. Der Wechsel Pauschal ↔ Wareneinsatz verhält sich wie in 01 §4.2.2 beschrieben.
+2. Drei echte Angebote bauen: eine Hochzeit mit der Wahlgruppe „Menü Klassik oder Mediterran“ und Kindern als eigener Position (z. B. Paket „Kindermenü“ mit fester Menge; keine Kinderportionen im MVP, **entschieden, R2-11**), eine Firmenfeier mit Rabatt und Personal, einen Business-Lunch mit Paket p. P.
+3. Summen, USt je Satz und Rohertrag stimmen auf den Cent mit der eigenen Kalkulation überein. Der Wechsel Pauschal ↔ Wareneinsatz verhält sich wie in 01 §4.2.2 beschrieben; ein Preisvorschlag aus dem Wareneinsatz ist auf volle 10 Cent aufgerundet (R2-5).
 4. Die Gästezahl von 80 auf 95 ändern: Alle Pro-Person-Positionen skalieren mit.
 5. Die gemessene Editorzeit liegt vor (Ziel ≤ 20 min).
 6. Eine Frage im Fragenkatalog ändern, die Reihenfolge umstellen und im Chat prüfen.
@@ -345,15 +349,16 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 - **Datenbank und RPCs:**
   - Neue Tabelle `portal_tokens`; Fremdschlüssel `quotes.acceptance_portal_token_id`.
-  - `prepare_quote_send()` und `commit_quote_send()` (nur `service_role`, 03 §4.7): Prüfregeln, Snapshot aus dem TS-Modul, Konsistenzprüfung und Hash in SQL, Revision + 1, `pdf_path`, `send_log`, Statuswechsel `inquiry`/`declined` → `quoted`, bei „Zur Info“ verbindlicher Stand, neuer Portal-Token je Versand (Klartext nur einmal).
-  - `discard_quote_changes()`, `record_acceptance()` (setzt `binding_snapshot`), `record_decline()`, `issue_portal_token()`, `revoke_portal_tokens()`.
+  - `prepare_quote_send()` und `commit_quote_send()` (nur `service_role`, 03 §4.7): Prüfregeln, Snapshot aus dem TS-Modul, Konsistenzprüfung und Hash in SQL, Revision + 1, `pdf_path`, `send_log`, Statuswechsel nur `inquiry` → `quoted` (aus `declined` nie: Endzustand, **entschieden, R2-4**; `prepare_quote_send()` lehnt Endzustände ab), bei „Zur Info“ verbindlicher Stand, neuer Portal-Token je Versand (Klartext nur einmal).
+  - `discard_quote_changes()`, `record_acceptance()` (setzt `binding_snapshot`), `record_decline()` (`quoted` → `declined`, Endzustand, R2-4), `issue_portal_token()`, `revoke_portal_tokens()`.
+  - pgTAP: `commit_quote_send()` und `prepare_quote_send()` lehnen Aufträge in `declined`, `cancelled` und `invoiced` ab; der Versand ändert den Status nie rückwärts (03 §9.5).
 - **Edge Functions:**
   - `render-quote-pdf` im Echtbetrieb als Versand-Orchestrierung (05 §5.4): Bucket `quotes`, Pfad `{company_id}/{quote_id}/r{n}-{send_attempt_id}.pdf` ohne Überschreiben, Aufräumen nicht referenzierter Versuchsdateien, Fußzeile nach `branding_footer`.
   - `send-email` erweitert: Angebot bzw. neue Revision mit Portal-Link und PDF; Absendername = Firma, Reply-To = Firmen-E-Mail (00 §5); Zustellstatus in `quotes.email_status` inklusive Bounce-Meldung des Dienstes.
 - **Screens:**
   - SC-34 Vorschau und Versand: Prüfliste, Vorschau Portal/PDF/E-Mail, Versandart bei `confirmed`.
   - SC-20 vollständig: Revisionen mit PDF, Link kopieren, Gültigkeit verlängern, Änderungen verwerfen.
-  - Statusaktionen „Annahme erfassen“ und „Ablehnung erfassen“.
+  - Statusaktionen „Annahme erfassen“ und „Ablehnung erfassen“, beide über den Bestätigungsdialog SC-31 (R2-4).
 - **Portal-Platzhalter:** Der Portal-Link führt bis M6 auf eine Platzhalterseite. Echte Kunden erhalten erst ab M6 Angebote.
 
 **Appllama:** Muster aus Bereich D für SC-34 umsetzen.
@@ -364,7 +369,7 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 2. Ein Spam-Test (z. B. mail-tester.com) bewertet die Mail mit mindestens 9/10.
 3. Das PDF zeigt Logo, Akzentfarbe, Umlaute, Allergen-Codes mit Legende und den Summenblock. Bei 30 Positionen bricht die Seite sauber um. Die Erzeugung dauert unter 5 s.
 4. Nach einer Änderung entsteht Revision 2 mit eigenem PDF; Revision 1 bleibt abrufbar.
-5. Vollständige Statuswege mit Angebot (02 §1.1): Auftrag A: Anfrage → Angebot versendet → Optioniert („optioniert bis“) → Bestätigt („Annahme erfassen“, Kanal „Telefon“) → Durchgeführt → Abgerechnet. Auftrag B: Angebot versendet → „Ablehnung erfassen“ (`declined`) → neue Revision versendet (`quoted`). Statushistorie und verbindlicher Stand stimmen.
+5. Vollständige Statuswege mit Angebot (02 §1.1): Auftrag A: Anfrage → Angebot versendet → Optioniert („optioniert bis“) → Bestätigt („Annahme erfassen“, Kanal „Telefon“) → Durchgeführt (manuell, R2-3) → Abgerechnet, jeweils nach dem Bestätigungsdialog. Auftrag B: Angebot versendet → „Ablehnung erfassen“ (`declined`). Danach ist `declined` Endzustand: „Angebot senden“ ist gesperrt, es gibt keine Rückkehr nach `quoted` (R2-4). Meldet sich der Kunde erneut, entsteht per „Auftrag kopieren“ ein neuer Auftrag (`inquiry`, Angebot mit Revision 0 und neuer Nummer), dessen Angebot normal versendet wird. Statushistorie und verbindlicher Stand stimmen.
 6. Die Prüfliste blockiert den Versand an einen Kunden ohne E-Mail und warnt bei ungeprüften Allergenen.
 7. Ein absichtlich abgebrochenes PDF (Testschalter) erzeugt keine Revision und keine E-Mail (01 US-27.7); ein doppelter Klick auf „Versenden“ erzeugt genau eine Revision.
 
@@ -374,13 +379,14 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.9 M6 · Kundenportal
 
-**Zeitraum:** Do 03.12. – Mi 09.12. · 5 AT · **Abhängigkeiten:** M5; Web-Hosting auf der finalen Domain (E-12); Impressum und Datenschutzerklärung als Entwurf online (4.2); E-10 (festgelegt vor M4)
+**Zeitraum:** Do 03.12. – Mi 09.12. · 5 AT · **Abhängigkeiten:** M5; Web-Hosting auf der finalen Domain (E-12); Impressum und Datenschutzerklärung als Entwurf online (4.2); E-10 (**entschieden, R2-1, R2-6**)
 
 **Ziel:** Der Endkunde sieht sein Angebot im Browser, ändert Details und nimmt verbindlich an. Der Admin erfährt es sofort.
 
 **Lieferumfang**
 
-- **Edge Function `portal-api`** nach 03 §5 und 05 §5.3: `GET /v1/portal` zum Ansehen, `POST /v1/portal/{aktion}` für Aktionen, Token im `Authorization`-Header, Prüfung per `sha256`, Rate-Limit, Whitelist nach 03 §5.3, HTTP-Status aus dem `hint` (409, 423). RPCs (nur `service_role`): `portal_get()`, `portal_accept_quote()`, `portal_decline_quote()`, `portal_select_choice()` (Menüwahl vor der Annahme, keine Revision), `portal_request_change()` (Änderungswunsch, ersetzt einen offenen), `portal_confirm_revision()` („Änderung bestätigen“ bei `confirmed`), `portal_save_dietary()`, `portal_delete_dietary()`, `portal_mark_viewed()`. Admin-RPC `resolve_pending_change()` (übernehmen oder ablehnen).
+- **Edge Function `portal-api`** nach 03 §5 und 05 §5.3: `GET /v1/portal` zum Ansehen, `POST /v1/portal/{aktion}` für Aktionen, Token im `Authorization`-Header, Prüfung per `sha256`, Rate-Limit, Whitelist nach 03 §5.3, HTTP-Status aus dem `hint` (409, 423). RPCs (nur `service_role`): `portal_get()`, `portal_accept_quote()`, `portal_decline_quote()`, `portal_select_choice()` (Menüwahl vor der Annahme wirkt direkt, keine Revision; R2-1), `portal_request_change()` (Gästezahl und alle Änderungen nach der Bestätigung als Änderungswunsch an den Admin, ersetzt einen offenen; ab ± 20 % Gästezahl Hinweis „bitte anrufen“; R2-1), `portal_confirm_revision()` („Änderung bestätigen“ bei `confirmed`), `portal_save_dietary()`, `portal_delete_dietary()` (Sonderessen und Allergien gelten sofort, R2-1), `portal_mark_viewed()`. Admin-RPC `resolve_pending_change()` (übernehmen oder ablehnen). Die Portal-Regeln sind **entschieden (R2-1)**.
+- **Änderungsschluss (entschieden, R2-6):** Standard 72 h vor Beginn bei Event-Catering, 24 h bei Business-Lunch (Firmeneinstellungen `portal_change_lead_hours`, `portal_change_lead_hours_business_lunch`), pro Auftrag änderbar (`events.changes_until`); danach antwortet `portal-api` mit 423.
 - **Screens:**
   - `app/portal/[token]` mit SC-71 – SC-76: Branding des Caterers, Siezen, ab 360 px, `noindex`, `Referrer-Policy: no-referrer`, keine Ressourcen von Dritten; Gästezahl aus dem Snapshot bzw. verbindlichen Stand.
   - SC-28 Tab Portal: Änderungswunsch übernehmen oder ablehnen, Link-Status, Sperre.
@@ -388,7 +394,9 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
   - Tabelle `notifications` und SC-52 Benachrichtigungsliste mit Glocke.
   - Einträge bei Annahme, Ablehnung, Änderungswunsch und geänderten Sonderessen; bei Annahme und Ablehnung zusätzlich eine E-Mail an den Admin. Die Push-Zustellung folgt in M7.
   - E-Mails an Endkunden: Annahme mit `r{n}-angenommen.pdf`, Änderungswunsch übernommen bzw. abgelehnt.
-- **Jobs (pg_cron, 03 §9.6):** `option_reminders`, `quote_expiry`, `confirmation_reminders`, `events_completion` (Erinnerung 09:00, D-2), `notifications_retention`; alle mit `dedupe_key`.
+- **Jobs (pg_cron, 03 §9.6):** `option_reminders`, `quote_expiry`, `confirmation_reminders`, `events_completion`, `notifications_retention`; alle mit `dedupe_key`.
+  - `events_completion` (stündlich, wirkt 09:00 Europe/Berlin) erinnert am Tag nach dem Event alle `admin` mit „{n} Aufträge als durchgeführt markieren?“ (Kategorie `completion_due`, `dedupe_key` `completion_due:{lokales Datum}`; Push ab M7). Der Job setzt **nie** `completed`; es gibt keinen nächtlichen Statuswechsel (**entschieden, R2-3**, D-2). Den Status setzt der Admin selbst nach dem Bestätigungsdialog (SC-31, einzeln oder gesammelt aus SC-12).
+  - pgTAP: Nach einem Lauf von `events_completion` sind alle `confirmed`-Aufträge weiterhin `confirmed`; es entstehen nur `completion_due`-Benachrichtigungen (03 §9.5).
 - **SC-12 Start:** neue Karten „offene Änderungswünsche“ und „abgelaufene Angebote“.
 - **Sicherheitstests für `portal-api`:** unbekannter, abgelaufener und widerrufener Token; veraltete Revision (409); Änderungsschluss (423). Ein automatischer Whitelist-Test stellt sicher, dass die Antwort keine internen Felder enthält.
 
@@ -397,11 +405,12 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 **Definition of Done – das probiert der Gründer aus**
 
 1. Je ein Angebot an einen Stammkunden (Business-Lunch) und an eine eingeweihte Testperson (fiktive Hochzeit) senden. Damit beginnt Pilot-Stufe 2.
-2. Die Testperson öffnet den Link auf dem eigenen Handy im Mobilfunknetz, trägt „2 × vegan, 1 × Zöliakie“ ein, wählt in der Wahlgruppe ein Menü (keine neue Revision) und nimmt verbindlich an. Danach wünscht sie eine höhere Gästezahl (Änderungswunsch, ab ± 20 % mit Telefonhinweis).
+2. Die Testperson öffnet den Link auf dem eigenen Handy im Mobilfunknetz, trägt „2 × vegan, 1 × Zöliakie“ ein, wählt in der Wahlgruppe ein Menü (keine neue Revision) und nimmt verbindlich an. Danach wünscht sie eine höhere Gästezahl (Änderungswunsch an den Admin; ab ± 20 % erscheint der Hinweis „bitte anrufen“, R2-1).
 3. Annahme und Änderungswunsch erscheinen in der Benachrichtigungsliste, die Annahme zusätzlich per E-Mail; der Status ist `confirmed`; das Annahme-PDF nennt Menüwahl, Name und Zeitpunkt. Der Gründer übernimmt den Wunsch, versendet die neue Version mit „Bitte bestätigen“; bis zur Bestätigung im Portal zeigt die Küche weiter die alte Gästezahl mit „Änderung offen“.
 4. Ein absichtlich verfälschter Link zeigt „Link ungültig“, ohne Firmendaten.
-5. Nach dem Änderungsschluss sind die Felder gesperrt und zeigen den Telefonhinweis.
-6. Das Portal lädt im Mobilfunknetz (4G) in unter 2,5 s (Messung im Browser, K-16).
+5. Nach dem Änderungsschluss (Standard 72 h bzw. 24 h bei Business-Lunch; bei einem Auftrag testweise auf einen anderen Zeitpunkt geändert, R2-6) sind die Felder gesperrt und zeigen den Telefonhinweis.
+6. Ein bestätigter Auftrag mit Ende gestern: Um 09:00 erscheint „{n} Aufträge als durchgeführt markieren?“ in der Benachrichtigungsliste. Der Status bleibt `confirmed`, bis der Gründer ihn nach dem Bestätigungsdialog selbst auf `completed` setzt (R2-3).
+7. Das Portal lädt im Mobilfunknetz (4G) in unter 2,5 s (Messung im Browser, K-16).
 
 **Kürzbar bei Verzug:** Auswahlliste für Ablehnungsgründe, „Als Kunde ansehen“.
 
@@ -409,16 +418,16 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.10 M7 · Schichtbörse & Push
 
-**Zeitraum:** Do 10.12. – Fr 18.12. · 7 AT · **Abhängigkeiten:** M1 (Qualifikationen), M3 (Aufträge), M6 (`notifications`); APNs-Schlüssel und FCM-Zugang in EAS; TestFlight- und Play-Testgruppe für das Pilotteam (Beta-Review am Mo 07.12. einreichen); E-14, E-15
+**Zeitraum:** Do 10.12. – Fr 18.12. · 7 AT · **Abhängigkeiten:** M1 (Qualifikationen), M3 (Aufträge), M6 (`notifications`); APNs-Schlüssel und FCM-Zugang in EAS; TestFlight- und Play-Testgruppe für das Pilotteam (Beta-Review am Mo 07.12. einreichen); E-14 (**entschieden, R2-10**), E-15
 
 **Ziel:** Aushilfen finden passende Einsätze in der App statt in der WhatsApp-Gruppe, und alle Beteiligten werden per Push informiert.
 
 **Lieferumfang**
 
 - **Datenbank und RPCs:**
-  - Neue Tabellen `shift_slots` (Qualifikation Pflicht, Zähler `taken_seats`), `shift_applications` mit Überbuchungsschutz per Trigger `track_slot_occupancy()` (bedingtes `UPDATE` auf `taken_seats`, 03 §7.5), `push_tokens` und `push_tickets` (03 §3.7).
+  - Neue Tabellen `shift_slots` (genau eine Qualifikation je Slot, `qualification_id not null`; wer sie nicht hat, sieht den Slot nicht, Filter in `shift_board`; **entschieden, R2-9**; Zähler `taken_seats`; keine Spalte `special_cancel_until`, R2-10), `shift_applications` mit Überbuchungsschutz per Trigger `track_slot_occupancy()` (bedingtes `UPDATE` auf `taken_seats`, 03 §7.5), `push_tokens` und `push_tickets` (03 §3.7).
   - `can_read_event()` per `create or replace` um den `staff`-Zweig ergänzen (Stub aus M3, 03 §9.2).
-  - RPCs `publish_slots()` (ab `optioned`), `cancel_slot()`, `shift_slot_times_changed(slot_id, old_starts_at, old_ends_at)` (Sonderabsagerecht nur bei wesentlicher Änderung), `apply_for_slot()`, `cancel_my_application()`, `decide_application()`, `assign_member()`, `record_late_cancellation()`, `register_push_token()`, `mark_notifications_read()`, `claim_notifications()` (nur `service_role`).
+  - RPCs `publish_slots()` (ab `optioned`), `cancel_slot()`, `shift_slot_times_changed(slot_id, old_starts_at, old_ends_at)` (nur Benachrichtigung: bei **jeder** Zeitänderung Push + In-App „Einsatz geändert“, Kategorie `shift_changed`, an `applied`/`accepted`/`assigned` mit neuer Zeit und der Absagefrist ab dem neuen Beginn bzw. „Absage nur noch über {admin}“; **kein** Sonderabsagerecht, **entschieden, R2-10**), `apply_for_slot()`, `cancel_my_application()` (immer die normale Absagefrist `starts_at − companies.shift_cancel_deadline_hours`, Standard 48 h, pro Firma einstellbar, aus der aktuellen Schichtzeit; danach `deadline_passed`, R2-10), `decide_application()`, `assign_member()`, `record_late_cancellation()`, `register_push_token()`, `mark_notifications_read()`, `claim_notifications()` (nur `service_role`).
   - Views `shift_board`, `my_shifts`, `event_staffing`, `event_colleagues` (03 §4.6, §7.7).
 - **Edge Function `push-dispatch`** (05 §5.6):
   - Auslösung per Database Webhook auf `notifications` und per Cron; jede Zeile wird vor dem Versand per `claim_notifications()` beansprucht (kein Doppelversand).
@@ -433,6 +442,7 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 - **Offline:** Die eigenen Einsätze der nächsten 14 Tage werden vorgeladen (US-54.6); Einsatzinfos samt Ablaufplan sind offline lesbar. Der Cache wird bei Abmeldung, Entfernen und Rollenwechsel gelöscht.
 - **Jobs:** `shift_reminders`, `push_deferred`, `push_receipts` (03 §9.6).
 - **Nebenläufigkeitstest:** zwei Zusagen gleichzeitig auf den letzten Platz, unter `READ COMMITTED` und `REPEATABLE READ` (03 §9.5).
+- **Absagefrist-Test (R2-10):** Verschiebt der Admin einen Slot so, dass `starts_at − shift_cancel_deadline_hours` schon vorbei ist, lehnt `cancel_my_application()` mit `deadline_passed` ab; `my_shifts.cancel_deadline_at` zeigt die neue Frist; `shift_slots` hat keine Spalte `special_cancel_until` (03 §9.5).
 - **Verteilung:** TestFlight-Gruppe „Pilot-Team“ (externe Tester) und Play-Testtrack.
 
 **Appllama:** Muster aus Bereich C umsetzen.
@@ -440,12 +450,12 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 **Definition of Done – das probiert der Gründer aus**
 
 1. 2–3 vertraute Aushilfen installieren die App (TestFlight bzw. Play) und treten per Einladung bei. Damit beginnt Pilot-Stufe 3.
-2. Für einen echten Auftrag Slots anlegen („Service 2 ×“, „Bar 1 ×“) und veröffentlichen. Nur Aushilfen mit passender Qualifikation sehen den Slot und bekommen einen Push.
+2. Für einen echten Auftrag Slots anlegen („Service 2 ×“, „Bar 1 ×“) und veröffentlichen. Jeder Slot hat genau eine Qualifikation (Pflichtfeld, R2-9); nur Aushilfen mit dieser Qualifikation sehen den Slot und bekommen einen Push.
 3. Die Aushilfen bewerben sich. Der Gründer sagt zu und ab; die Betroffenen bekommen innerhalb einer Minute einen Push. Eine dritte Bewerbung landet auf der Warteliste.
 4. Eine Aushilfe öffnet ihr Einsatzdetail im Flugmodus: Adresse, Treffpunkt, Dresscode, Ablaufplan und Ansprechpartner sind lesbar.
 5. Eine Absage vor der Frist klappt (der Admin bekommt einen Push, der Slot ist wieder frei). Nach der Frist bietet die App nur noch „Absage nur noch telefonisch“ mit Anruf-Button.
 6. Eine Person ohne Bewerbung direkt einplanen (`assigned`); eine Person ohne passende Qualifikation nur nach Bestätigungsdialog.
-7. Beginn eines Slots um 30 min verschieben: Eingeplante bekommen „Einsatz geändert“ ohne Sonderabsagerecht. Um 2 h verschieben: zusätzlich „Absage bis {frist} möglich“, längstens bis Schichtbeginn.
+7. Beginn eines Slots um 30 min und danach um 2 h verschieben: Eingeplante bekommen jeweils „Einsatz geändert“ mit der neuen Zeit. Es gibt in keinem Fall ein Sonderabsagerecht (R2-10); es gilt die normale Absagefrist (48 h), gerechnet ab dem neuen Beginn. Ist sie durch die Verschiebung schon abgelaufen, bietet die App nur „Absage nur noch telefonisch“ mit Anruf-Button.
 8. Claude führt den Nebenläufigkeitstest vor: Bei zwei gleichzeitigen Zusagen auf den letzten Platz bleibt genau eine.
 
 **Kürzbar bei Verzug:** Erinnerung 24 h vorher, Warnung „unbesetzt 72 h vorher“, Ruhezeit, Monatssumme der Stunden (alle Should).
@@ -462,14 +472,14 @@ Tauschbar bei Bedarf: M8 kann vor M7 laufen (falls die Küche dringender ist); d
 
 ### 1.12 M8 · Küchenlisten & iCal
 
-**Zeitraum:** Mo 04.01. – Fr 08.01.2027 · 5 AT · **Abhängigkeiten:** M2, M4, M6; E-16 (Datenbasis, festgelegt vor M4: verbindlicher Stand, 02 §8); E-18 (Küchen-Tablet als native App, Pflicht für den Pilot) · Der 06.01. ist in BW, BY und ST Feiertag; gegebenenfalls verlängert sich M8 um einen Tag.
+**Zeitraum:** Mo 04.01. – Fr 08.01.2027 · 5 AT · **Abhängigkeiten:** M2, M4, M6; E-16 (Datenbasis, festgelegt vor M4: verbindlicher Stand, 02 §8); Küchen-Gerät **entschieden (R2-8)**: kein Küchen-Tablet, die Küche nutzt Smartphones mit der nativen App (E-18 entfällt) · Der 06.01. ist in BW, BY und ST Feiertag; gegebenenfalls verlängert sich M8 um einen Tag.
 
 **Ziel:** Die Küche plant Produktion und Einkauf aus der App, und Allergiker sind sicher markiert.
 
 **Lieferumfang**
 
 - **Datenbank:** Rollen-Views ohne Preise (03 §4.6, §7.7): `kitchen_events` (Gästezahl aus dem verbindlichen Stand, Entwurfszahl und Kennzeichen „Änderung offen“) und `kitchen_production_lines` (verbindlicher Stand → Snapshot + Menüwahl → Live-Stand); Sonderessen mit Konfliktprüfung und Ersatzgericht. RPC `log_usage_event()` und Tabelle `usage_events` (03 §3.7) für K-10.
-- **Listen im TS-Modul** (`_shared/domain/kitchen`, 02 §8, 05 §4.4): Produktionsliste über mehrere Aufträge und Tage, Optionen zuschaltbar, ohne Puffer; Einkaufsliste: Zutaten (Rohware) × Portionen + Puffer 5 % (nur hier), in Basiseinheiten, Anzeige mit einer Nachkommastelle, gruppiert nach Warengruppe. Unit-Tests mit dem Rechenbeispiel 02 §8.5.
+- **Listen im TS-Modul** (`_shared/domain/kitchen`, 02 §8, 05 §4.4): „Menge p. P.“ ist Rohware vor dem Garen (**entschieden, R2-7**). Produktionsliste über mehrere Aufträge und Tage, Optionen zuschaltbar, ohne Puffer; Einkaufsliste: Zutaten (Rohware) × Portionen + Puffer 5 % (nur hier, `companies.shopping_buffer_bp` = `500`, R2-7), in Basiseinheiten, Anzeige mit einer Nachkommastelle, gruppiert nach Warengruppe. Unit-Tests mit dem Rechenbeispiel 02 §8.5.
 - **Screens:** SC-13 Heute (Heute/Morgen), SC-25 Tab Küche vollständig, SC-44 Produktion, SC-45 Sonderessen im Zeitraum, SC-46 Einkauf (lokales Abhaken, Teilen als Text, CSV im Web); Druckansicht A4 im Web (Should); Tablet-Layout mit 2 Spalten.
 - **Push an `kitchen`:** neuer bestätigter Auftrag, Storno (immer), verbindliche Gästezahländerung, geänderte Sonderessen (gebündelt; kurzfristige Änderungen nicht abschaltbar).
 - **Offline (nur native App, 01 §3.1):** Aufträge der nächsten 7 Tage werden für `kitchen` vorgeladen. Gesundheitsdaten liegen nur im geschützten App-Speicher (US-54.7). Der Web-Admin hat keinen Offline-Modus; das Küchen-Tablet läuft deshalb als native App (E-18).

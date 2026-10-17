@@ -1,10 +1,11 @@
 # 05 – Technische Architektur
 
-Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheidungen.md` (verbindlich), `docs/01-produkt.md`, `docs/02-ablaeufe.md`, `docs/04-screens-ux.md`
+Stand: 17.10.2026, überarbeitet nach den Entscheidungen Runde 2 (00 §9) · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheidungen.md` (verbindlich), `docs/01-produkt.md`, `docs/02-ablaeufe.md`, `docs/03-datenmodell.md`, `docs/04-screens-ux.md`
 
 **Lesehilfe**
 
 - Inhalte ohne Markierung setzen 00 bzw. das Glossar um. **[Vorschlag]** markiert eine begründete Empfehlung zu einem offenen Punkt; bis zur Freigabe gilt sie als Arbeitsannahme.
+- **Entschieden (R2-x)** verweist auf die Entscheidungen Runde 2 (00 §9, R2-1 bis R2-14). Sie haben Vorrang vor allen früheren Vorschlägen in 01–06; die Zuordnung zu den Abschnitten dieses Dokuments steht in 13.2.
 - Es gibt noch keinen Code. Ordner, Dateien, RPC-, Spalten- und Hilfstabellennamen außerhalb des Glossars sind Soll-Vorgaben bzw. Vorschläge; Spalten und Policies legt das Datenmodell verbindlich fest.
 - **Versionen:** keine festen Versionsnummern. Gemeint ist jeweils die aktuelle stabile Version beim Projektstart („aktuelles stabiles Expo SDK“); im Repo fixieren Lockfile und exakte Versionsangaben den Stand.
 - Anbieter-Limits, Konditionen und Store-Richtlinien sind Planungsstand und vor Umsetzung bzw. Einreichung in der jeweiligen Doku zu prüfen (Kennzeichen „prüfen“).
@@ -23,9 +24,9 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 8. Sicherheit und Datenschutz
 9. Umgebungen und Delivery
 10. Qualität
-11. Architektur-Entscheidungen (ADR-01 bis ADR-22)
+11. Architektur-Entscheidungen (ADR-01 bis ADR-24)
 12. Abweichungen zwischen 01/02 und Glossar-Lücken
-13. Vorschläge zur Freigabe
+13. Vorschläge zur Freigabe und Entscheidungen Runde 2
 
 ---
 
@@ -45,7 +46,7 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 
 | Thema | Festlegung |
 |---|---|
-| Clients | Expo-App (iOS, Android) für `admin`, `kitchen`, `staff`; derselbe Build als Expo Web unter `app.{domain}`; Kundenportal `app/portal/[token]` unter `portal.{domain}` |
+| Clients | Expo-App (iOS, Android) für `admin`, `kitchen`, `staff`, ausgelegt für Smartphones (auch die Küche; kein Tablet im MVP, entschieden R2-8); derselbe Build als Expo Web unter `app.{domain}`; Kundenportal `app/portal/[token]` unter `portal.{domain}` |
 | Backend | Supabase in Frankfurt: Postgres mit RLS, Auth, Storage, Edge Functions, `pg_cron`, `pg_net`, Realtime nur als optionales Signal |
 | Datenzugriff | supabase-js v2 mit generierten Typen; TanStack Query mit verschlüsseltem, persistiertem Cache (nativ); Schreiben nur online |
 | Externe Dienste | Stripe (Abo, nur Web), Resend (E-Mail, EU-Region) **[Vorschlag]**, Expo Push Service, Sentry (EU), Netlify (Web-Hosting) **[Vorschlag]** |
@@ -74,7 +75,7 @@ flowchart LR
         REST["PostgREST und RPC"]
         DB[("Postgres<br/>RLS, pg_cron, pg_net")]
         RT["Realtime<br/>Broadcast-Signale, optional"]
-        ST["Storage<br/>logos, quotes"]
+        ST["Storage<br/>logos, quotes, exports"]
         subgraph EF["Edge Functions (Deno)"]
             F1["portal-api"]
             F2["render-quote-pdf"]
@@ -84,7 +85,9 @@ flowchart LR
             F6["create-checkout-session"]
             F7["ical-feed"]
             F8["accept-invitation"]
-            F9["delete-account<br/>(Vorschlag)"]
+            F9["delete-account<br/>(R2-12)"]
+            F10["purge-company<br/>(R2-13)"]
+            F11["export-company<br/>(R2-14)"]
         end
     end
 
@@ -109,11 +112,15 @@ flowchart LR
     POR -->|"Portal-Token"| F1
     CAL -->|"GET .ics mit Token"| F7
     F1 & F2 & F7 & F8 & F9 -->|"Service-Rolle, RPC"| DB
+    F10 & F11 -->|"Service-Rolle, gefiltert auf company_id"| DB
     F2 -->|"PDF ablegen"| ST
     F1 -->|"signierte URL"| ST
-    F1 & F2 & F8 -->|"intern"| F3
+    F11 -->|"ZIP ablegen, signierter Link 7 Tage"| ST
+    F10 -->|"Ordner company_id löschen"| ST
+    F1 & F2 & F8 & F10 & F11 -->|"intern"| F3
     DB -->|"DB-Webhook, pg_cron via pg_net"| F4
     DB -->|"pg_cron via pg_net"| F3
+    DB -->|"RPC bzw. pg_cron via pg_net"| F10 & F11
     F3 --> MAIL
     F4 --> EXPO --> APNS --> IOS & ANDR
     F6 --> STRIPE
@@ -125,14 +132,14 @@ flowchart LR
 
 | Komponente | Aufgabe | Technik | Ort |
 |---|---|---|---|
-| Team-App iOS/Android | alle Rollen, Offline-Lesen, Push | Expo (React Native), Expo Router; Development- und Store-Builds über EAS | Gerät |
-| Web-Admin / Team-Web | derselbe Build im Browser; Schwerpunkt `admin` (Angebote, Kalkulation, Abo, Export) | Expo Web, SPA-Export | `app.{domain}` |
+| Team-App iOS/Android | alle Rollen, Offline-Lesen, Push; Smartphone-Layout auf allen Geräten, auch in der Küche (kein Küchen-Tablet, keine Tablet-Layouts im MVP, entschieden R2-8; Tablet-Optimierung nach dem MVP, 01 P-23) | Expo (React Native), Expo Router; Development- und Store-Builds über EAS | Gerät |
+| Web-Admin / Team-Web | derselbe Build im Browser; Schwerpunkt `admin` (Angebote, Kalkulation, Abo, Export anfordern) | Expo Web, SPA-Export | `app.{domain}` |
 | Kundenportal | öffentlich, ohne Login, nur über `portal-api` | derselbe Web-Build, eigene Origin | `portal.{domain}` |
 | Postgres | Daten, RLS, RPC, Zeitjobs (`pg_cron`), HTTP aus der DB (`pg_net`) | Supabase Postgres | Frankfurt |
 | Auth | Konten, Sitzungen, Apple und Google | Supabase Auth | Frankfurt |
-| Storage | Logos (öffentlich lesbar), Angebots-PDFs (privat) | Supabase Storage | Frankfurt |
+| Storage | Logos (öffentlich lesbar), Angebots-PDFs (privat), Datenexporte (privater Bucket `exports`, höchstens 7 Tage, R2-14) | Supabase Storage | Frankfurt |
 | Realtime | optionale Änderungssignale (Schichtbörse, Besetzung) | Supabase Realtime Broadcast | Frankfurt |
-| Edge Functions | die 8 Functions aus dem Glossar, dazu `delete-account` als Glossar-Ergänzung (**Vorschlag**, 5.10) | Deno (Supabase Edge Runtime) | Ausführungsregion auf eu-central-1 festlegen (prüfen, 5.1) |
+| Edge Functions | die 8 Functions aus dem Glossar, dazu die Glossar-Ergänzungen `delete-account` (freigegeben R2-12), `purge-company` (freigegeben R2-13) und `export-company` (entschieden R2-14), 5.10 und 5.11 | Deno (Supabase Edge Runtime) | Ausführungsregion auf eu-central-1 festlegen (prüfen, 5.1) |
 | Stripe | Abo der Caterer | Checkout, Billing, Customer Portal, Stripe Tax | EU/USA |
 | E-Mail-Dienst | Kunden-, Team- und Auth-E-Mails | Resend (API und SMTP) **[Vorschlag]** | EU-Region (prüfen) |
 | Expo Push Service | Weiterleitung an APNs/FCM | HTTPS-API | USA |
@@ -148,7 +155,8 @@ flowchart LR
 | Portal → `portal-api` | Endkunde | Portal-Token (256 Bit, nur Hash gespeichert) | nur der eine Auftrag des Tokens, nur Snapshot-Daten |
 | Kalender → `ical-feed` | Kalenderdienst | iCal-Token | nur lesende Termine des Mitglieds, rollengerecht |
 | Stripe → `stripe-webhook` | Stripe | Webhook-Signatur | Schreiben in `subscriptions` |
-| DB/Functions → Functions | `pg_cron`, `pg_net`, andere Functions | interner Schlüssel (`x-internal-secret`) | interne Aktionen (Push, E-Mail, PDF) |
+| E-Mail-Link → Storage `exports` | Inhaber des signierten Download-Links (anfordernde Person, R2-14) | signierte Storage-URL, 7 Tage gültig, nicht in der DB gespeichert | genau die eine ZIP-Datei `{company_id}/{data_export_id}.zip`, nur lesend |
+| DB/Functions → Functions | `pg_cron`, `pg_net`, andere Functions | interner Schlüssel (`x-internal-secret`) | interne Aktionen (Push, E-Mail, PDF, Export, endgültige Firmenlöschung) |
 | Functions → DB | Edge Functions | Service-Rolle (Secret Key) | alles; deshalb nur über eng geschnittene RPCs (8.4) |
 
 ---
@@ -277,7 +285,8 @@ catering-app/
 │       ├── _shared/
 │       │   ├── domain/                 reines TypeScript ohne Deno-/npm-Abhängigkeiten, auch von der App genutzt:
 │       │   │                           calc (Kalkulation, Steuern, Rundung, nur Ganzzahlen), kitchen (Produktions-
-│       │   │                           und Einkaufsliste), event-status (Übergänge), intake (Feldzuordnung), schemas (zod)
+│       │   │                           und Einkaufsliste), event-status (Übergänge, nur vorwärts), intake (Feldzuordnung),
+│       │   │                           schemas (zod)
 │       │   ├── database.types.ts       generiert (3.3)
 │       │   ├── auth.ts  http.ts  cors.ts  log.ts  rate-limit.ts  supabase-admin.ts
 │       │   ├── email/                  Layouts und Vorlagen (5.5)
@@ -291,7 +300,9 @@ catering-app/
 │       ├── create-checkout-session/index.ts
 │       ├── ical-feed/index.ts
 │       ├── accept-invitation/index.ts
-│       └── delete-account/index.ts       Glossar-Ergänzung (Vorschlag, 5.10)
+│       ├── delete-account/index.ts     Glossar-Ergänzung, freigegeben (R2-12, 5.10)
+│       ├── purge-company/index.ts      Glossar-Ergänzung, freigegeben (R2-13, 5.10)
+│       └── export-company/index.ts     Glossar-Ergänzung, entschieden (R2-14, 5.11)
 ├── e2e/maestro/                        E2E-Abläufe (10.2)
 ├── assets/                             Inter-TTF, App-Icon, Splash
 ├── public/                             _headers, _redirects, .well-known/ (9.4, 6.5) – landen im Web-Export
@@ -329,10 +340,10 @@ catering-app/
 | Weg | Wann | Beispiele **[Vorschlag]** | Schutz |
 |---|---|---|---|
 | Tabellen-CRUD über PostgREST (`supabase.from()`) | einfache Stammdaten ohne Fachregeln | `customers`, `tax_rates`, `qualifications`, `menu_packages` (admin) | RLS: Firma, Rolle, Schreibbarkeit |
-| RPC (`supabase.rpc()`) | Fachregeln, Transaktionen, Sperren, Statuswechsel | Namen nach dem RPC-Katalog 03 §4.7: `set_event_status`, `decide_application`, `assign_member`, `apply_for_slot` (02 §1.1, §5.5); `create_company`, `create_invitation`, `copy_event`, `create_event_from_intake`, `resolve_pending_change`, `log_usage_event` | SECURITY DEFINER mit expliziter Firmen- und Rollenprüfung, fester `search_path`, `EXECUTE` nur für die vorgesehene Rolle (03 §4.1 Nr. 1) |
+| RPC (`supabase.rpc()`) | Fachregeln, Transaktionen, Sperren, Statuswechsel | Namen nach dem RPC-Katalog 03 §4.7: `set_event_status`, `decide_application`, `assign_member`, `apply_for_slot` (02 §1.1, §5.5); `create_company`, `create_invitation`, `copy_event`, `create_event_from_intake`, `resolve_pending_change`, `shift_slot_times_changed`, `request_data_export`, `log_usage_event` | SECURITY DEFINER mit expliziter Firmen- und Rollenprüfung, fester `search_path`, `EXECUTE` nur für die vorgesehene Rolle (03 §4.1 Nr. 1) |
 | Rollenspezifische Lesepfade (Views) | Lesen ohne Preis-, Kosten- und Kundenkontaktspalten für `kitchen`/`staff`; Firmenkontext für alle | Views aus 03 §4.6: `company_profile`, `kitchen_dishes`, `kitchen_ingredients`, `kitchen_menu_packages`, `kitchen_events`, `kitchen_production_lines`, `team_directory`, `event_staffing`, `shift_board`, `my_shifts`, `event_colleagues` | 4.2 |
-| Edge Functions | externe Dienste, öffentliche Endpunkte, Geheimnisse, PDF | die 8 Functions (Abschnitt 5) und `delete-account` (Vorschlag) | eigene Auth-Prüfung (5.1) |
-| Storage | Dateien | Bucket `logos` (öffentlich lesbar, Pfad `{company_id}/logo-{uuid}.{png\|jpg}`), Bucket `quotes` (privat, Pfad `{company_id}/{quote_id}/r{revision}-{send_attempt_id}.pdf` bzw. `r{revision}-angenommen.pdf`; der Bucketname ist kein Pfadsegment, 03 §8) | Storage-Policies auf das erste Pfadsegment `company_id`; Bucket-Limits 2 MB und nur `image/png`, `image/jpeg` für Logos |
+| Edge Functions | externe Dienste, öffentliche Endpunkte, Geheimnisse, PDF, Hintergrundaufgaben mit Storage | die 8 Functions (Abschnitt 5) und die Glossar-Ergänzungen `delete-account`, `purge-company`, `export-company` (entschieden R2-12 bis R2-14) | eigene Auth-Prüfung (5.1) |
+| Storage | Dateien | Bucket `logos` (öffentlich lesbar, Pfad `{company_id}/logo-{uuid}.{png\|jpg}`), Bucket `quotes` (privat, Pfad `{company_id}/{quote_id}/r{revision}-{send_attempt_id}.pdf` bzw. `r{revision}-angenommen.pdf`), Bucket `exports` (privat, Pfad `{company_id}/{data_export_id}.zip`, R2-14); der Bucketname ist kein Pfadsegment (03 §8) | Storage-Policies auf das erste Pfadsegment `company_id`; Bucket-Limits 2 MB und nur `image/png`, `image/jpeg` für Logos; `exports` ohne jede Policy für `authenticated` (Download nur über den signierten Link, 5.11) |
 | Realtime | Änderungssignale ohne Inhalte | Schichtbörse, Besetzung (4.9) | private Kanäle, Autorisierung über RLS |
 
 ### 4.2 Mandanten- und Rollenfilter
@@ -408,7 +419,7 @@ export function useShiftBoard() {
 | `staleTime` | Standard 30 s; Katalog (Gerichte, Pakete, Steuersätze, Fragenkatalog) 5 min; Firmenkontext 0 (immer bei Fokus prüfen) **[Vorschlag]** |
 | Fokus | nativ über `AppState` → `focusManager`; Web über `visibilitychange` (TanStack-Standard) |
 | Listen | Keyset-Paginierung mit `useInfiniteQuery` für Aufträge, Kunden und Benachrichtigungen (Sortierschlüssel + `id`); Suche über Postgres (`pg_trgm`) **[Vorschlag]** |
-| Aggregationen | Schichtbörse und Belegung liefert der Server (View `shift_board`, `taken_seats`). Produktions- und Einkaufsliste berechnet das geteilte TS-Modul `_shared/domain/kitchen` aus den Views `kitchen_production_lines`, `kitchen_events`, `kitchen_ingredients` sowie `dish_ingredients` und `event_dietary_requirements` (03 §4.6); so funktionieren Auftragsauswahl und Puffer auch offline mit geladenen Daten. Eine Einkaufslisten-RPC gibt es nicht; Abrufe zählt `log_usage_event('shopping_list_viewed')` für K-10 |
+| Aggregationen | Schichtbörse und Belegung liefert der Server (View `shift_board`, `taken_seats`). Produktions- und Einkaufsliste berechnet das geteilte TS-Modul `_shared/domain/kitchen` aus den Views `kitchen_production_lines`, `kitchen_events`, `kitchen_ingredients` sowie `dish_ingredients` und `event_dietary_requirements` (03 §4.6); so funktionieren Auftragsauswahl und Puffer auch offline mit geladenen Daten. Mengen p. P. sind Rohware vor dem Garen; nur die Einkaufsliste rechnet den Puffer `companies.shopping_buffer_bp` (Standard 5 %) auf, die Produktionsliste nicht (entschieden R2-7). Eine Einkaufslisten-RPC gibt es nicht; Abrufe zählt `log_usage_event('shopping_list_viewed')` für K-10 |
 | Prefetch | nach Login bzw. App-Start mit Netz: `staff` eigene Einsätze der nächsten 14 Tage inklusive Einsatzinfos und Ablauf; `kitchen` Aufträge, Produktions- und Allergikerlisten der nächsten 7 Tage (01 US-54.6) |
 
 ### 4.5 Mutations-Muster
@@ -450,7 +461,7 @@ Fehlervertrag nach dem Datenmodell (03 §0, §4.7): Datenbankfunktionen melden f
 | `revision_outdated` | `hint` aus `commit_quote_send`, `portal_*`; `portal-api` 409 | „Das Angebot wurde aktualisiert“ + Neu laden |
 | `slot_full` | `hint` aus `track_slot_occupancy`, `apply_for_slot`; SQLSTATE `40001` bei Belegung | Konfliktdialog mit Lösungsaktion („Anzahl erhöhen und zusagen“) |
 | `seats_below_taken` | SQLSTATE `23514`, Constraint `shift_slots_taken_le_seats` | „Erst {n} Person(en) ausplanen“ |
-| `invalid_transition` | `hint` aus `set_event_status`, Bewerbungs-RPCs | „Statuswechsel nicht möglich: {Grund}“ |
+| `invalid_transition` | `hint` aus `set_event_status`, Bewerbungs-RPCs; auch jeder Rückwärts-Übergang (R2-4) | „Statuswechsel nicht möglich: {Grund}“ |
 | `deadline_passed`, `portal_locked` | `hint` (Absagefrist, Änderungsschluss, Sperre); `portal-api` 423 | Hinweis + Anruf-Button (04 §3.3 Nr. 2) |
 | `limit_reached` | `hint` (Planlimits, 01 §6.1) | plattformabhängig: `limit_reached.native` „Limit der aktuellen Stufe erreicht ({n} Mitglieder). Bitte ein Mitglied entfernen.“ (ohne Kauf- oder Upgrade-Hinweis, 7.7) · `limit_reached.web` „Limit von {n} Mitgliedern erreicht – Stufe wechseln oder Mitglied entfernen“ mit Link zur Abo-Seite (01 US-05.4) |
 | `missing_qualification`, `slot_not_open`, `application_exists`, `already_assigned` | `hint` aus Schicht-RPCs | je Kontext |
@@ -469,7 +480,7 @@ Besonderheiten: Eine von RLS verweigerte Leseabfrage liefert leere Zeilen, keine
 | Lokales Abhaken in Küchenlisten | nur lokal (kein Server) | 02 §8 |
 | Reihenfolge per Drag & Drop (Fragenkatalog, Positionen) | ja, Rücknahme bei Fehler **[Vorschlag]** | keine Fachwirkung |
 | Filter, Sortierung, Ansichten | lokal | – |
-| Statuswechsel, Versand, Beträge, Summen | nein | Server ist maßgeblich (04 §3.3 Nr. 7) |
+| Statuswechsel, Versand, Beträge, Summen | nein | Server ist maßgeblich (04 §3.3 Nr. 7); Statuswechsel erst nach dem Bestätigungsdialog SC-31 (R2-4, 4.10) |
 | Bewerben, Zusagen, Einplanen, Absagen | nein | Kapazität und Frist prüft die DB |
 | Portal-Aktionen | nein | Protokoll, Revisionsprüfung |
 
@@ -522,10 +533,19 @@ Fällt Realtime aus, bleibt die App korrekt; nur die Aktualisierung kommt späte
 ### 4.10 Zeit, Geld, Rechenlogik
 
 - **Zeit:** Speicherung als `timestamptz`. Fristen (Absagefrist, Änderungsschluss, Option, Testende) rechnet die Datenbank in `Europe/Berlin` (`at time zone 'Europe/Berlin'`). Die App zeigt alle Zeiten in `Europe/Berlin` (Glossar), unabhängig von der Gerätezone. Eine Firmenspalte für die Zeitzone gibt es nicht: Österreich und die Schweiz (vorbereitet) haben dieselbe Zeitzonenregel (MEZ/MESZ).
+- **Änderungsschluss (entschieden R2-6):** `events.changes_until` wird beim Anlegen aus `companies.portal_change_lead_hours` (Event-Catering, Standard 72 h) bzw. `portal_change_lead_hours_business_lunch` (Business-Lunch, Standard 24 h) vorbelegt und ist je Auftrag änderbar; `portal-api` prüft nur `changes_until` (5.3).
+- **Absagefrist der Schichtbörse (entschieden R2-10):** immer `starts_at − companies.shift_cancel_deadline_hours` (Standard 48 h), berechnet aus der **aktuellen** Schichtzeit (`my_shifts.cancel_deadline_at`, `cancel_my_application()`). Ein Sonderabsagerecht bei Verschiebung gibt es nicht; danach sagt nur der Admin ab. Jede Zeitänderung eines Slots löst über `shift_slot_times_changed()` die Benachrichtigung `shift_changed` (02 S12) an Beworbene und Eingeplante aus, unabhängig von der Größe der Verschiebung.
 - **Geld:** ausschließlich integer Cent in DB, API und Rechenmodul; Eingabe „12,50“ → 1250 über `parseMoneyDe`; Anzeige über `Intl.NumberFormat`.
 - **Kalkulation (ADR-06):** Ein reines TypeScript-Modul `_shared/domain/calc` setzt die Regeln aus **02 §3** um (einzige Quelle; Positionsbeträge, Rechenseite = Anzeigeart, Umsatzsteuer je Steuersatz auf die Summe, Rabatte, Wahlgruppen, Wareneinsatz, Rohertrag). Die App nutzt es für die Live-Vorschau im Editor; maßgeblich ist der Server: `render-quote-pdf` rechnet damit beim Versand den Snapshot, `portal-api` die Summen inklusive Menüwahl. Die Rechenbeispiele aus 02 §3 und §8.5 sind Pflicht-Testfälle.
+- **Preisvorschlag (entschieden R2-5):** Der Preisvorschlag aus der Wareneinsatz-Kalkulation wird nicht kaufmännisch gerundet, sondern immer auf das Raster `companies.price_rounding_cents` **aufgerundet** (Standard volle 10 Cent) – Helfer `ceilToStep(cents, step)` in `_shared/domain/calc`. Pflicht-Testfall: 9,40 € × 2,8 = 26,32 € → 26,40 € (02 §3.3, 01 US-24.2).
+- **Kinder (entschieden R2-11):** Kinderportionen sind kein eigenes Konzept; Kinder werden als eigene Angebotsposition mit fester Menge erfasst (02 §2.2). `calc` hat dafür keinen eigenen Zweig.
 - **Exakte Arithmetik:** Das Modul rechnet nur mit Ganzzahlen (BigInt bzw. sichere Integer). Mengen als `q100` (Hundertstel), Stunden als Viertelstunden, Faktoren und Prozentsätze in Basispunkten, Wareneinsatz in 1/10000 Cent; Rundung über `divRoundHalfUp(zähler, nenner)`. Werte aus PostgREST (`numeric` kommt als JS-Number) werden beim Einlesen sofort umgewandelt (`q100 = Math.round(q × 100)`). Grund: `1.15 * 350 = 402.49999999999994` ergibt mit `Math.round` 402 statt 403 Cent, `0.41 * 2450` 1004 statt 1005. Pflicht-Unit-Tests an ,5-Grenzen (u. a. 1,15 × 3,50 € = 4,03 €). Die Commit-RPC prüft Kopf- gegen Positionssummen je Steuersatz; Cent-Fehler innerhalb einer Position verhindern nur die Ganzzahlregeln und die Tests.
-- **Statusübergänge:** `set_event_status` (02 §1.1) ist maßgeblich. Die Oberfläche baut ihre Aktionen aus derselben Übergangstabelle in `_shared/domain/event-status.ts` (04 §0.3); ein Integrationstest prüft alle 64 Paare gegen die RPC, damit beide nicht auseinanderlaufen.
+- **Statusübergänge (entschieden R2-2, R2-3, R2-4):** Die Übergangstabelle in 02 §1.1 ist die einzige Quelle; serverseitig prüft sie `private.is_allowed_event_transition()` (03 §7.8), aufgerufen von `set_event_status` und den übrigen statusändernden RPCs. Die Oberfläche baut ihre Aktionen aus derselben Tabelle in `_shared/domain/event-status.ts` (04 §0.3). Regeln:
+  - **Nur vorwärts:** Es gibt keine Rückwärts-Übergänge (kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted`, keine Reaktivierung von `declined`/`cancelled`, keine Rücksprünge nach `inquiry`) und keine Funktion „Status korrigieren“. `declined`, `cancelled` und `invoiced` sind Endzustände; ein neuer Anlauf läuft über `copy_event` (R2-4).
+  - **Direktbestätigung erlaubt:** `inquiry`/`optioned` → `confirmed` ohne versendetes Angebot, mit Pflichtangabe `confirmation_channel` (Telefon, E-Mail, persönlich; R2-2).
+  - **„Durchgeführt“ nur manuell:** `confirmed` → `completed` setzt ausschließlich der Admin; kein Job ändert `events.status`. Der Job `events_completion` erinnert am Tag nach dem Event um 09:00 (4.12, R2-3).
+  - **Bestätigungsdialog statt Korrektur:** Vor jedem vom Admin ausgelösten Statuswechsel (einzeln, Sammelaktion, Startstatus einer Kopie) zeigt die App den Dialog SC-31 mit Zielstatus, Pflichtangaben, Folgen und dem Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden.“ (02 §1.1.1). Erst danach ruft sie die RPC auf; der Dialog ist rein clientseitig, die RPC prüft unabhängig davon.
+  - **Test:** Ein Integrationstest prüft alle 64 Paare aus `event_status` × `event_status` gegen die RPC, damit TS-Tabelle und DB nicht auseinanderlaufen; jeder Rückwärts-Übergang muss `invalid_transition` liefern.
 
 ### 4.11 Angebots-Chat (Fragenkatalog)
 
@@ -543,7 +563,7 @@ Fällt Realtime aus, bleibt die App korrekt; nur die Aktualisierung kommt späte
 
 | Job (03 §9.6) | Rhythmus | Aufgabe | Quelle |
 |---|---|---|---|
-| `events_completion` | stündlich, wirkt 09:00 | Erinnerung „als durchgeführt markieren“ am Folgetag (kein automatischer Statuswechsel) | 01 US-11.5, 02 §1.1 |
+| `events_completion` | stündlich, wirkt 09:00 | Erinnerung `completion_due` „{n} Aufträge als durchgeführt markieren?“ an alle `admin` am Tag nach dem Event; **kein** automatischer Statuswechsel, `completed` setzt der Admin selbst nach dem Bestätigungsdialog (entschieden R2-3) | 01 US-11.5, 02 §1.1 |
 | `option_reminders` | stündlich, wirkt 08:00 | Option läuft in 2 Tagen bzw. heute ab | 02 §1.3 |
 | `quote_expiry` | stündlich | Angebotsgültigkeit abgelaufen (Liste) | 01 US-26.3 |
 | `confirmation_reminders` | stündlich, wirkt 08:00 | offene Bestätigung „Bitte bestätigen“ nach 48 h bzw. am Änderungsschluss | 01 US-36.7 |
@@ -553,9 +573,10 @@ Fällt Realtime aus, bleibt die App korrekt; nur die Aktualisierung kommt späte
 | `dietary_purge` | täglich | Gastnamen und Tische 30 Tage nach Eventende entfernen | 02 §10.4 |
 | `notifications_retention` | täglich | Benachrichtigungen > 90 Tage löschen | 02 §10.4 |
 | `data_retention` | täglich | Einladungen 30 Tage nach Ablauf, Rate-Limit-Zeilen, `stripe_events` > 90 Tage, IP/User-Agent nach 3 Jahren | 02 §10.4 |
-| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage vorher, Testende), Löschankündigungen (30/7 Tage), endgültige Löschung nach 6 Monaten Lesemodus bzw. 30 Tage nach Löschantrag inklusive Storage | 01 §6.2, US-57.6, US-60.3 |
+| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage vorher, Testende), Löschankündigungen (30/7 Tage), endgültige Löschung nach 6 Monaten Lesemodus bzw. 30 Tage nach Löschantrag inklusive Storage über `purge-company` (freigegeben R2-13) | 01 §6.2, US-57.6, US-60.3 |
+| `exports_cleanup` | stündlich | ruft `export-company` (`action: 'cleanup'`): Dateien mit `status = 'ready'` und `expires_at ≤ now()` über die Storage-API löschen, dann `status = 'expired'`, `file_path = null` (7 Tage nach Bereitstellung); Exporte länger als 30 min in `queued`/`running` → `failed` mit E-Mail D2 (entschieden R2-14, 5.11) | 01 US-59.7, 02 §10.2 |
 
-Die Schreibbarkeit hängt nicht von einem Job ab: `company_is_writable()` vergleicht `now()` direkt mit `subscriptions.writable_until` (7.6). Kein Job ändert `subscriptions.status`; es gibt keinen Status „Testphase abgelaufen“. Erinnerungen sind über `notifications.dedupe_key` idempotent (03 §3.6). Fehlgeschlagene Läufe zeigt `cron.job_run_details`; eine tägliche Prüfung meldet sie (10.3).
+Die Schreibbarkeit hängt nicht von einem Job ab: `company_is_writable()` vergleicht `now()` direkt mit `subscriptions.writable_until` (7.6). Kein Job ändert `subscriptions.status` oder `events.status` (insbesondere setzt kein Job `completed`, R2-3); es gibt keinen Status „Testphase abgelaufen“. Erinnerungen sind über `notifications.dedupe_key` idempotent (03 §3.6). Fehlgeschlagene Läufe zeigt `cron.job_run_details`; eine tägliche Prüfung meldet sie (10.3).
 
 ---
 
@@ -569,7 +590,7 @@ Die Schreibbarkeit hängt nicht von einem Job ab: `company_is_writable()` vergle
 | Auth-Arten | `user` (Bearer-JWT → `auth.getUser()`, danach Mitgliedschaft und Rolle aus der DB) · `internal` (Header `x-internal-secret`) · `portal` (Portal-Token im `Authorization`-Header, 5.3) · `ical` (Token im Pfad) · `stripe` (Signatur) · `provider` (Resend-Webhook-Signatur) |
 | Eingaben | zod-Schemas aus `_shared/domain/schemas`; unbekannte Felder werden verworfen |
 | Antworten | JSON; Fehlerformat `{ error: { code, message } }` mit Codes aus 4.6 (`code` = `hint` der RPC); HTTP-Status setzt die Function |
-| DB-Zugriff | Service-Rolle nur serverseitig; Fachlogik in RPCs, deren `EXECUTE` nur `service_role` hat (`portal_*`, `prepare_quote_send`, `commit_quote_send`, `claim_notifications`, `ical_feed_entries`, `apply_stripe_subscription`, 03 §4.7) |
+| DB-Zugriff | Service-Rolle nur serverseitig; Fachlogik in RPCs, deren `EXECUTE` nur `service_role` hat (`portal_*`, `prepare_quote_send`, `commit_quote_send`, `claim_notifications`, `ical_feed_entries`, `apply_stripe_subscription`, 03 §4.7). Ausnahmen mit direktem Tabellenzugriff, jeweils streng auf eine `company_id` gefiltert: `export-company` (liest die Exportdaten, schreibt `data_exports`) und `purge-company` (`delete from companies`, CASCADE; 03 §4.8) |
 | Nebenwirkungen | E-Mail, Push und PDF-Varianten laufen nach dem Commit; ihr Fehlschlagen macht die Fachaktion nicht rückgängig, sondern erscheint als Status mit „Erneut versuchen“ |
 | Idempotenz | `idempotency_key` bzw. Stripe-Event-ID; Wiederholung liefert dasselbe Ergebnis |
 | CORS | erlaubt nur `https://app.{domain}`, `https://portal.{domain}`, Staging- und lokale Origins; `ical-feed` und `stripe-webhook` ohne CORS |
@@ -583,7 +604,7 @@ Die Schreibbarkeit hängt nicht von einem Job ab: `company_is_writable()` vergle
 |---|---|---|
 | Arbeitsspeicher | ca. 256 MB | PDF im Speicher erzeugen ist unkritisch; große Bilder vermeiden |
 | CPU-Zeit je Anfrage | ca. 2 s (Warten auf Netz/DB zählt nicht) | PDF-Rendering und Schrift-Subsetting messen (5.4) |
-| Gesamtlaufzeit | ca. 150 s (Free) bzw. 400 s (bezahlte Pläne) | keine großen Exporte in Functions |
+| Gesamtlaufzeit | ca. 150 s (Free) bzw. 400 s (bezahlte Pläne) | Datenexport in `export-company` als Hintergrundaufgabe mit gestreamtem ZIP (5.11); Dauer bei 1.000 Aufträgen im Pilot messen, bei Bedarf auf mehrere Läufe aufteilen (02 §10.2 Nr. 8) |
 | Kaltstart | spürbar bei seltener Nutzung | Schriften und Clients im Modul-Scope cachen |
 | Bundle-Größe | begrenzt | nur zwei Schriftschnitte einbinden |
 
@@ -599,22 +620,24 @@ Die Schreibbarkeit hängt nicht von einem Job ab: `company_is_writable()` vergle
 | `create-checkout-session` | Checkout, Planwechsel, Customer Portal; sofortige Kündigung bei Firmenlöschung | HTTP POST aus dem Web-Admin; intern per `pg_net` aus `request_company_deletion()` | `user` (`admin`) bzw. `internal` | `{ action: 'checkout' \| 'change_plan' \| 'portal', plan?, interval? }` · intern `{ action: 'cancel_subscription', company_id }` | `{ url }` bzw. `{ ok }` |
 | `ical-feed` | ICS-Feed je Mitglied | HTTP GET vom Kalender-Client | `ical` + Rate-Limit | Pfad `/ical-feed/{token}.ics` | `text/calendar`, ETag |
 | `accept-invitation` | Einladung prüfen und annehmen | HTTP POST aus `(auth)/invite/[token]` | `preview` ohne Login (Rate-Limit), `accept` mit `user` | `{ action: 'preview' \| 'accept', token }` | `preview`: Firma, Rolle, gültig bis · `accept`: `company_id`, Rolle |
-| `delete-account` (**Glossar-Ergänzung, Vorschlag**, 5.10) | Konto löschen inklusive Widerruf des Apple-Tokens | HTTP POST aus „Profil → Konto löschen“ | `user` + frischer Apple-`authorizationCode` | `{ apple_authorization_code? }` | `{ ok }`; 409 beim letzten Admin |
+| `delete-account` (Glossar-Ergänzung, **freigegeben R2-12**, 5.10) | Konto löschen inklusive Widerruf des Apple-Tokens | HTTP POST aus „Profil → Konto löschen“ | `user` + frischer Apple-`authorizationCode` | `{ apple_authorization_code? }` | `{ ok }`; 409 beim letzten Admin |
+| `purge-company` (Glossar-Ergänzung, **freigegeben R2-13**, 5.10) | endgültige Firmenlöschung inklusive aller Dateien | intern per `pg_net` aus dem Job `billing_lifecycle` | `internal` | `{ company_id }` | `{ ok }`; Löschbestätigung per `send-email` (`company_deleted`) |
+| `export-company` (Glossar-Ergänzung, **entschieden R2-14**, 5.11) | Datenexport im Hintergrund, Download-Link per E-Mail, Löschung nach 7 Tagen | intern per `pg_net` aus `request_data_export()` bzw. aus dem Job `exports_cleanup` | `internal` | Erzeugen: `{ data_export_id }` · Aufräumen: `{ action: 'cleanup' }` | 202 (Arbeit läuft im Hintergrund weiter) bzw. Zähler gelöscht/abgebrochen |
 
 ### 5.3 `portal-api`
 
-Ablauf jeder Anfrage: Rate-Limit prüfen → Token aus dem `Authorization`-Header hashen → `portal_tokens` nachschlagen (nicht widerrufen, nicht abgelaufen, Kunde nicht anonymisiert, Firma nicht gelöscht) → Aktion über eine `portal_*`-RPC mit Service-Rolle, begrenzt auf den einen Auftrag des Tokens → Nebenwirkungen. Schnittstelle nach 03 §5.1: `GET /v1/portal` zum Ansehen, `POST /v1/portal/{aktion}` für Aktionen; der Token steht immer im `Authorization`-Header, nie im Body oder in Query-Strings. Die Regeln für Änderungen sind festgelegt (02 §4, 06 E-10); eine Umschaltung zwischen Varianten gibt es nicht.
+Ablauf jeder Anfrage: Rate-Limit prüfen → Token aus dem `Authorization`-Header hashen → `portal_tokens` nachschlagen (nicht widerrufen, nicht abgelaufen, Kunde nicht anonymisiert, Firma nicht gelöscht) → Aktion über eine `portal_*`-RPC mit Service-Rolle, begrenzt auf den einen Auftrag des Tokens → Nebenwirkungen. Schnittstelle nach 03 §5.1: `GET /v1/portal` zum Ansehen, `POST /v1/portal/{aktion}` für Aktionen; der Token steht immer im `Authorization`-Header, nie im Body oder in Query-Strings. Die Regeln für Änderungen sind entschieden (R2-1, 02 §4; ersetzt den Vorschlag 06 E-10): Die Menüwahl vor der Annahme wirkt direkt, Gästezahl und alle Änderungen nach der Bestätigung laufen als Änderungswunsch an den Admin, Sonderessen und Allergien gelten sofort; eine Umschaltung zwischen Varianten gibt es nicht. Maßgeblich für den Änderungsschluss ist `events.changes_until` (R2-6, 4.10).
 
 | Aktion | Erlaubt, wenn | Wirkung (RPC, 03 §4.7) | typische Fehler |
 |---|---|---|---|
 | `GET` (ansehen) | Token gültig | `portal_get`: Snapshot der aktuellen Revision mit Menüwahl (bzw. verbindlicher Stand nach der Annahme), Gästezahl aus dem Snapshot, Branding, Status, Sonderessen, offener Änderungswunsch, Rechte-Flags (`can_accept`, `can_change`, `can_confirm`, `changes_until`); erster Aufruf je Revision setzt `first_viewed_at` (A3, `portal_mark_viewed`) | 404 neutral „Link ungültig“; 410 „nicht mehr gültig“ mit Firmenkontakt (01 US-30.3) |
 | `pdf` | Token gültig | signierte URL (5 min) auf `pdf_path` bzw. nach der Annahme `r{n}-angenommen.pdf`; fehlt das Annahme-PDF, erzeugt `render-quote-pdf` es | – |
 | `accept` | `quoted`/`optioned`, Revision aktuell, gültig, Wahlgruppen gewählt, Portal-Aktionen erlaubt (`now() < writable_until + 30 Tage`, 03 §6.4) | `portal_accept_quote`: `confirmed`, Annahmeprotokoll (02 §2.5), verbindlicher Stand mit Menüwahl, PDF „angenommen“, E-Mails an Kunde und Admin, Push A4 | 409 `revision_outdated`, 409 `expired`; bereits angenommen → idempotente Erfolgsantwort |
-| `decline` | `quoted`/`optioned` | `portal_decline_quote`: `declined` bzw. `cancelled`, Grund, Push und E-Mail A7 | 409 |
-| `select_choice` | `quoted`/`optioned`, vor Änderungsschluss | `portal_select_choice`: Wahl (und Mengen änderbarer Positionen) direkt in `portal_selection`, **keine** neue Revision (02 §4.1) | 409 `revision_outdated`, 423 `deadline_passed` |
-| `request_change` | `quoted`/`optioned`/`confirmed`, vor Änderungsschluss, Portal nicht gesperrt | `portal_request_change`: Änderungswunsch zu Gästezahl (immer) bzw. Menüwahl und Mengen (nach Bestätigung) in `pending_change`, ersetzt einen offenen Wunsch, Push A8; ab ± 20 % Gästezahl als „wichtig“ | 409, 422, 423 |
+| `decline` | `quoted`/`optioned` | `portal_decline_quote`: `declined` bzw. `cancelled` (beides endgültig, keine Reaktivierung, R2-4), Grund, Push und E-Mail A7 | 409 |
+| `select_choice` | `quoted`/`optioned`, vor Änderungsschluss | `portal_select_choice`: Wahl (und Mengen änderbarer Positionen) direkt in `portal_selection`, **keine** neue Revision (02 §4.1, entschieden R2-1) | 409 `revision_outdated`, 423 `deadline_passed` |
+| `request_change` | `quoted`/`optioned`/`confirmed`, vor Änderungsschluss, Portal nicht gesperrt | `portal_request_change`: Änderungswunsch zu Gästezahl (immer) bzw. Menüwahl und Mengen (nach Bestätigung) in `pending_change`, ersetzt einen offenen Wunsch, Push A8; der Admin bestätigt oder lehnt ab (`resolve_pending_change`). Ab ± 20 % Gästezahl zeigt das Portal vor dem Senden den Hinweis „bitte anrufen“, der Wunsch ist „wichtig“ (entschieden R2-1) | 409, 422, 423 |
 | `confirm_revision` | `confirmed`, `send_mode = 'confirm_required'`, `acceptance_revision < revision` | `portal_confirm_revision`: wie eine Annahme protokolliert (Kanal `portal_confirmation`), neue Revision wird verbindlich (01 US-36.3), Push und E-Mail A19 | 409 |
-| `upsert_dietary`, `delete_dietary` | vor Änderungsschluss, Summe der Anzahlen ≤ Gästezahl | `portal_save_dietary`/`portal_delete_dietary`: `event_dietary_requirements` mit Quelle „Kunde“, gebündelter Push A9 | 422, 423 |
+| `upsert_dietary`, `delete_dietary` | vor Änderungsschluss, Summe der Anzahlen ≤ Gästezahl | `portal_save_dietary`/`portal_delete_dietary`: `event_dietary_requirements` mit Quelle „Kunde“, gilt sofort ohne Admin-Bestätigung (R2-1), gebündelter Push A9 | 422, 423 |
 
 - Die Antwort entsteht aus dem Snapshot und enthält nie Kalkulationsdaten, interne Notizen, die Entwurfs-Gästezahl oder Zutaten (01 US-29.5, 01 §3.2 Fußnote 7).
 - IP-Adresse und User-Agent speichert `portal-api` nur bei Willenserklärungen (Annahme, Ablehnung, Änderungswunsch, Bestätigung) im Protokoll (02 §2.5, §4.2).
@@ -693,7 +716,7 @@ sequenceDiagram
 | E-Mail-Art | From | Reply-To | Gestaltung |
 |---|---|---|---|
 | an Endkunden (Angebot, Bestätigung, Änderung, Storno) | `"{Firmenname}" <kunden@mail.{domain}>` | Kontakt-E-Mail der Firma | Logo und Akzentfarbe der Firma, Siezen, Fußzeile mit Impressum und Datenschutz der Firma (02 §10.1), Hinweis „versendet über catering-app“ **[Vorschlag]** |
-| an Teammitglieder (Einladung, Abo, Löschung) | `"catering-app" <team@mail.{domain}>` | Support-Adresse der Plattform | App-Design, Duzen |
+| an Teammitglieder (Einladung, Abo, Löschung, Datenexport) | `"catering-app" <team@mail.{domain}>` | Support-Adresse der Plattform | App-Design, Duzen |
 | Auth (Bestätigung, Passwort-Reset) | `"catering-app" <konto@mail.{domain}>` über Resend-SMTP in Supabase Auth | Support | App-Design |
 
 - Der Anzeigename wird bereinigt: keine Zeilenumbrüche (Header-Injection), keine Anführungszeichen, `<`, `>` oder `@`, höchstens 64 Zeichen.
@@ -716,6 +739,7 @@ sequenceDiagram
 | `invitation` | T1 | eingeladene Person | – |
 | `trial_ending`, `trial_ended`, `subscription_active`, `payment_failed`, `subscription_canceled` | B1–B5, 01 US-55.3 (nur E-Mail plus Banner im Web-Admin, kein Push, 02 §6.3) | Admins | – |
 | `deletion_announcement`, `company_deleted` | 01 US-57.6, US-60.2 | Admins bzw. alle Mitglieder | – |
+| `export_ready`, `export_failed` | D1, D2 (01 US-59.2, US-59.6; entschieden R2-14) | nur die anfordernde Person (Login-E-Mail aus `data_exports.requested_by_member_id`) | – (`export_ready` enthält den signierten Download-Link, 7 Tage gültig, mit Hinweis „nicht weitergeben“) |
 
 Umsetzung: Vorlagen als TypeScript-Funktionen in `_shared/email/templates/` liefern Betreff, HTML und Text; zwei Layouts (`customerLayout(branding)`, `teamLayout()`); alle Nutzertexte werden escaped; ein Skript rendert alle Vorlagen als Vorschau-HTML; Snapshot-Tests sichern Änderungen ab. Die Auth-Mails stehen als HTML-Vorlagen in `supabase/templates/` und nutzen Links mit `token_hash` (6.3).
 
@@ -787,13 +811,53 @@ Beschrieben in Abschnitt 7.
 
 Ablauf und Sicherheitsregeln in 6.4. Die Function bietet zwei Aktionen: `preview` ohne Login (nur Firmenname, Rolle, Vorname der einladenden Person, gültig bis; Rate-Limit je IP) und `accept` mit User-JWT, die `accept_invitation_tx` als Transaktion ausführt.
 
-### 5.10 Funktionen, die im Glossar fehlen
+### 5.10 Glossar-Ergänzungen (entschieden R2-12 bis R2-14)
 
-| Bedarf | Warum keine der 8 Functions passt | Vorschlag |
+| Bedarf | Warum keine der 8 Functions passt | Festlegung |
 |---|---|---|
-| Eigenes Konto löschen (01 US-08, App-Store-Pflicht) mit Widerruf des Apple-Tokens | Die Datenbankseite erledigt die RPC `delete_my_account()` (03 §4.7). Apple verlangt aber, dass bei der Kontolöschung die Sign-in-with-Apple-Tokens über die Apple-REST-Schnittstelle widerrufen werden. Mit dem nativen `signInWithIdToken` speichert Supabase kein Apple-Refresh-Token; der Widerruf braucht einen serverseitigen Tausch eines frischen `authorizationCode` mit dem Client-Secret (Apple Key ID, Team ID, .p8). Keine der 8 Functions hat diese Secrets oder diesen Zweck | **Function `delete-account`** (Glossar-Ergänzung, **Vorschlag**, Umsetzung in 06 M1): Die App verlangt vor dem Löschen eine erneute Apple-Anmeldung und schickt den frischen `authorizationCode`; die Function tauscht ihn bei `https://appleid.apple.com/auth/token` gegen ein Token, ruft `https://appleid.apple.com/auth/revoke` auf und führt danach `delete_my_account()` aus. So muss kein Refresh-Token gespeichert werden. Konten ohne Apple-Login nutzen dieselbe Function ohne Code (oder direkt die RPC) |
-| Endgültige Firmenlöschung inklusive Storage-Dateien (01 US-60.3, 02 §10.3) | Dateien lassen sich nur über die Storage-API löschen, nicht per SQL | Function `purge-company` (intern, vom Job `billing_lifecycle` aufgerufen) – Glossar-Ergänzung |
-| Serverseitiger Datenexport | entschieden: Export im Browser des Web-Admins (01 US-59.2, 02 §10.2, 06 E-17); 5.1 schließt große Exporte in Functions wegen der Laufzeitgrenzen ohnehin aus | keine Function; erst bei Bedarf nach dem Pilot |
+| Eigenes Konto löschen (01 US-08, App-Store-Pflicht) mit Widerruf des Apple-Tokens | Die Datenbankseite erledigt die RPC `delete_my_account()` (03 §4.7). Apple verlangt aber, dass bei der Kontolöschung die Sign-in-with-Apple-Tokens über die Apple-REST-Schnittstelle widerrufen werden. Mit dem nativen `signInWithIdToken` speichert Supabase kein Apple-Refresh-Token; der Widerruf braucht einen serverseitigen Tausch eines frischen `authorizationCode` mit dem Client-Secret (Apple Key ID, Team ID, .p8). Keine der 8 Functions hat diese Secrets oder diesen Zweck | **Function `delete-account`** (Glossar-Ergänzung, **freigegeben R2-12**, Umsetzung in 06 M1): Die App verlangt vor dem Löschen eine erneute Apple-Anmeldung und schickt den frischen `authorizationCode`; die Function tauscht ihn bei `https://appleid.apple.com/auth/token` gegen ein Token, ruft `https://appleid.apple.com/auth/revoke` auf und führt danach `delete_my_account()` aus. So muss kein Refresh-Token gespeichert werden. Konten ohne Apple-Login nutzen dieselbe Function ohne Code (oder direkt die RPC) |
+| Endgültige Firmenlöschung inklusive Storage-Dateien (01 US-60.3, 02 §10.3) | Dateien lassen sich nur über die Storage-API löschen, nicht per SQL | **Function `purge-company`** (Glossar-Ergänzung, **freigegeben R2-13**; intern, vom Job `billing_lifecycle` per `pg_net` aufgerufen): 30 Tage nach `deletion_requested_at` bzw. 6 Monate nach `writable_until` löscht sie über die Storage-API die Präfixe `{company_id}/` in `logos`, `quotes` und `exports`, danach `delete from companies` (CASCADE), und versendet die Löschbestätigung `company_deleted`. Idempotent: Ein abgebrochener Lauf wird beim nächsten Job-Lauf fortgesetzt (03 §4.8, §6.4) |
+| Datenexport im Hintergrund mit Download-Link per E-Mail (01 US-59, US-61.1, 02 §10.2) | Der Export muss ohne offenes Browserfenster entstehen, PDFs aus `quotes` kopieren, eine Datei ablegen, einen signierten Link erzeugen und nach 7 Tagen löschen; dafür braucht es Storage-API und Service-Rolle | **Function `export-company`** (Glossar-Ergänzung, **entschieden R2-14**; ersetzt den Browser-Export aus 06 E-17), Details in 5.11 |
+
+### 5.11 `export-company` (Datenexport, entschieden R2-14)
+
+Der Export entsteht **im Hintergrund**, nicht im Browser. Der Admin (bzw. ein Mitglied für die eigenen Daten) fordert ihn an und erhält eine E-Mail mit einem signierten Download-Link, der 7 Tage gültig ist; danach wird die Datei automatisch gelöscht. Ablauf und Inhalte: 02 §10.2; Spalten: 03 §3.7; Bucket: 03 §8.
+
+```mermaid
+sequenceDiagram
+    actor A as Admin bzw. Mitglied (Web-Admin oder App)
+    participant DB as Postgres (RPC)
+    participant F as export-company
+    participant S as Storage (quotes, exports)
+    participant M as send-email
+    A->>DB: request_data_export(scope, customer_id)
+    DB->>DB: Rolle, Umfang, laufender Export? data_exports status queued
+    DB-->>A: data_export_id, status queued
+    DB->>F: pg_net, x-internal-secret, data_export_id
+    F-->>DB: 202, weiter als Hintergrundaufgabe
+    F->>DB: status running
+    F->>DB: Daten lesen (service_role, gefiltert auf company_id)
+    F->>S: PDFs aus quotes lesen, ZIP gestreamt nach exports/{company_id}/{data_export_id}.zip
+    F->>DB: status ready, file_path, ready_at, expires_at = ready_at + 7 Tage
+    F->>S: signierten Link erzeugen (7 Tage)
+    F->>M: export_ready mit Link (nur an die anfordernde Person)
+    Note over DB,F: pg_cron stündlich: exports_cleanup → export-company cleanup
+    DB->>F: action cleanup
+    F->>S: Dateien mit expires_at ≤ now() löschen
+    F->>DB: status expired, file_path null; hängende Läufe > 30 min → failed, export_failed
+```
+
+| Thema | Festlegung |
+|---|---|
+| Anfordern | `request_data_export(scope, customer_id)` (03 §4.7): `company`, `customer` nur `admin`, `member` jedes Mitglied für sich selbst; auch im Lesemodus (7.6). Höchstens ein laufender Export je Firma und Umfang (bei `member` je Mitglied); ein weiterer Antrag liefert den laufenden zurück (01 US-59.8). Die RPC stößt `export-company` per `pg_net` an |
+| Hintergrundaufgabe | Die Function antwortet sofort mit 202 und arbeitet als Hintergrundaufgabe weiter (`EdgeRuntime.waitUntil`, prüfen; die Laufzeitgrenzen aus 5.1 gelten weiter). Der Admin kann den Browser bzw. die App schließen |
+| Erzeugen | `status = 'running'`; Daten mit `service_role` streng gefiltert auf die `company_id` der Exportzeile (bei `customer` zusätzlich `customer_id`, bei `member` `requested_by_member_id`); Inhalt nach 01 US-59.1 bzw. 02 §10.2; PDFs werden aus `quotes` kopiert, nicht neu gerendert; das ZIP wird gestreamt geschrieben, damit der Speicher (ca. 256 MB) nicht überläuft |
+| Ablage | privater Bucket `exports`, Pfad `{company_id}/{data_export_id}.zip` (Bucketname kein Pfadsegment), `upsert: false`; keine Storage-Policy für `authenticated` – weder Lesen noch Listen, auch nicht für den Admin derselben Firma |
+| Bereitstellen | `status = 'ready'`, `file_path`, `ready_at`, `expires_at = ready_at + 7 Tage`; signierter Link über die Storage-API (`createSignedUrl`, 7 Tage = 604.800 s, Download-Name `Export_{Firma}_{TT-MM-JJJJ}.zip`). Der Link wird **nicht** in der Datenbank gespeichert und nicht geloggt; `export-company` übergibt ihn intern an `send-email` (Vorlage `export_ready`) an die Login-E-Mail der anfordernden Person |
+| Fehler | `status = 'failed'`, `error` (technischer Text ohne personenbezogene Daten), E-Mail `export_failed`; die Exportliste in SC-67 bietet „Erneut anfordern“ |
+| Automatische Löschung | Job `exports_cleanup` (stündlich, 4.12) ruft `{ action: 'cleanup' }`: Dateien mit `status = 'ready'` und `expires_at ≤ now()` löschen (Storage-API; per SQL entfernte Objektzeilen löschen die Datei nicht), dann `status = 'expired'`, `file_path = null`; Zeilen länger als 30 min in `queued`/`running` → `failed`. Die Protokollzeile bleibt bis zur Firmenlöschung (01 US-59.4) |
+| Firmenlöschung | Ein vor dem Löschantrag angeforderter Export wird noch fertiggestellt; `purge-company` löscht den Ordner `{company_id}/` in `exports` mit (5.10) |
+| Pflicht-Tests | Datei liegt unter `{company_id}/…` und ist ohne signierten Link nicht abrufbar; Admin von Firma B liest weder Zeile noch Datei von Firma A; `authenticated` kann `status`, `file_path`, `expires_at` nicht schreiben; nach `expires_at` ist die Datei gelöscht und `status = 'expired'`; ein abgebrochener Lauf endet als `failed` mit `export_failed` (02 §10.2 Nr. 9, 03 §9.5) |
 
 ---
 
@@ -905,7 +969,7 @@ sequenceDiagram
 
 ### 6.7 Konto löschen
 
-- In der App unter „Profil → Konto löschen“ (App-Store-Regel 5.1.1(v): wer in der App ein Konto anlegen kann, muss es dort auch löschen können; Fassung prüfen). Ablauf nach 01 US-08 und 02 §10.3 über die Function `delete-account`, die `delete_my_account()` ausführt (5.10); der letzte Admin ist gesperrt.
+- In der App unter „Profil → Konto löschen“ (App-Store-Regel 5.1.1(v): wer in der App ein Konto anlegen kann, muss es dort auch löschen können; Fassung prüfen). Ablauf nach 01 US-08 und 02 §10.3 über die Function `delete-account` (freigegeben R2-12), die `delete_my_account()` ausführt (5.10); der letzte Admin ist gesperrt.
 - Bei Sign in with Apple verlangt Apple, dass Tokens bei der Kontolöschung widerrufen werden. Weil `signInWithIdToken` kein Refresh-Token auf dem Server hinterlässt, erzwingt die App vor dem Löschen eine erneute Apple-Anmeldung; `delete-account` tauscht den frischen `authorizationCode` und widerruft das Token, bevor das Konto gelöscht wird (5.10). Secrets: Apple Key ID, Team ID, privater Schlüssel (.p8) als Function-Secrets (8.3). Die Umsetzung ist Teil von 06 M1, die Prüfung vor der Einreichung Teil von M10.
 
 ---
@@ -1009,9 +1073,9 @@ $$;
 | Ebene | Durchsetzung |
 |---|---|
 | RLS | jede INSERT- und UPDATE-Policy fachlicher Tabellen enthält `(select public.company_is_writable())` im `with check`, jede DELETE- und `for all`-Policy zusätzlich im `using` (03 §6.2) |
-| RPCs | `perform public.assert_writable()` → Fehler mit `hint = 'read_only'` (4.6); Ausnahmen laut 01 §3.3 Nr. 5 und §6.4: Mitglied entfernen, eigenes Konto löschen, Firma löschen, Datenexport (nur lesend), Abo abschließen |
+| RPCs | `perform public.assert_writable()` → Fehler mit `hint = 'read_only'` (4.6); Ausnahmen laut 01 §3.3 Nr. 5 und §6.4: Mitglied entfernen, eigenes Konto löschen, Firma löschen, Datenexport (`request_data_export()`, R2-14), Abo abschließen |
 | `portal-api` | volle Portal-Aktionen solange `now() < writable_until + 30 Tage`, danach nur ansehen und `pdf` (01 §6.4, 03 §6.4) |
-| Functions | `render-quote-pdf` (Versand), `send-email` (nur Abo- und Portal-bezogene Mails im Lesemodus), `create-checkout-session` (immer erlaubt) |
+| Functions | `render-quote-pdf` (Versand), `send-email` (nur Abo-, Export- und Portal-bezogene Mails im Lesemodus), `create-checkout-session` (immer erlaubt), `export-company` (im Lesemodus erlaubt; ein vor dem Löschantrag angeforderter Export wird noch fertiggestellt) |
 | Push | im Lesemodus nur Abo-Hinweise, Portal-Ereignisse und Einsatz-Erinnerungen (01 §6.4) |
 | UI | `useCanWrite` deaktiviert Aktionen; Banner nach 04 §3.4; Admin im Web zusätzlich „Abo wählen“ |
 
@@ -1079,7 +1143,9 @@ supabase/tests/
 | `events` | select über Lesepfad | ✓ | ab `optioned`, ohne Preise | nur mit `accepted`/`assigned` | ✗ | ✗ |
 | `quotes`, `quote_items` | select | ✓ | ✗ | ✗ | ✗ | ✗ |
 | `dishes` | Preisspalten lesen | ✓ | ✗ | ✗ | ✗ | ✗ |
-| `shift_slots` | select | ✓ | veröffentlicht und qualifiziert | veröffentlicht und qualifiziert | ✗ | ✗ |
+| `shift_slots` | select | ✓ | veröffentlicht und qualifiziert (genau eine Pflicht-Qualifikation je Slot, R2-9) | veröffentlicht und qualifiziert (R2-9) | ✗ | ✗ |
+| `data_exports` | select · Status/Pfad/Ablauf schreiben | alle der Firma · ✗ (nur Service-Rolle) | eigene `member`-Exporte · ✗ | eigene `member`-Exporte · ✗ | ✗ | ✗ |
+| Storage `exports` | lesen, listen | ✗ (nur signierter Link) | ✗ | ✗ | ✗ | ✗ |
 | `shift_applications` | Status → `accepted` | nur RPC | ✗ | ✗ | ✗ | ✗ |
 | `subscriptions` | insert/update | ✗ (nur Service-Rolle) | ✗ | ✗ | ✗ | ✗ |
 | jede fachliche Tabelle | insert im Lesemodus | ✗ | ✗ | ✗ | – | – |
@@ -1093,7 +1159,7 @@ supabase/tests/
 |---|---|---|
 | Supabase-URL, Publishable Key | EAS-Umgebungsvariablen (`EXPO_PUBLIC_*`), Build-Variablen des Web-Hostings – öffentlich | App, Web |
 | Supabase Secret- bzw. Service-Role-Key | in Edge Functions als Umgebungsvariable verfügbar; nirgends sonst | Edge Functions |
-| `INTERNAL_FUNCTION_SECRET` | Function-Secrets und Supabase Vault (für `pg_net`) | DB → Functions, Function → Function |
+| `INTERNAL_FUNCTION_SECRET` | Function-Secrets und Supabase Vault (für `pg_net`) | DB → Functions (u. a. `purge-company`, `export-company`), Function → Function |
 | Stripe Secret Key, Webhook-Secret | Function-Secrets (`supabase secrets set`) | `create-checkout-session`, `stripe-webhook` |
 | Resend API-Key, Webhook-Secret, SMTP-Passwort | Function-Secrets bzw. Supabase-Auth-Einstellungen | `send-email`, Supabase Auth |
 | `EXPO_ACCESS_TOKEN` (Push-Sicherheit) | Function-Secrets | `push-dispatch` |
@@ -1108,7 +1174,7 @@ Regeln: keine Geheimnisse im Repo (`.env*` in `.gitignore`, `.env.example` einge
 ### 8.4 Service-Rolle nur in Edge Functions
 
 - Der Secret- bzw. Service-Role-Key umgeht RLS. Er existiert ausschließlich in Edge Functions; Client, Web-Build und `pg_cron`-Jobs nutzen ihn nicht (Jobs laufen als Datenbankfunktionen, HTTP-Aufrufe mit dem internen Schlüssel).
-- Functions nutzen ihn nur über RPCs mit engem Zweck (`portal_*`, `prepare_quote_send`, `commit_quote_send`, `claim_notifications`, `ical_feed_entries`, `apply_stripe_subscription`, `delete_my_account` aus `delete-account`) und filtern immer auf die aus Token oder JWT abgeleitete Firma bzw. den Auftrag. Diese RPCs sind ausschließlich für `service_role` ausführbar (03 §4.7); ein angemeldeter Nutzer kann sie nicht direkt aufrufen.
+- Functions nutzen ihn nur über RPCs mit engem Zweck (`portal_*`, `prepare_quote_send`, `commit_quote_send`, `claim_notifications`, `ical_feed_entries`, `apply_stripe_subscription`, `delete_my_account` aus `delete-account`) und filtern immer auf die aus Token oder JWT abgeleitete Firma bzw. den Auftrag. Die internen Functions `export-company` und `purge-company` greifen direkt auf Tabellen zu, filtern aber ausschließlich auf die `company_id` der Exportzeile bzw. des Löschauftrags; ein Test je Function prüft, dass keine Daten einer anderen Firma erreicht werden. Diese RPCs sind ausschließlich für `service_role` ausführbar (03 §4.7); ein angemeldeter Nutzer kann sie nicht direkt aufrufen.
 - Für Aufrufe im Namen eines Mitglieds (z. B. Daten laden in `render-quote-pdf`) nutzt die Function einen Client mit dem User-JWT, damit RLS mitprüft; die Service-Rolle nur für den abschließenden Commit.
 
 ### 8.5 Tokens
@@ -1118,6 +1184,7 @@ Regeln: keine Geheimnisse im Repo (`.env*` in `.gitignore`, `.env.example` einge
 | Portal (`portal_tokens`) | 32 Zufallsbytes (≥ 128 Bit nach 01 US-30.4), base64url | SHA-256 | bis 60 bzw. 90 Tage nach Eventende (offen, 12) | Admin „Alle Links widerrufen“, Anonymisierung des Kunden | nur bei Ausgabe; je Ausgabe (E-Mail, „Link kopieren“) ein neuer Token, ältere bleiben gültig **[Vorschlag]** |
 | Einladung (`invitations`) | wie oben | SHA-256 | 7 Tage, einmalig | Widerrufen; „Erneut senden“ ersetzt den Token | einmal bei Erstellung (Link teilen) |
 | iCal | wie oben | SHA-256 | bis Zurücksetzen, Entfernen, Kontolöschung | „Neuen Link erzeugen“ | einmal nach Erzeugen |
+| Export-Download-Link (R2-14) | signierte URL der Storage-API (`export-company`) | nicht gespeichert | 7 Tage ab `ready_at` (`data_exports.expires_at`) | Datei wird nach 7 Tagen gelöscht (`exports_cleanup`) bzw. mit der Firma (`purge-company`) | nur in der E-Mail `export_ready` an die anfordernde Person |
 | Bestätigung, Passwort-Reset | Supabase Auth | Supabase | Reset 1 h (01 US-02.3) | – | nur in der E-Mail |
 
 Da die Tokens hohe Entropie haben, genügt SHA-256 ohne Salt (Suche über einen eindeutigen Index auf dem Hash); langsame Passwort-Hashes sind unnötig. Ein Datenbank-Abzug enthält damit keine verwendbaren Links. Alternative für iCal: ein mit Server-Schlüssel abgeleiteter Token (HMAC), der sich jederzeit erneut anzeigen ließe – im MVP nicht nötig.
@@ -1150,7 +1217,7 @@ Umsetzung: Fixed-Window-Zähler in einer technischen Tabelle `rate_limits` (Glos
 ### 8.8 Logging ohne personenbezogene Daten
 
 - Erlaubt: Function-Name, Request-ID, `company_id`/`member_id` (pseudonyme UUIDs), Aktion, Dauer, Fehlercode, Zähler.
-- Verboten: Namen, E-Mail-Adressen, Telefonnummern, Adressen, Gesundheitsdaten (Sonderessen), Freitexte, Tokens, vollständige URLs mit Token, IP-Adressen (nur HMAC, 8.6), Request-Bodies.
+- Verboten: Namen, E-Mail-Adressen, Telefonnummern, Adressen, Gesundheitsdaten (Sonderessen), Freitexte, Tokens, vollständige URLs mit Token, signierte Download-Links (Export), IP-Adressen (nur HMAC, 8.6), Request-Bodies.
 - Ein Logger in `_shared/log.ts` nimmt nur ein festes Feldschema an; unbekannte Felder werden verworfen.
 - Beispiel: `{"fn":"portal-api","req":"8f1c…","company":"2b7e…","action":"accept","ms":412,"result":"ok"}`.
 - App: Sentry ohne PII (10.3); kein `console.log` mit Nutzdaten im Produktions-Build (Lint-Regel).
@@ -1169,7 +1236,7 @@ Rolle und Rechtsgrundlage je Dienst juristisch prüfen.
 | Dienst | Zweck | Daten | Region / Drittland | Rolle |
 |---|---|---|---|---|
 | Supabase | Datenbank, Auth, Storage, Functions, Realtime | alle App-Daten | AWS Frankfurt; Anbieter mit US-Bezug → DPA, Standardvertragsklauseln bzw. Data Privacy Framework | Unterauftragsverarbeiter |
-| Resend | E-Mail-Versand | Namen, E-Mail-Adressen, E-Mail-Inhalte, PDF-Anhänge | EU-Region; US-Anbieter → DPA, SCC/DPF | Unterauftragsverarbeiter |
+| Resend | E-Mail-Versand | Namen, E-Mail-Adressen, E-Mail-Inhalte, PDF-Anhänge, Download-Links für Datenexporte (7 Tage gültig) | EU-Region; US-Anbieter → DPA, SCC/DPF | Unterauftragsverarbeiter |
 | Expo (EAS, Push Service) | Push-Weiterleitung, Builds, OTA-Updates | Push-Tokens, Push-Texte, Geräteinformationen | USA → DPA, SCC/DPF | Unterauftragsverarbeiter |
 | Apple (APNs), Google (FCM) | Push-Zustellung | Geräte-Token, Push-Inhalte | USA, global | Unterauftragsverarbeiter bzw. eigene Verantwortung (prüfen) |
 | Stripe | Abo-Abrechnung der Caterer | Admin-Name, E-Mail, Rechnungsanschrift, Zahlungsdaten | Irland und USA | für Abrechnungsdaten ist die Plattform Verantwortlicher (02 §10.1); in der Liste zur Transparenz (01 US-62.3) |
@@ -1196,6 +1263,8 @@ Rolle und Rechtsgrundlage je Dienst juristisch prüfen.
 | Sentry-Umgebung | aus | `staging` | `production` |
 
 App-Varianten **[Vorschlag]**: `app.config.ts` erzeugt über `APP_VARIANT` eine Staging-App mit eigenem Namen („catering-app Staging“) und eigener Bundle-ID; beide Apps lassen sich parallel installieren, Push-Credentials gelten je Bundle-ID.
+
+Geräteklasse (entschieden R2-8): Die native App ist im MVP eine Smartphone-App, auch für die Küche. `app.config.ts` setzt `ios.supportsTablet: false` (keine iPad-Unterstützung, keine iPad-Screenshots) und **[Vorschlag]** `orientation: 'portrait'` (einspaltig im Hochformat, 04 §4); Android-Tablets zeigen das Phone-Layout ohne eigene Optimierung. Test- und Pilotgeräte sind iPhone und Android-Smartphone; Tablet-Testgeräte gibt es im MVP nicht. Tablet-Layouts und Tablet-Unterstützung im Build folgen mit der Tablet-Optimierung nach dem MVP (01 P-23).
 
 ### 9.2 Lokale Entwicklung
 
@@ -1315,14 +1384,14 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 
 | Ebene | Werkzeug | Gegenstand | Wann | Ziel |
 |---|---|---|---|---|
-| Unit (App und geteilter Fachcode) | Jest (`jest-expo`) | Rechenmodul (Kalkulation, Rundung, Steuern, Summen; Beispiele aus 02 §3 und §8.5), Fristen- und Datumshelfer, Statusübergänge, Ablaufmaschine des Angebots-Chats, Fehler-Mapping, zod-Schemas, Geldformatierung | jeder Pull Request | Rechenmodul und Chat-Ablaufmaschine vollständige Zweigabdeckung |
+| Unit (App und geteilter Fachcode) | Jest (`jest-expo`) | Rechenmodul (Kalkulation, Rundung, Steuern, Summen; Beispiele aus 02 §3 und §8.5; Aufrunden des Preisvorschlags auf 10 Cent, 26,32 € → 26,40 €, R2-5), Küchenmodul (5 % Puffer nur in der Einkaufsliste, R2-7), Fristen- und Datumshelfer (Änderungsschluss 72 h/24 h, R2-6; Absagefrist aus der aktuellen Schichtzeit ohne Sonderfrist, R2-10), Statusübergänge (nur vorwärts, R2-4), Ablaufmaschine des Angebots-Chats, Fehler-Mapping, zod-Schemas, Geldformatierung | jeder Pull Request | Rechenmodul und Chat-Ablaufmaschine vollständige Zweigabdeckung |
 | Unit (Functions) | `deno test` | Auth-Prüfung, Portal-Aktionsregeln, E-Mail-Vorlagen (Snapshots), ICS-Ausgabe, Stripe-Ereignis-Mapping mit Fixtures, Push-Bündelung | jeder Pull Request | jede Function |
-| Komponenten | React Native Testing Library | Formulare (Validierung, Eingaben bleiben bei Fehlern), `useCanWrite`/WriteGuard, rollenabhängige Tabs, Offline-Banner, StatusBadge-Texte, Money, DateTimeText | jeder Pull Request | kritische Komponenten aus 04 §4.9 |
-| Datenbank, RLS | pgTAP (`supabase test db`) | RLS-Matrix (8.2), RPC-Regeln (Übergänge, Kapazität, Fristen, Lesemodus, Limits), Meta-Prüfungen | jeder Pull Request | jede Tabelle, jede RPC |
-| Integration | Deno gegen lokalen Stack | Portal: ansehen, annehmen, 409; Einladung; Stripe-Webhook; PDF (Seitenzahl, Dauer); parallele Zusagen | jeder Pull Request bzw. nächtlich | Kernabläufe der Functions |
+| Komponenten | React Native Testing Library | Formulare (Validierung, Eingaben bleiben bei Fehlern), `useCanWrite`/WriteGuard, rollenabhängige Tabs, Offline-Banner, StatusBadge-Texte, Money, DateTimeText, Bestätigungsdialog SC-31 (erscheint vor jedem Statuswechsel, „Abbrechen“ ruft keine RPC, keine Aktion für Rückwärts-Übergänge; R2-4) | jeder Pull Request | kritische Komponenten aus 04 §4.9 |
+| Datenbank, RLS | pgTAP (`supabase test db`) | RLS-Matrix (8.2), RPC-Regeln (Übergänge nur vorwärts, alle Rückwärts-Paare → `invalid_transition`, Direktbestätigung mit `confirmation_channel`; Kapazität, Fristen inkl. Verschiebung ohne Sonderabsagerecht, Lesemodus, Limits; `request_data_export`), Meta-Prüfungen | jeder Pull Request | jede Tabelle, jede RPC |
+| Integration | Deno gegen lokalen Stack | Portal: ansehen, annehmen, 409; Einladung; Stripe-Webhook; PDF (Seitenzahl, Dauer); parallele Zusagen; alle 64 Statuspaare gegen `set_event_status` (4.10); Export mit `export-company` (Pfad, Zugriff, Ablauf, `failed`; 5.11); `purge-company` (Daten und Storage-Ordner gelöscht, andere Firma unberührt) | jeder Pull Request bzw. nächtlich | Kernabläufe der Functions |
 | E2E mobil | Maestro | Abläufe aus 10.2 | lokal im Simulator; nächtlich gegen staging (EAS Workflows oder Maestro Cloud, prüfen) | vor jedem Store-Release grün |
 | E2E Web/Portal | Maestro (Web-Unterstützung, Reifegrad prüfen) oder Playwright **[Vorschlag]** | Portal-Annahme, Angebot im Web-Admin | nächtlich | – |
-| Manuell | Checkliste | Push auf echten Geräten, Universal Links, Apple- und Google-Login, PDF-Optik und Druck, VoiceOver/TalkBack (04 §4.7) | vor Store-Release | – |
+| Manuell | Checkliste | Push auf echten Geräten (iPhone, Android-Smartphone; keine Tablets im MVP, R2-8), Universal Links, Apple- und Google-Login, PDF-Optik und Druck, VoiceOver/TalkBack (04 §4.7), E-Mail „Export bereit“ mit funktionierendem Link | vor Store-Release | – |
 
 ### 10.2 E2E-Kernabläufe (Maestro)
 
@@ -1336,6 +1405,8 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 8. `kitchen` öffnet Produktions- und Einkaufsliste: keine Preise sichtbar.
 9. iOS/Android: Abo-Screen, Einladungslimit und Benachrichtigungsliste ohne Preise, Kauf-Elemente und Kauflinks (7.7).
 10. Konto löschen mit Apple-Konto: erneute Apple-Anmeldung, Löschung erfolgreich (Widerruf über `delete-account`, Prüfung im Apple-Developer-Konto).
+11. Seed-Auftrag `confirmed` mit Event am Vortag: Erinnerung „als durchgeführt markieren“ öffnen → Sammelaktion → Bestätigungsdialog SC-31 („kann nicht rückgängig gemacht werden“) → `completed`; „Abbrechen“ ändert nichts; eine Aktion zurück nach `confirmed` wird nicht angeboten (R2-3, R2-4).
+12. Web-Admin: Datenexport anfordern (SC-67) → Hinweis, dass der Download-Link per E-Mail kommt; Exportliste zeigt `queued`/`running` → Mail-Catcher bzw. Staging-Allowlist enthält `export_ready` mit funktionierendem Link (R2-14).
 
 ### 10.3 Monitoring
 
@@ -1344,7 +1415,7 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 | Einstellung | Wert |
 |---|---|
 | PII | `sendDefaultPii: false`; Nutzerkontext nur `user_id` |
-| Scrubbing | `beforeSend` und `beforeBreadcrumb` ersetzen Tokens in URLs (`/portal/`, `/invite/`, `/ical/`) durch `[token]`; keine Request-Bodies; Formularwerte nie als Breadcrumb |
+| Scrubbing | `beforeSend` und `beforeBreadcrumb` ersetzen Tokens in URLs (`/portal/`, `/invite/`, `/ical/`) und die `token`-Parameter signierter Storage-URLs (`/storage/v1/object/sign/`) durch `[token]`; keine Request-Bodies; Formularwerte nie als Breadcrumb |
 | Tracing | niedrige Stichprobe (z. B. 10 %) |
 | Session Replay | aus im MVP |
 | Source Maps | Upload bei EAS Build und EAS Update über das Sentry-Expo-Plugin |
@@ -1358,6 +1429,7 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 | Push | Logs von `push-dispatch` | Ticket-Fehlerquote > 10 % |
 | E-Mail | Resend-Dashboard und Webhooks | Bounce-Quote > 3 % |
 | Cron-Jobs | `cron.job_run_details` (tägliche Prüfung) | jeder fehlgeschlagene Lauf |
+| Datenexport | `data_exports.status = 'failed'` bzw. `ready`-Zeilen mit `expires_at` älter als 2 h (Cleanup hängt) | jeder fehlgeschlagene Export; jede nicht gelöschte abgelaufene Datei |
 | Verfügbarkeit | Uptime-Prüfung für `portal.{domain}` und `/ical/` | Ausfall > 5 min |
 | PDF-Dauer | Logfeld `ms` von `render-quote-pdf` | p95 > 5 s (01 US-29.4) |
 | Datenbank | Supabase-Berichte und Advisors | vor jedem Release prüfen |
@@ -1375,7 +1447,7 @@ Deploy: `deploy-staging.yml` bei jedem Push auf `main`; `deploy-production.yml` 
 |---|---|---|
 | PDF-Erzeugung | p95 < 5 s | 01 US-29.4 |
 | Volle Funktion nach Zahlung | ≤ 1 min | 01 US-56.3 |
-| Datenexport, 1.000 Aufträge | < 10 min | 01 US-59.5 |
+| Datenexport, 1.000 Aufträge | < 10 min von der Anforderung bis zur E-Mail „Export bereit“ (Hintergrund-Export, R2-14) | 01 US-59.5 |
 | App-Kaltstart bis Inhalt aus dem Cache | < 2 s auf Mittelklasse-Android | **[Vorschlag]** |
 | Portal: erster Inhalt über 4G | < 3 s; Bundle-Splitting (async routes) im Web prüfen, sonst Portal als eigenes Web-Ziel | **[Vorschlag]** |
 | Push: Ereignis bis Gerät (sofortige Kategorien) | < 30 s | **[Vorschlag]** |
