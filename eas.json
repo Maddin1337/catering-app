@@ -11,7 +11,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://lulaptdkzzmyjvdaxefv.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_2k_3jIcyLiTKRWwoWTD3rw_NZph2HCU",
-        "EXPO_PUBLIC_AUTH_EMAIL_CODE": "false"
+        "EXPO_PUBLIC_AUTH_EMAIL_CODE": "false",
+        "EXPO_PUBLIC_WEB_URL": "https://catering-app-livid.vercel.app"
       }
     },
     "preview": {
@@ -20,7 +21,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://lulaptdkzzmyjvdaxefv.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_2k_3jIcyLiTKRWwoWTD3rw_NZph2HCU",
-        "EXPO_PUBLIC_AUTH_EMAIL_CODE": "false"
+        "EXPO_PUBLIC_AUTH_EMAIL_CODE": "false",
+        "EXPO_PUBLIC_WEB_URL": "https://catering-app-livid.vercel.app"
       },
       "android": {
         "buildType": "apk"
