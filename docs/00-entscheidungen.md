@@ -108,6 +108,27 @@ Arbeitstitel: **catering-app** (Name noch offen)
 - Zeitrahmen MVP: ca. 2–3 Monate, in kleinen testbaren Etappen
 - UI-Recherche und -Design mit dem Appllama-MCP
 
+## 9. Entscheidungen Runde 2 (17.10.2026, nach der Prüfung)
+
+Diese Punkte haben Vorrang vor abweichenden Vorschlägen in 01–06.
+
+| # | Thema | Entscheidung |
+|---|---|---|
+| R2-1 | Kundenportal | Die Menüwahl vor der Annahme wirkt direkt. Gästezahl und alle Änderungen nach der Bestätigung laufen als Änderungswunsch an den Admin (bestätigen oder ablehnen). Ab ± 20 % Gästezahl erscheint der Hinweis „bitte anrufen“. Sonderessen und Allergien gelten sofort |
+| R2-2 | Direktbestätigung | Erlaubt: Ein Auftrag kann ohne versendetes Angebot direkt auf `confirmed` gesetzt werden (z. B. Stammkunde am Telefon) |
+| R2-3 | „Durchgeführt“ | Wird **nicht** automatisch gesetzt. Der Admin setzt `completed` selbst und bekommt am Tag nach dem Event um 09:00 eine Erinnerung |
+| R2-4 | Status-Korrekturen | **Keine Rückwärts-Übergänge** im MVP (kein `invoiced → completed`, kein `completed → confirmed`, keine Reaktivierung von `declined`/`cancelled`). Fehlbedienungen werden über eine Bestätigungsabfrage vor jedem Statuswechsel vermieden |
+| R2-5 | Preisrundung | Preisvorschläge aus der Wareneinsatz-Kalkulation werden auf volle 10 Cent **aufgerundet** (26,32 € → 26,40 €) |
+| R2-6 | Änderungsschluss im Portal | Standard 72 h vor Beginn bei Event-Catering, 24 h bei Business-Lunch; pro Auftrag änderbar |
+| R2-7 | Zutatenmengen | „Menge p. P.“ = Rohware vor dem Garen. Die Einkaufsliste rechnet 5 % Puffer auf, die Produktionsliste nicht |
+| R2-8 | Küchen-Gerät | **Kein Tablet**: Die Küche nutzt Smartphones (native App). Eine eigene Tablet-Optimierung kommt nach dem MVP |
+| R2-9 | Schichtbörse: Qualifikation | Jeder Slot hat genau eine Qualifikation (Pflichtfeld). Wer sie nicht hat, sieht den Slot nicht |
+| R2-10 | Schichtbörse: Verschiebung | **Kein** Sonderabsagerecht bei Verschiebung eines Events. Es gilt immer die normale Absagefrist (48 h, pro Firma einstellbar); danach nur über den Admin. Eingeplante werden über die Zeitänderung benachrichtigt |
+| R2-11 | Kinderportionen | Nicht im MVP; Kinder werden als eigene Angebotsposition erfasst (Workaround) |
+| R2-12 | Konto löschen | Freigegeben: Edge Function `delete-account` (App-Store-Pflicht, inkl. Widerruf von Sign in with Apple) |
+| R2-13 | Firma löschen | Freigegeben: Edge Function `purge-company` löscht nach 30 Tagen alle Daten und Dateien der Firma |
+| R2-14 | Datenexport | Per **Download-Link per E-Mail**: Der Export wird im Hintergrund erzeugt, im privaten Bucket `exports` abgelegt, und der Admin bekommt eine E-Mail mit einem signierten Link, der 7 Tage gültig ist; danach wird die Datei automatisch gelöscht |
+
 ## Offene Punkte
 
 - App-Name und Marke
