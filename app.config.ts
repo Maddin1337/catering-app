@@ -51,6 +51,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
   ],
+  // Expo-Projekt „catering-app“ (Konto Maddin1337). Die ID ist nicht geheim.
+  extra: {
+    eas: { projectId: 'dc2b5867-d672-4490-8674-1515348853cc' },
+  },
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
