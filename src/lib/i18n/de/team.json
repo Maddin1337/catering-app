@@ -26,11 +26,14 @@
     },
     "verify": {
       "title": "Bestätige deine E-Mail",
-      "body": "Wir haben dir einen Link an {{email}} geschickt. Du kannst schon alles einrichten – Angebote versenden und Mitglieder einladen kannst du aber erst nach der Bestätigung.",
+      "body": "Wir haben dir einen Link an {{email}} geschickt. Bestätige deine E-Mail-Adresse, danach kannst du dich anmelden.",
       "resend": "Link erneut senden",
       "resendIn": "Erneut senden in {{seconds}} s",
       "resent": "Wir haben dir einen neuen Link geschickt.",
-      "continue": "Weiter einrichten"
+      "toLogin": "Zur Anmeldung",
+      "openMail": "E-Mail-App öffnen",
+      "checking": "Link wird geprüft …",
+      "expired": "Der Link ist abgelaufen oder wurde schon verwendet. Wenn du dich nicht anmelden kannst, registriere dich erneut – dann schicken wir dir einen neuen Link."
     },
     "forgot": {
       "title": "Passwort vergessen",

@@ -1,0 +1,2 @@
+-- Demo-Daten nur für die lokale Entwicklung und Preview-Branches (docs/03 §9.4).
+-- M0 braucht noch keine: Firma, Katalog und Aufträge folgen mit M1 bis M3.

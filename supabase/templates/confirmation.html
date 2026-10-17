@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+  <body style="margin:0;padding:24px;background:#F8FAFC;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" style="max-width:480px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;">
+            <tr>
+              <td style="padding:32px;">
+                <h1 style="margin:0 0 16px;font-size:22px;line-height:28px;">Bestätige deine E-Mail-Adresse</h1>
+                <p style="margin:0 0 24px;font-size:16px;line-height:24px;color:#475569;">
+                  Schön, dass du dabei bist. Mit einem Klick bestätigst du deine Adresse, danach kannst du dich anmelden.
+                </p>
+                <p style="margin:0 0 24px;">
+                  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
+                     style="display:inline-block;padding:14px 24px;background:#0F766E;color:#FFFFFF;text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;">
+                    E-Mail bestätigen
+                  </a>
+                </p>
+                <p style="margin:0;font-size:14px;line-height:20px;color:#64748B;">
+                  Du hast dich nicht registriert? Dann kannst du diese E-Mail ignorieren.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

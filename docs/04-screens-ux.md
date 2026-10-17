@@ -2,6 +2,8 @@
 
 Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheidungen.md` (verbindlich), `docs/01-produkt.md`, `docs/02-ablaeufe.md`
 
+> **Umsetzung:** Wo die Umsetzung von diesem Dokument abweicht, steht es in `docs/07-umsetzungsstand.md` (z. B. `src/app/` statt `app/`, eigene Komponenten statt NativeWind). Dort gilt die Umsetzung.
+
 **Lesehilfe**
 
 - Inhalte ohne Markierung setzen 00, 01 und 02 um. **[Vorschlag]** markiert eine begründete Empfehlung zu einem offenen Punkt; bis zur Freigabe gilt sie als Arbeitsannahme.

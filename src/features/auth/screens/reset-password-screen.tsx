@@ -11,29 +11,34 @@ import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 
-import { useExchangeCode, useUpdatePassword } from '../api';
+import { useUpdatePassword, useVerifyOtp } from '../api';
 import { useSession } from '../session-provider';
 import { resetPasswordSchema, type ResetPasswordValues } from '../schemas';
 
 /**
- * SC-05 Neues Passwort. Der Link aus der E-Mail liefert eine Wiederherstellungs-Sitzung:
- * Im Web erkennt supabase-js sie in der URL, nativ kommt ein `code` als Parameter des Deep Links.
+ * SC-05 Neues Passwort. Der Link aus der E-Mail enthält `token_hash` und `type=recovery`; die
+ * Seite löst ihn einmal ein und legt damit eine Wiederherstellungs-Sitzung an.
  */
 export function ResetPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { code } = useLocalSearchParams<{ code?: string }>();
+  const { token_hash: tokenHash, type } = useLocalSearchParams<{
+    token_hash?: string;
+    type?: string;
+  }>();
   const { status } = useSession();
-  const exchange = useExchangeCode();
+  const verify = useVerifyOtp();
   const update = useUpdatePassword();
-  const exchanged = useRef(false);
+  const verified = useRef(false);
+  const hasLink = !!tokenHash && type === 'recovery';
 
   useEffect(() => {
-    if (code && !exchanged.current) {
-      exchanged.current = true;
-      exchange.mutate(code);
+    // Der Link ist einmalig: nie zweimal einlösen (z. B. durch erneutes Rendern).
+    if (hasLink && !verified.current) {
+      verified.current = true;
+      verify.mutate({ tokenHash, type: 'recovery' });
     }
-  }, [code, exchange]);
+  }, [hasLink, tokenHash, verify]);
 
   const { control, handleSubmit } = useForm<ResetPasswordValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -45,8 +50,8 @@ export function ResetPasswordScreen() {
     update.mutate(v.password, { onSuccess: () => router.replace('/') }),
   );
 
-  const expired = exchange.isError || (status === 'signedOut' && !code && !exchange.isPending);
-  const checking = status === 'loading' || exchange.isPending;
+  const expired = verify.isError || (status === 'signedOut' && !hasLink && !verify.isPending);
+  const checking = status === 'loading' || verify.isPending;
 
   if (checking) {
     return (

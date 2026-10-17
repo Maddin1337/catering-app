@@ -31,7 +31,7 @@ export function useSignUp() {
     mutationFn: async (values: { email: string; password: string }): Promise<SignUpResult> => {
       const { data, error } = await client().auth.signUp({
         ...values,
-        options: { emailRedirectTo: redirect('/welcome') },
+        options: { emailRedirectTo: redirect('/verify-email') },
       });
       if (error) throw toAppError(error);
       // Ist die Adresse schon vergeben, antwortet Supabase bei aktiver Bestätigung ohne Fehler,
@@ -48,7 +48,7 @@ export function useResendConfirmation() {
       const { error } = await client().auth.resend({
         type: 'signup',
         email,
-        options: { emailRedirectTo: redirect('/welcome') },
+        options: { emailRedirectTo: redirect('/verify-email') },
       });
       if (error) throw toAppError(error);
     },
@@ -67,11 +67,18 @@ export function useRequestPasswordReset() {
   });
 }
 
-/** Tauscht den Code aus dem Reset-Link gegen eine Sitzung (nativ; im Web erledigt das supabase-js). */
-export function useExchangeCode() {
+/**
+ * Löst den Link aus Bestätigungs- und Reset-Mails ein (`token_hash`, docs/05 §6.3). Anders als ein
+ * PKCE-Code funktioniert das auch, wenn der Link auf einem anderen Gerät geöffnet wird als dem,
+ * auf dem die Registrierung oder die Anfrage begann. Bei Erfolg entsteht eine Sitzung.
+ */
+export function useVerifyOtp() {
   return useMutation({
-    mutationFn: async (code: string) => {
-      const { error } = await client().auth.exchangeCodeForSession(code);
+    mutationFn: async (values: { tokenHash: string; type: 'email' | 'recovery' }) => {
+      const { error } = await client().auth.verifyOtp({
+        token_hash: values.tokenHash,
+        type: values.type,
+      });
       if (error) throw toAppError(error);
     },
   });

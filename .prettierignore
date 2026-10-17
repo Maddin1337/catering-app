@@ -3,3 +3,6 @@ dist
 .expo
 docs
 package-lock.json
+assets
+supabase/templates
+supabase/config.toml

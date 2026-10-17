@@ -65,7 +65,9 @@
     "web:export": "expo export -p web",
     "test": "jest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:test": "bash scripts/db/test-local.sh",
+    "db:types": "supabase gen types typescript --local > supabase/functions/_shared/database.types.ts"
   },
   "private": true
 }
