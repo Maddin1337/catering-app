@@ -70,7 +70,7 @@ Wer später doch die CLI nutzt, markiert die Migrationen vorher mit `npx supabas
 Hinweise:
 - `config.toml` enthält Werte für die lokale Entwicklung (`site_url` und Redirect-URLs zeigen auf `localhost`). Für das echte Staging bekommt das Projekt einen eigenen Block mit der Staging-Domain.
 - **Mailversand:** Das eingebaute Supabase-SMTP verschickt nur an Mitglieder des Supabase-Teams und nur wenige Mails pro Stunde. Für echte Nutzer braucht es einen eigenen Mail-Dienst (E-3, Resend oder Postmark) als SMTP in den Auth-Einstellungen.
-- Die Schlüssel stehen in `.env.local` (nicht im Repo). Für EAS-Builds kommen sie als Umgebungsvariablen ins Expo-Projekt.
+- Die Schlüssel stehen lokal in `.env.local` (nicht im Repo). Für die Profile `development` und `preview` in `eas.json` stehen die **öffentlichen** Werte (Projekt-URL und `sb_publishable_…`-Schlüssel) direkt als `env`, weil sie ohnehin in jeder fertigen App stecken. Für `production` kommen sie später als Umgebungsvariablen ins Expo-Projekt. Nie ein `service_role`-Schlüssel.
 
 ## Nicht in M0 gebaut (bewusst)
 
