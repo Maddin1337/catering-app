@@ -26,20 +26,22 @@
     },
     "verify": {
       "title": "Bestätige deine E-Mail",
-      "body": "Wir haben dir einen Link an {{email}} geschickt. Bestätige deine E-Mail-Adresse, danach kannst du dich anmelden.",
+      "body": "Wir haben dir eine E-Mail an {{email}} geschickt. Öffne den Link darin oder gib hier den 6-stelligen Code ein. Danach kannst du dich anmelden.",
       "resend": "Link erneut senden",
       "resendIn": "Erneut senden in {{seconds}} s",
       "resent": "Wir haben dir einen neuen Link geschickt.",
       "toLogin": "Zur Anmeldung",
       "openMail": "E-Mail-App öffnen",
       "checking": "Link wird geprüft …",
-      "expired": "Der Link ist abgelaufen oder wurde schon verwendet. Wenn du dich nicht anmelden kannst, registriere dich erneut – dann schicken wir dir einen neuen Link."
+      "expired": "Der Link ist abgelaufen oder wurde schon verwendet. Gib den Code aus der E-Mail ein oder registriere dich erneut – dann schicken wir dir eine neue Mail.",
+      "codeLabel": "Code aus der E-Mail",
+      "codeHint": "6 Ziffern",
+      "codeSubmit": "Bestätigen"
     },
     "forgot": {
       "title": "Passwort vergessen",
-      "body": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link zum Zurücksetzen.",
+      "body": "Gib deine E-Mail-Adresse ein. Wir schicken dir einen Link und einen Code zum Zurücksetzen.",
       "submit": "Link senden",
-      "sent": "Falls ein Konto existiert, ist ein Link unterwegs.",
       "back": "Zurück zur Anmeldung"
     },
     "reset": {
@@ -47,7 +49,8 @@
       "submit": "Speichern und anmelden",
       "expired": "Der Link ist abgelaufen oder wurde schon verwendet.",
       "newLink": "Neuen Link anfordern",
-      "checking": "Link wird geprüft …"
+      "checking": "Link wird geprüft …",
+      "codeBody": "Falls ein Konto zu {{email}} existiert, ist eine E-Mail unterwegs. Öffne den Link darin oder gib hier den Code ein und lege dein neues Passwort fest."
     },
     "welcome": {
       "title": "Willkommen",
@@ -59,7 +62,8 @@
       "emailInvalid": "Diese E-Mail-Adresse sieht nicht richtig aus.",
       "passwordRequired": "Bitte gib dein Passwort ein.",
       "passwordShort": "Das Passwort braucht mindestens 10 Zeichen.",
-      "passwordMismatch": "Die Passwörter stimmen nicht überein."
+      "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+      "codeInvalid": "Der Code besteht aus 6 Ziffern."
     }
   },
   "config": {

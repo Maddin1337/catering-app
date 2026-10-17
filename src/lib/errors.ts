@@ -30,7 +30,8 @@ export const messages: Record<AppErrorCode, string> = {
   weak_password: 'Das Passwort ist zu schwach. Nutze mindestens 10 Zeichen.',
   same_password: 'Das neue Passwort muss sich vom alten unterscheiden.',
   rate_limited: 'Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.',
-  link_expired: 'Der Link ist abgelaufen oder wurde schon verwendet. Fordere einen neuen an.',
+  link_expired:
+    'Der Link oder Code ist abgelaufen, ungültig oder wurde schon verwendet. Fordere einen neuen an.',
   offline: 'Keine Verbindung. Anmelden geht nur online.',
   not_configured: 'Die App ist nicht konfiguriert (Supabase-Zugangsdaten fehlen).',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',

@@ -888,7 +888,7 @@ Apps mit Drittanbieter-Login (hier Google) müssen eine gleichwertige Login-Opti
 
 - Bestätigungs- und Reset-Links nutzen `token_hash` statt PKCE-Code: `https://app.{domain}/verify-email?token_hash=…&type=email` bzw. `/reset-password?token_hash=…&type=recovery`. Die Route ruft `supabase.auth.verifyOtp({ token_hash, type })` auf. Grund: Ein PKCE-Code funktioniert nur auf dem Gerät, auf dem die Registrierung begann; wer am Handy registriert und den Link am PC öffnet, würde sonst scheitern.
 - Universal Links öffnen diese Routen in der App, falls installiert (6.5); sonst übernimmt das Web.
-- Bis zur Bestätigung darf der Nutzer einrichten, aber keine Angebote versenden und niemanden einladen (01 US-01.7); die RPCs `prepare_quote_send` und `create_invitation` prüfen `email_confirmed_at`.
+- Angemeldet ist ein Nutzer erst nach der Bestätigung (R3-1, `enable_confirmations`). Die Mail enthält zusätzlich zum Link einen **6-stelligen Code** (`{{ .Token }}`, `verifyOtp({ email, token, type })`), der ohne Universal Links auf jedem Gerät funktioniert (R3-2). Die RPCs `prepare_quote_send` und `create_invitation` prüfen `email_confirmed_at` weiterhin als zweite Absicherung.
 - OAuth im Web: Rückleitung auf `https://app.{domain}/login`; supabase-js tauscht den Code automatisch (`detectSessionInUrl`).
 
 ### 6.4 Einladungsfluss
@@ -1118,7 +1118,7 @@ Technische Absicherung:
 | Zugriff über Firmengrenzen | RLS auf jeder Tabelle mit `company_id`; Hilfsfunktionen aus 4.2; pgTAP-Matrix (8.2); CI-Test „RLS auf allen Tabellen aktiv“ |
 | Preise, Kosten, Kundenkontakte bei `kitchen`/`staff` | rollenspezifische Lesepfade (4.2); Tests „`kitchen` erreicht keine Preisspalte über irgendeinen API-Weg“; dieselbe Regel für Push, iCal und Offline-Cache (01 §3.3 Nr. 2) |
 | Erraten oder Weitergabe von Portal-Links | 256 Bit Zufall, nur Hash gespeichert, Ablauf, Widerruf, Rate-Limit, `noindex`, `Referrer-Policy: no-referrer`, eigene Origin (9.4) |
-| Missbrauch des Mailversands | Versand erst nach E-Mail-Bestätigung (01 US-01.7), Empfänger aus der DB, Versandlimit je Firma (8.6) |
+| Missbrauch des Mailversands | Anmeldung und damit Versand erst nach E-Mail-Bestätigung (R3-1), Empfänger aus der DB, Versandlimit je Firma (8.6) |
 | XSS in Web-Admin oder Portal | React-Escaping, kein `dangerouslySetInnerHTML`, strikte CSP (8.7), Portal auf eigener Origin ohne Sitzung, Logos nur PNG/JPG |
 | Header-Injection in E-Mails | Anzeigename bereinigen (5.5) |
 | Gefälschte Webhooks | Signaturen (Stripe, Resend), interner Schlüssel für DB → Function |

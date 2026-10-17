@@ -1,4 +1,11 @@
-import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from '../schemas';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  otpSchema,
+  registerSchema,
+  resetPasswordSchema,
+  resetWithCodeSchema,
+} from '../schemas';
 
 const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
   r.error?.issues.map((i) => i.message) ?? [];
@@ -48,5 +55,22 @@ describe('auth schemas', () => {
       resetPasswordSchema.safeParse({ password: '1234567890', passwordConfirm: '1234567890' })
         .success,
     ).toBe(true);
+  });
+
+  it('otp: genau 6 Ziffern, Leerzeichen am Rand werden entfernt', () => {
+    expect(otpSchema.safeParse({ code: ' 123456 ' }).success).toBe(true);
+    for (const bad of ['', '12345', '1234567', '12345a', '12 456']) {
+      const r = otpSchema.safeParse({ code: bad });
+      expect(r.success).toBe(false);
+      expect(messages(r)).toContain('auth.validation.codeInvalid');
+    }
+  });
+
+  it('reset mit Code: braucht Code, Passwort und Wiederholung', () => {
+    const ok = { code: '123456', password: '1234567890', passwordConfirm: '1234567890' };
+    expect(resetWithCodeSchema.safeParse(ok).success).toBe(true);
+    expect(resetWithCodeSchema.safeParse({ ...ok, code: '12' }).success).toBe(false);
+    const mismatch = resetWithCodeSchema.safeParse({ ...ok, passwordConfirm: 'anders-anders' });
+    expect(messages(mismatch)).toContain('auth.validation.passwordMismatch');
   });
 });

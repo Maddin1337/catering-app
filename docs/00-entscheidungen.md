@@ -129,6 +129,16 @@ Diese Punkte haben Vorrang vor abweichenden Vorschlägen in 01–06.
 | R2-13 | Firma löschen | Freigegeben: Edge Function `purge-company` löscht nach 30 Tagen alle Daten und Dateien der Firma |
 | R2-14 | Datenexport | Per **Download-Link per E-Mail**: Der Export wird im Hintergrund erzeugt, im privaten Bucket `exports` abgelegt, und der Admin bekommt eine E-Mail mit einem signierten Link, der 7 Tage gültig ist; danach wird die Datei automatisch gelöscht |
 
+## 10. Entscheidungen Runde 3 (17.10.2026, nach M0)
+
+| # | Thema | Entscheidung |
+|---|---|---|
+| R3-1 | Einrichten vor der Bestätigung (01 US-01.7) | **Entfällt.** Anmelden geht erst nach der Bestätigung der E-Mail-Adresse (Supabase `enable_confirmations`). Der Missbrauchsschutz für Versand und Einladungen ist damit von Anfang an erfüllt |
+| R3-2 | Bestätigung und Passwort-Reset | **Link und 6-stelliger Code** in derselben E-Mail. Der Link funktioniert auf jedem Gerät, der Code immer, auch wenn die Mail-App den Link nicht öffnen kann |
+| R3-3 | Muster für Anmeldung und Onboarding | Die Vorschläge aus `docs/research/appllama-onboarding.md` (Entscheidungsvorlage SC-01 bis SC-12, SC-54/55, SC-59) sind **übernommen** |
+| R3-4 | Repo | Die Platzhalterdatei `readme` ist gelöscht; es gilt `README.md` |
+| R3-5 | Supabase-Projekt | Projekt in Frankfurt angelegt (`lulaptdkzzmyjvdaxefv`). Die URL und der öffentliche Schlüssel (`sb_publishable_…`) stehen nur in `.env.local` und in den Umgebungsvariablen der Builds, nie im Repo; der `service_role`-Schlüssel gehört nie in den Chat |
+
 ## Offene Punkte
 
 - App-Name und Marke

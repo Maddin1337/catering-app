@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -17,17 +17,23 @@ import { forgotPasswordSchema, type ForgotPasswordValues } from '../schemas';
 /** SC-04 Passwort vergessen: neutrale Bestätigung, verrät nicht, ob es ein Konto gibt. */
 export function ForgotPasswordScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
   const request = useRequestPasswordReset();
   const { control, handleSubmit } = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
 
-  const submit = handleSubmit((v) => request.mutate(v.email));
+  // Die Mail enthält Link und Code. Wer den Link nicht öffnen kann, gibt den Code auf der nächsten Seite ein.
+  const submit = handleSubmit((v) =>
+    request.mutate(v.email, {
+      onSuccess: () =>
+        router.push({ pathname: '/reset-password', params: { email: v.email.trim() } }),
+    }),
+  );
 
   return (
     <Screen title={t('auth.forgot.title')} subtitle={t('auth.forgot.body')}>
-      {request.isSuccess ? <Banner tone="success">{t('auth.forgot.sent')}</Banner> : null}
       {request.error ? <Banner tone="danger">{toAppError(request.error).message}</Banner> : null}
       <Controller
         control={control}

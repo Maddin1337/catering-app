@@ -9,7 +9,7 @@ Dieses Dokument nennt, was gebaut und geprüft ist, und wo die Umsetzung **bewus
 | # | Prüfpunkt aus 06 §1.3 | Stand | Wie geprüft |
 |---|---|---|---|
 | 1 | Preview-Build auf Android, TestFlight, staging-URL | **offen** | braucht Expo-, Apple- und Hosting-Konten (E-2, E-12); lokal nicht prüfbar |
-| 2 | Registrieren, Bestätigungsmail, an- und abmelden, Passwort zurücksetzen | **Oberfläche geprüft, Ende-zu-Ende offen** | Oberfläche im Browser (Playwright, Web-Export); Anmeldung gegen echtes Supabase noch nicht, weil `supabase start` ohne Docker hier nicht läuft |
+| 2 | Registrieren, Bestätigungsmail, an- und abmelden, Passwort zurücksetzen | **teilweise geprüft** | Oberfläche und Fehlerfälle im Browser gegen das **echte Projekt** (falsches Passwort, „Passwort vergessen“, falscher Code, ungültiger Link). Offen: erfolgreiche Registrierung und Mail-Zustellung, weil Migrationen, Vorlagen und Auth-Einstellungen dort noch nicht eingespielt sind (Abschnitt „Supabase-Projekt einrichten“) |
 | 3 | Platzhalter „Willkommen“ nach Login, Abmelden führt zu SC-01 | **gebaut, nicht gegen Supabase geprüft** | Gate und Seiten vorhanden; Ablauf braucht eine echte Sitzung |
 | 4 | Textänderung per EAS Update ohne Neuinstallation | **offen** | `expo-updates` und EAS-Projekt-ID brauchen das Expo-Konto |
 | 5 | Grüner CI-Lauf mit bestandenem Mandantentest | **CI-Datei geschrieben, nie ausgeführt**; Mandantentest lokal grün | `.github/workflows/ci.yml` lief noch nicht; die Datenbanktests laufen lokal grün (Abschnitt unten) |
@@ -38,12 +38,28 @@ Ein Test hat beim Schreiben eine Lücke gezeigt: Die Prüfung „keine Funktion 
 | A-3 | SC-07 Willkommen | `(auth)/welcome` | **`(app)/welcome`** | Mit Sitzung gehört die Seite in die geschützte Gruppe. Das Gate bekommt mit M1 eine dritte Stufe „Sitzung ohne Mitgliedschaft“ |
 | A-4 | UI-Bibliothek | NativeWind + react-native-reusables (05 §2.2) | **`StyleSheet` mit Design-Tokens** (`src/theme/tokens.ts`), eigene Basis-Komponenten | NativeWind ist für SDK 58 und React Native 0.88 nur als Vorabversion (5.0.0-rc) verfügbar; die stabile 4.x ist dafür nicht belegt. Eigene Komponenten sind ohne Risiko lauffähig, auch im Web. Die Entscheidung wird mit dem Expo-SDK-Upgrade neu bewertet |
 | A-5 | Speicher der Sitzung (nativ) | verschlüsseltes MMKV, Schlüssel im SecureStore (05 §2.3) | **SecureStore in Blöcken** (`src/lib/secure-kv.ts`) | MMKV braucht ein natives Modul und einen Development-Build, den es hier nicht gibt. MMKV kommt mit dem Offline-Lesen in M7 |
-| A-6 | Mail-Bestätigung | Bestätigung optional; einrichten darf man vorher (01 US-01.7) | **Bestätigung vor der ersten Anmeldung** (`enable_confirmations = true`) | Supabase legt ohne Bestätigung keine Mail an und bestätigt automatisch. „Erst einrichten, dann bestätigen“ ginge nur mit eigener Logik. Die Schutzwirkung (kein Versand und keine Einladungen ohne bestätigte Adresse) ist damit ohnehin erfüllt. **Entscheidung beim Gründer**, ob US-01.7 so entfallen darf |
+| A-6 | Mail-Bestätigung | Bestätigung optional; einrichten darf man vorher (01 US-01.7) | **Bestätigung vor der ersten Anmeldung** (`enable_confirmations = true`), **entschieden R3-1** | Supabase legt ohne Bestätigung keine Mail an und bestätigt automatisch. „Erst einrichten, dann bestätigen“ ginge nur mit eigener Logik. Die Schutzwirkung (kein Versand und keine Einladungen ohne bestätigte Adresse) ist damit ohnehin erfüllt. Der Gründer hat zugestimmt: US-01.7 entfällt (R3-1) |
 | A-7 | Datenbanktypen | `createClient<Database>` ab M0 (05 §3.3) | **ohne Typparameter** bis M1 | In M0 fragt die App keine Tabellen ab; `supabase gen types` braucht die CLI mit Docker. Die CI prüft die Typdatei, sobald sie existiert |
 | A-8 | Migrationsdaten | Dateinamen `20261102…` (03 §9.2) | **`20261019…`** und Aufteilung nach Meilensteinen | M0 legt Typen, Mandant, Referenzdaten und Rechte an; die übrigen Tabellen folgen mit den Meilensteinen (03 §9.2, „Aufteilung nach Meilensteinen“) |
 | A-9 | Social-Login-Schaltflächen (M0) | Apple und Google „vorbereitet“ (06 §1.3) | **nicht eingebaut** | Ohne Zugangsdaten der Anbieter wären es tote Schaltflächen; sie kommen mit M1 |
 | A-10 | Typografie Beschriftungen | `text.caption` Gewicht 500 (04 §4.4) | **Inter SemiBold (600)** | 04 §4.4 sieht nur die Schnitte 400 und 600 vor; ein dritter Schnitt wäre eine zusätzliche Schriftdatei |
-| A-11 | Link-Art in Mails | `token_hash` (05 §6.3) | wie geplant, **plus offene Frage Code statt Link** | siehe `docs/research/appllama-onboarding.md`, Abschnitt „Offene Frage“ |
+| A-11 | Link-Art in Mails | `token_hash` (05 §6.3) | **Link und 6-stelliger Code** (R3-2), umgesetzt in SC-03 und SC-05 | Der Code funktioniert auf jedem Gerät, auch ohne Universal Links |
+
+## Supabase-Projekt einrichten (einmalig)
+
+Das Projekt `lulaptdkzzmyjvdaxefv` (Frankfurt) ist angelegt und erreichbar: Ein Browser-Test gegen das echte Projekt lief grün (falsches Passwort → deutsche Fehlermeldung, „Passwort vergessen“ neutral, falscher Code und ungültiger Link → verständliche Meldung). **Noch nicht eingespielt** sind die Migrationen, die Mail-Vorlagen und die Auth-Einstellungen: Dafür braucht es Zugriff auf das Projekt, den die App-Schlüssel nicht geben. Auf einem Rechner mit Node.js:
+
+```bash
+npx supabase login
+npx supabase link --project-ref lulaptdkzzmyjvdaxefv
+npx supabase db push        # wendet die vier Migrationen an
+npx supabase config push    # überträgt Auth-Einstellungen und Mail-Vorlagen aus supabase/config.toml
+```
+
+Hinweise:
+- `config.toml` enthält Werte für die lokale Entwicklung (`site_url` und Redirect-URLs zeigen auf `localhost`). Für das echte Staging bekommt das Projekt einen eigenen Block mit der Staging-Domain.
+- **Mailversand:** Das eingebaute Supabase-SMTP verschickt nur an Mitglieder des Supabase-Teams und nur wenige Mails pro Stunde. Für echte Nutzer braucht es einen eigenen Mail-Dienst (E-3, Resend oder Postmark) als SMTP in den Auth-Einstellungen.
+- Die Schlüssel stehen in `.env.local` (nicht im Repo). Für EAS-Builds kommen sie als Umgebungsvariablen ins Expo-Projekt.
 
 ## Nicht in M0 gebaut (bewusst)
 

@@ -67,18 +67,24 @@ export function useRequestPasswordReset() {
   });
 }
 
+export type VerifyOtpValues =
+  | { tokenHash: string; type: 'email' | 'recovery' } // Link aus der Mail
+  | { email: string; code: string; type: 'email' | 'recovery' }; // Code aus der Mail
+
 /**
- * Löst den Link aus Bestätigungs- und Reset-Mails ein (`token_hash`, docs/05 §6.3). Anders als ein
- * PKCE-Code funktioniert das auch, wenn der Link auf einem anderen Gerät geöffnet wird als dem,
- * auf dem die Registrierung oder die Anfrage begann. Bei Erfolg entsteht eine Sitzung.
+ * Löst den Link oder den Code aus Bestätigungs- und Reset-Mails ein (docs/05 §6.3). Beides steht
+ * in derselben Mail. Der Link (`token_hash`) funktioniert auf jedem Gerät, setzt aber voraus, dass
+ * er in der App oder im Browser geöffnet wird; der Code funktioniert immer, auch wenn die Mail-App
+ * den Link nicht öffnen kann. Bei Erfolg entsteht eine Sitzung.
  */
 export function useVerifyOtp() {
   return useMutation({
-    mutationFn: async (values: { tokenHash: string; type: 'email' | 'recovery' }) => {
-      const { error } = await client().auth.verifyOtp({
-        token_hash: values.tokenHash,
-        type: values.type,
-      });
+    mutationFn: async (values: VerifyOtpValues) => {
+      const params =
+        'tokenHash' in values
+          ? { token_hash: values.tokenHash, type: values.type }
+          : { email: values.email, token: values.code, type: values.type };
+      const { error } = await client().auth.verifyOtp(params);
       if (error) throw toAppError(error);
     },
   });

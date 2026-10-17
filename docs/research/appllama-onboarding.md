@@ -122,21 +122,21 @@ Folge für die späteren Bereiche B, C und D: Die Flow-Suche allein trägt dort 
 
 **G-A-3 · Testphase ohne Kauf auf iOS (SC-11, SC-12, Abo).** Entwurf: ein **neutraler Statustext** „Testphase bis 31.10.2026“ ohne Preis, Schaltfläche oder Link; im Web-Admin daneben „Abo abschließen“. Läuft die Testphase ab, steht nativ nur „Die Testphase ist beendet. Der Betrieb kann das Abo im Web-Admin verwalten.“ (01 US-56.7). Das ist eine Datenschutz- und Store-Richtlinienfrage, kein Gestaltungsmuster aus dem Katalog.
 
-## Offene Frage zur Mail-Bestätigung: Link oder Code?
+## Mail-Bestätigung: Link und Code (entschieden R3-2)
 
 Notion bestätigt die Adresse mit einem **6-stelligen Code**, den man in der App eingibt (M-A-03). Wir nutzen einen **Link** (`token_hash`, 05 §6.3). Der Link funktioniert im Web gut. Auf dem Handy hängt er davon ab, dass die App ihn öffnen kann: Das geht zuverlässig erst mit **Universal Links** (eigene Domain, kommt mit M10); ein Link mit eigenem Schema (`cateringapp://…`) wird in vielen Mail-Apps nicht als Link angezeigt oder blockiert. Ein Code umgeht das und funktioniert auf jedem Gerät.
 
-**Vorschlag:** Supabase kann beides in derselben Mail (`{{ .Token }}` neben `{{ .TokenHash }}`). Wir bauen den Code als Eingabefeld in SC-03 und SC-05 nach, sobald wir die Registrierung auf einem echten Gerät testen (M1). Bis dahin gilt der Link, der im Web bereits funktioniert. **Entscheidung beim Gründer, bis Ende M1.**
+**Entschieden (R3-2): Link und Code.** Supabase kann beides in derselben Mail (`{{ .Token }}` neben `{{ .TokenHash }}`). Der Code ist als Eingabefeld in SC-03 und SC-05 umgesetzt.
 
 ## Entscheidungsvorlage (Muster je Ziel-Screen)
 
-Die Spalte „Vorschlag“ ist die Empfehlung von Claude. Der Gründer wählt bis **Di 20.10.** (höchstens 30 Minuten, 04 §0.6).
+Die Muster dieser Tabelle hat der Gründer am 17.10.2026 **übernommen** (R3-3). Quelle der Empfehlung: Claude; Verfahren nach 04 §0.6.
 
 | Screen | Gewähltes Muster | Quelle (`screen_ref`) | Begründung | Offene Frage |
 |---|---|---|---|---|
 | SC-01 Login | M-A-07 | `881629660/onb_pmqmc`, `618783545/onb_65vhv` | E-Mail zuerst, Social gleichwertig darunter | – |
 | SC-02 Registrierung | M-A-07 + Passwort-Hinweis „mind. 10 Zeichen“ | `881629660/onb_pmqmc` | gleiche Anordnung wie SC-01 | – |
-| SC-03 E-Mail bestätigen | M-A-03 | `618783545/onb_r5m1h`, `1232780281/onb_73s5s` | Adresse im Text, Countdown, „E-Mail-App öffnen“ | **Link oder Code?** (siehe oben) |
+| SC-03 E-Mail bestätigen | M-A-03 | `618783545/onb_r5m1h`, `1232780281/onb_73s5s` | Adresse im Text, Countdown, „E-Mail-App öffnen“ | – (entschieden: Link und Code) |
 | SC-04 Passwort vergessen | M-A-03 (Hinweisseite) | `618783545/onb_r5m1h` | neutrale Bestätigung, verrät nichts | – |
 | SC-05 Neues Passwort | wie SC-02, zwei Felder | `881629660/onb_pmqmc` | „Anzeigen“-Schalter; Fehlerzustand „Link abgelaufen“ mit Handlung | – |
 | SC-06 Einladung annehmen | **eigene Lösung** G-A-1 | – | kein Vorbild im Katalog | Wortlaut der Fehlerfälle |

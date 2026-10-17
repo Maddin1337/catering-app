@@ -494,7 +494,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 4. **Gegeben** eine Registrierung mit Apple und verborgener E-Mail-Adresse, **wenn** das Firmen-Setup erscheint, **dann** ist das Feld Kontakt-E-Mail leer und Pflicht (eine Relay-Adresse taugt nicht als Reply-To).
 5. *Randfall:* **Gegeben** eine E-Mail-Adresse mit bestehendem Konto, **wenn** sich jemand damit registriert, **dann** erscheint „Konto existiert bereits – anmelden oder Passwort zurücksetzen“ und es entsteht kein zweites Konto.
 6. *Randfall:* **Gegeben** ein Nutzer, der bereits Mitglied einer Firma ist, **dann** wird „Neue Firma anlegen“ nicht angeboten.
-7. **Gegeben** eine Registrierung per E-Mail ohne bestätigte Adresse, **dann** kann er alles einrichten, aber erst nach der Bestätigung Angebote versenden und Mitglieder einladen **[Vorschlag]** (Schutz vor Missbrauch des Mailversands).
+7. **Gegeben** eine Registrierung per E-Mail, **dann** erhält der Nutzer eine Mail mit **Link und 6-stelligem Code**; angemeldet ist er erst nach der Bestätigung. „Einrichten vor der Bestätigung“ entfällt – entschieden (R3-1, R3-2). Das schützt den Mailversand (Angebote, Einladungen) von Anfang an.
 
 #### US-02 · Anmelden und angemeldet bleiben
 `F-01` · **Must**
