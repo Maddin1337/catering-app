@@ -15,6 +15,7 @@ export type AppErrorCode =
   | 'already_member'
   | 'read_only'
   | 'forbidden'
+  | 'duplicate'
   | 'invitation_invalid'
   | 'invitation_expired'
   | 'invitation_revoked'
@@ -57,6 +58,7 @@ export const messages: Record<AppErrorCode, string> = {
   already_member: 'Du bist bereits Mitglied einer Firma.',
   read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
   forbidden: 'Dafür fehlt dir die Berechtigung.',
+  duplicate: 'Diesen Eintrag gibt es schon.',
   invitation_invalid: 'Diese Einladung gibt es nicht. Bitte prüfe den Link.',
   invitation_expired: 'Die Einladung ist abgelaufen. Bitte den Admin um eine neue Einladung.',
   invitation_revoked: 'Die Einladung wurde zurückgezogen. Bitte den Admin um eine neue Einladung.',
@@ -107,6 +109,7 @@ export function toAppError(error: unknown): AppError {
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');
+  if (e.code === '23505') return new AppError('duplicate');
   switch (e.code) {
     case 'invalid_credentials':
       return new AppError('invalid_credentials');

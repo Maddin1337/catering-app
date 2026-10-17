@@ -189,8 +189,8 @@
     "signOut": "Abmelden",
     "team": "Team",
     "teamBody": "Mitglieder, Rollen und Einladungen",
-    "settings": "Firma",
-    "settingsBody": "Name, Adresse und Steuerdaten",
+    "settings": "Einstellungen",
+    "settingsBody": "Firma, Steuersätze, Fristen und Texte",
     "profileLink": "Mein Profil",
     "profileBody": "Name, Telefon, Konto löschen"
   },
@@ -269,15 +269,146 @@
     "deleteBody": "Dein Zugang und deine persönlichen Daten werden gelöscht. Das lässt sich nicht rückgängig machen."
   },
   "settings": {
-    "title": "Firmendaten",
-    "body": "Diese Angaben erscheinen später auf Angeboten und Rechnungen.",
-    "name": "Firmenname",
-    "email": "Kontakt-E-Mail",
-    "phone": "Telefon",
-    "street": "Straße und Hausnummer",
-    "postalCode": "PLZ",
-    "city": "Ort",
-    "vatId": "USt-IdNr.",
-    "taxNumber": "Steuernummer"
+    "hub": {
+      "title": "Einstellungen",
+      "company": {
+        "title": "Firma",
+        "body": "Name, Anschrift, Steuernummern, Fußzeile"
+      },
+      "branding": {
+        "title": "Branding",
+        "body": "Akzentfarbe für Portal und Angebote"
+      },
+      "tax-rates": {
+        "title": "Steuersätze",
+        "body": "Sätze und Standard je Positionstyp"
+      },
+      "qualifications": {
+        "title": "Qualifikationen",
+        "body": "Fähigkeiten für Schichten und Team"
+      },
+      "defaults": {
+        "title": "Fristen & Standardwerte",
+        "body": "Absagefrist, Änderungsschluss, Aufschlag, Preisraster"
+      },
+      "quote-texts": {
+        "title": "Angebotstexte",
+        "body": "Einleitung, Bedingungen und Schluss"
+      }
+    },
+    "company": {
+      "title": "Firma",
+      "body": "Diese Angaben erscheinen auf Angeboten, Rechnungen und im Kundenportal.",
+      "fields": {
+        "name": "Firmenname",
+        "contact_email": "Kontakt-E-Mail (Antworten gehen hierhin)",
+        "phone": "Telefon",
+        "website": "Website",
+        "street": "Straße und Hausnummer",
+        "postal_code": "PLZ",
+        "city": "Ort",
+        "vat_id": "USt-IdNr.",
+        "tax_number": "Steuernummer",
+        "footer_text": "Fußzeile für Angebote",
+        "privacy_policy_url": "Link zur Datenschutzerklärung",
+        "imprint_url": "Link zum Impressum"
+      }
+    },
+    "branding": {
+      "title": "Branding",
+      "body": "Die Akzentfarbe erscheint im Kundenportal und in neuen Angeboten.",
+      "note": "Wirkt sofort auf das Portal und neue PDFs. Bereits versendete PDFs bleiben unverändert. Das Logo kannst du mit dem nächsten App-Update hochladen."
+    },
+    "tax": {
+      "title": "Steuersätze",
+      "body": "Diese Sätze nutzt du in Angeboten. Prüfe sie mit deiner Steuerberatung.",
+      "add": "Satz anlegen",
+      "confirmAll": "Alle als geprüft markieren",
+      "unreviewed": "Einige Sätze sind noch nicht von dir geprüft.",
+      "notReviewed": "nicht geprüft",
+      "default": "Standard",
+      "name": "Bezeichnung",
+      "rate": "Satz in Prozent",
+      "category": "Positionstyp",
+      "makeDefault": "Als Standard für {{category}} verwenden",
+      "isDefaultNote": "Das ist der Standard für diesen Positionstyp. Lege einen anderen Satz als Standard fest, um ihn zu ersetzen.",
+      "nameError": "Bitte gib eine Bezeichnung mit bis zu 60 Zeichen ein.",
+      "rateError": "Bitte gib einen Satz zwischen 0 und 100 ein, zum Beispiel 7 oder 19.",
+      "archive": "Deaktivieren",
+      "archiveTitle": "{{name}} deaktivieren?",
+      "archiveBody": "Der Satz steht für neue Positionen nicht mehr zur Auswahl. Bestehende Angebote bleiben unverändert.",
+      "countryNote": "Es gelten die Sätze für Deutschland. Österreich und die Schweiz folgen später.",
+      "categories": {
+        "food": "Speisen",
+        "beverage": "Getränke",
+        "service": "Personal",
+        "equipment": "Equipment",
+        "travel": "Anfahrt",
+        "other": "Sonstiges"
+      }
+    },
+    "qualifications": {
+      "title": "Qualifikationen",
+      "body": "Damit steuerst du, wer sich auf welche Schichten bewerben kann.",
+      "add": "Qualifikation anlegen",
+      "name": "Name",
+      "nameError": "Bitte gib einen Namen mit bis zu 60 Zeichen ein.",
+      "archive": "Archivieren",
+      "archiveTitle": "{{name}} archivieren?",
+      "archiveBody": "Die Qualifikation steht nicht mehr zur Auswahl und wird bei Mitgliedern nicht mehr angezeigt.",
+      "members_one": "{{count}} Mitglied",
+      "members_other": "{{count}} Mitglieder"
+    },
+    "defaults": {
+      "title": "Fristen & Standardwerte",
+      "body": "Diese Werte gelten für neue Schichten, Aufträge und Angebote. Du kannst sie je Auftrag ändern.",
+      "fields": {
+        "cancelHours": {
+          "label": "Absagefrist für Schichten (Stunden)",
+          "help": "Beispiel: 48 → Schicht Samstag 16:00, Absage bis Donnerstag 16:00. Gilt auch, wenn die Schicht verschoben wird."
+        },
+        "leadHours": {
+          "label": "Änderungsschluss Event-Catering (Stunden)",
+          "help": "Beispiel: 72 → Event Samstag 16:00, Änderungen im Portal bis Mittwoch 16:00. Leer lassen für keinen Änderungsschluss."
+        },
+        "leadHoursLunch": {
+          "label": "Änderungsschluss Business-Lunch (Stunden)",
+          "help": "Beispiel: 24 → Lunch Freitag 12:00, Änderungen bis Donnerstag 12:00. Leer lassen für keinen Änderungsschluss."
+        },
+        "validityDays": {
+          "label": "Angebotsgültigkeit (Tage)",
+          "help": "Beispiel: 14 → ein Angebot vom 1. November gilt bis zum 15. November."
+        },
+        "markupPercent": {
+          "label": "Standard-Aufschlag (Prozent)",
+          "help": "Gilt bei Kalkulation nach Wareneinsatz. Beispiel: 200 % auf 5,00 € Wareneinsatz ergeben 15,00 €."
+        },
+        "bufferPercent": {
+          "label": "Puffer für den Einkauf (Prozent)",
+          "help": "Nur für die Einkaufsliste. Beispiel: 5 % → aus 10 kg werden 10,5 kg."
+        }
+      },
+      "pricingMode": "Kalkulation von Angeboten",
+      "rounding": "Preisraster (immer aufrunden)",
+      "roundingHint": "Empfohlen",
+      "errors": {
+        "cancelHours": "Bitte gib ganze Stunden von 0 bis 168 ein.",
+        "leadHours": "Bitte gib ganze Stunden von 0 bis 720 ein oder lass das Feld leer.",
+        "validityDays": "Bitte gib ganze Tage von 1 bis 365 ein.",
+        "markup": "Bitte gib einen Aufschlag von 0 bis 1000 Prozent ein.",
+        "buffer": "Bitte gib einen Puffer von 0 bis 50 Prozent ein.",
+        "rounding": "Bitte wähle ein Preisraster."
+      }
+    },
+    "quoteTexts": {
+      "title": "Angebotstexte",
+      "body": "Diese Texte stehen in jedem neuen Angebot. Du kannst sie je Angebot anpassen.",
+      "quote_intro_text": "Einleitung",
+      "quote_intro_text_hint": "Erste Zeilen unter der Anrede, z. B. Dank für die Anfrage.",
+      "quote_terms_text": "Bedingungen",
+      "quote_terms_text_hint": "Zahlungsziel, Stornoregeln, Lieferbedingungen.",
+      "quote_closing_text": "Schluss",
+      "quote_closing_text_hint": "Grußformel und Hinweis auf Rückfragen."
+    }
   }
 }

@@ -94,17 +94,23 @@ Hinweise:
 - **App:** SC-06 Einladung annehmen (mit und ohne Sitzung, Token überlebt Registrierung und Bestätigungs-Mail), SC-54 Team (Mitglieder, Einladungen), SC-55 Einladen (Link teilen), SC-56 Mitglied (Rolle, Qualifikationen, Entfernen), SC-68 Profil (Name, Telefon, Firma verlassen, Konto löschen), Firmendaten (Name, Kontakt, Adresse, Steuernummern) aus „Mehr“.
 - **Geprüft:** Typecheck, Lint, 33 Jest-Tests; im Browser gegen eine simulierte Datenbank: Team-Liste, Link erzeugen und erneuern, Einladung annehmen mit und ohne Sitzung. Gegen das echte Supabase erst nach dem SQL-Update.
 
+### Etappe 3 (gebaut): Einstellungen
+
+- **App:** SC-57 Einstellungen (Hub) mit SC-58 Firma (Stammdaten, Fußzeile, Datenschutz- und Impressum-Link), SC-59 Branding (Akzentfarbe), SC-60 Steuersätze (anlegen, ändern, deaktivieren, Standard je Positionstyp, „Von mir geprüft“), SC-61 Qualifikationen (anlegen, umbenennen, archivieren, Anzahl Mitglieder), SC-62 Fristen & Standardwerte (Absagefrist, Änderungsschluss Event-Catering und Business-Lunch, Angebotsgültigkeit, Aufschlag, Einkaufspuffer, Kalkulationsart, Preisraster, je Feld Beispiel) und Angebotstexte. Erreichbar über „Mehr“ → „Einstellungen“.
+- **Datenbank:** keine neue Migration; die Rechte und Policies aus M1 genügen. Es gibt kein neues SQL für den SQL Editor.
+- **Geprüft:** Typecheck, Lint, 40 Jest-Tests (u. a. Grenzen der Fristen-Eingaben, Prozent-Umrechnung); im Browser gegen eine simulierte Datenbank: Hub, Fristen speichern mit Fehlermeldung bei ungültigem Wert, Steuersatz anlegen, Qualifikationen, Branding, Firma, Angebotstexte.
+
 ### Noch offen aus M1
 
-Logo-Upload, Einstellungen SC-58 bis SC-62 (Preise, Steuersätze, Fristen), Mail-Versand der Einladung (braucht eigenen Mail-Dienst, E-3), Apple- und Google-Anmeldung.
+Logo-Upload (braucht Bildauswahl als natives Modul, also einen neuen Build), Mail-Versand der Einladung (eigener Mail-Dienst, E-3), Apple- und Google-Anmeldung, Fragenkatalog, Abo und Datenschutz & Export (kommen mit späteren Meilensteinen). „Prozentsatz bei Verwendung gesperrt“ (SC-60) greift erst, wenn Angebote Steuersätze nutzen (M4).
 
 ### Abweichungen M1
 
 | # | Thema | Plan | Umsetzung | Grund |
 |---|---|---|---|---|
 | A-12 | SC-08 Land | Auswahl DE, AT, CH | **nur Deutschland wählbar**, AT und CH „bald verfügbar“ | `create_company()` lehnt andere Länder ab, bis Steuersätze und Rechtstexte dafür stehen |
-| A-13 | SC-09 Logo | Logo-Upload im Branding-Schritt | **nur Akzentfarbe**, Logo mit den Einstellungen in Etappe 2 | Der Bucket `logos` und seine Regeln gehören zu Etappe 2 |
-| A-14 | SC-10 Änderungsschluss | Event-Catering 72 h, Business-Lunch 24 h | **nur Event-Catering einstellbar** (48/72/120 h), Business-Lunch bleibt bei 24 h | Business-Lunch gibt es erst ab M3; die Einstellung folgt mit SC-59 |
+| A-13 | SC-09 und SC-59 Logo | Logo-Upload im Branding | **nur Akzentfarbe** | Das Logo braucht Bildauswahl (natives Modul, neuer Build) und den Bucket `logos`; es folgt mit dem nächsten Build |
+| A-14 | SC-10 Änderungsschluss | Event-Catering 72 h, Business-Lunch 24 h | **im Onboarding nur Event-Catering** (48/72/120 h); Business-Lunch bleibt bei 24 h und ist in SC-62 einstellbar | Business-Lunch gibt es erst ab M3 |
 | A-15 | AVV | Zustimmung mit Link auf das Dokument | **Checkbox ohne Link** | Der Vertragstext liegt noch nicht vor (juristische Prüfung offen); bis dahin ist die Zustimmung nur formal |
 | A-16 | Annehmen und Konto löschen | Edge Functions `accept-invitation` und `delete-account` (03 §4.8) | **RPCs `accept_invitation` und `delete_my_account`** | Beide brauchen nur Datenbankzugriff; so entfällt das Deployment von Functions, das ohne Terminal schwierig ist. Das Apple-Token beim Löschen wird mit der Apple-Anmeldung nachgerüstet |
 | A-17 | Einladung per E-Mail | Mail an die eingeladene Person (US-05.1) | **nur „Link teilen“** | Der Standard-Mailversand von Supabase erreicht nur Teammitglieder des Projekts. Der Link geht per Nachricht raus; der Mail-Versand folgt mit dem eigenen SMTP-Dienst (E-3) |

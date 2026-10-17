@@ -70,7 +70,7 @@ export function TextField({
             setFocused(false);
             onBlur?.(e);
           }}
-          style={styles.input}
+          style={[styles.input, rest.multiline && styles.multiline]}
         />
         {revealable ? (
           <Pressable
@@ -120,5 +120,6 @@ const styles = StyleSheet.create({
     // Der Rahmen des Feldes zeigt den Fokus; kein zweiter Browser-Rahmen im Web.
     outlineWidth: 0,
   },
+  multiline: { minHeight: 120, paddingVertical: tokens.space[3], textAlignVertical: 'top' },
   reveal: { minHeight: 44, justifyContent: 'center', paddingLeft: tokens.space[2] },
 });

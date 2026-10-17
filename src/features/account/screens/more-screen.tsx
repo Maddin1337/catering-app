@@ -67,7 +67,7 @@ export function MoreScreen() {
           <ActionCard
             title={t('more.settings')}
             body={t('more.settingsBody')}
-            onPress={() => router.push('/settings/company')}
+            onPress={() => router.push('/settings')}
           />
         ) : null}
         <ActionCard

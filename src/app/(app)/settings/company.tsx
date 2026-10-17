@@ -1,3 +1,3 @@
-import { CompanySettingsScreen } from '@/features/account/screens/company-settings-screen';
+import { CompanyScreen } from '@/features/settings/screens/company-screen';
 
-export default CompanySettingsScreen;
+export default CompanyScreen;

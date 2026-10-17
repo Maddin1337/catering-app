@@ -29,6 +29,7 @@ describe('toAppError', () => {
     );
     expect(toAppError({ code: 'P0001', hint: 'member_limit' }).code).toBe('member_limit');
     expect(toAppError({ code: '42501' }).code).toBe('forbidden');
+    expect(toAppError({ code: '23505' }).code).toBe('duplicate');
   });
 
   it('reicht AppError unverändert durch und fällt sonst auf „unknown“ zurück', () => {
