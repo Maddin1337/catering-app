@@ -6,5 +6,5 @@ module.exports = {
     '^@shared/(.*)$': '<rootDir>/supabase/functions/_shared/domain/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  testPathIgnorePatterns: ['/node_modules/', '/supabase/', '/e2e/', '/dist/'],
+  testPathIgnorePatterns: ['/node_modules/', '/supabase/(?!functions/_shared/)', '/e2e/', '/dist/'],
 };

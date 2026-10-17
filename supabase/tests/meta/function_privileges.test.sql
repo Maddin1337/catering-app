@@ -42,6 +42,9 @@ select is(
     'public.remove_member',
     'public.resend_invitation',
     'public.revoke_invitation',
+    'public.save_dish',
+    'public.save_ingredient',
+    'public.save_menu_package',
     'public.set_member_qualifications',
     'public.set_member_role'
   ],
