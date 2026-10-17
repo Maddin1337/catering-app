@@ -27,11 +27,11 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 
 | # | Thema | Stand | Auswirkung auf Screens | Umgang in diesem Dokument |
 |---|---|---|---|---|
-| 0.1 | Angebots-Chat (Fragenkatalog) | in 00 §3 verbindlich; in 01 und 02 noch ohne Story, Regeln und Tabellen; das Glossar enthält keine Tabelle für Fragen/Antworten | SC-17, SC-64, SC-65, Einstiege in SC-12/SC-15/SC-36 | Screens hier vollständig definiert; Stories und Datenmodell (Fragen, Antworttypen, Feldzuordnung, Bedingungen, Antworten je Auftrag) müssen nachgezogen werden |
-| 0.2 | Kundenänderungen im Portal | 01 §4.2.3: Gästezahl (nach Bestätigung auch Menüwahl) als Änderungswunsch an admin · 02 §4.2: Änderung direkt wirksam mit neuer Revision | SC-74, SC-75, SC-28, Banner in SC-18 | **[Vorschlag]** Screens folgen 01, weil dort Akzeptanzkriterien (US-33 – US-36) hängen. Bei Wechsel auf 02 ändern sich nur Bestätigungstext (SC-75), Banner und die Admin-Aktion „Übernehmen“ |
-| 0.3 | Erlaubte Statusübergänge | 01 §4.2.1 und 02 §1.1 weichen ab (z. B. `inquiry` → `optioned`/`confirmed`, `declined` → `quoted`, Anfrage löschen) | Statusaktionen in SC-18, SC-31 | **[Vorschlag]** Die Oberfläche bildet ihre Statusaktionen aus einer zentralen Übergangstabelle (dieselbe, die der Server prüft); keine fest verdrahteten Buttons. Primäraktion je Status: 2.10 |
-| 0.4 | „Durchgeführt“ | 01 US-11.5: Erinnerung 09:00 mit Sammelaktion · 02 §1.1: automatisch 04:00 | Karte „Als durchgeführt markieren“ in SC-12 | Karte entfällt, falls die Automatik aus 02 gilt |
-| 0.5 | Datenbasis der Küchenlisten | 01 §4.2.3: verbindliche Revision · 02 §8: Live-Stand | Hinweisbanner in SC-25, SC-44, SC-46 | Banner-Text je Variante: „Änderung offen: Gästezahl 80 → 95“ bzw. „enthält nicht versendete Änderungen“ |
+| 0.1 | Angebots-Chat (Fragenkatalog) | in 00 §3 verbindlich; Feature F-32 und Stories US-63 bis US-66 in 01; Ablauf und Feldzuordnung in 02 §11; Tabelle `intake_questions`, Felder `events.occasion` und `events.intake_answers`, RPC `create_event_from_intake` in 03 | SC-17, SC-64, SC-65, Einstiege in SC-12/SC-15/SC-36/SC-18 | Screens hier; Regeln und Daten in 01–03 nachgezogen |
+| 0.2 | Kundenänderungen im Portal | entschieden (06 E-10, **[Vorschlag]**): Regel aus 01 §4.2.3 – Menüwahl vor der Annahme direkt, Gästezahl immer und Menüwahl nach Bestätigung als Änderungswunsch, Sonderessen direkt; 02 §4 folgt | SC-74, SC-75, SC-28, Banner in SC-18 | Screens folgen dieser Regel |
+| 0.3 | Erlaubte Statusübergänge | entschieden (06 E-8, **[Vorschlag]**): eine Übergangstabelle in 02 §1.1, 01 §4.2.1 verweist darauf | Statusaktionen in SC-18, SC-31 | Die Oberfläche bildet ihre Statusaktionen aus dieser Übergangstabelle (dieselbe, die der Server prüft); keine fest verdrahteten Buttons. Primäraktion je Status: 2.10 |
+| 0.4 | „Durchgeführt“ | entschieden: Erinnerung am Folgetag 09:00 mit Sammelaktion (01 US-11.5), kein automatischer Wechsel | Karte „Als durchgeführt markieren“ in SC-12 | Karte bleibt |
+| 0.5 | Datenbasis der Küchenlisten | entschieden (06 E-16, **[Vorschlag]**): verbindliche Revision (01 §4.2.3, `quotes.binding_snapshot`) | Hinweisbanner in SC-13, SC-25, SC-44, SC-46 | Banner „Änderung offen: Gästezahl 80 → 95“; nie die Entwurfszahl als Menge |
 | 0.6 | „Revision“ vs. „Version“ | 01 nutzt „Revision“, 02 im Portal „Version“ | Portal-Texte | **[Vorschlag]** Team-App „Revision“, Portal „Version“ (laienverständlich, Persona 2.4 in 01) |
 
 ---
@@ -41,7 +41,7 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 ### 1.1 Grundsätze
 
 1. **Drei Bereiche, drei Layouts:** `(auth)` für Anmeldung, Registrierung, Einladung und Onboarding; `(app)` für die Team-App mit rollenabhängigen Tabs; `portal/[token]` als öffentliches Kundenportal (Web) ohne App-Shell.
-2. **Auth-Gate im Root-Layout:** keine Sitzung → `(auth)/login`; Sitzung ohne Mitgliedschaft → `(auth)/welcome`; admin mit nicht abgeschlossenem Onboarding → `(auth)/onboarding/*` (Flag am Firmendatensatz **[Vorschlag]**); Sitzung mit Mitgliedschaft → `(app)`. `portal/[token]` und `(auth)/invite/[token]` sind vom Gate ausgenommen.
+2. **Auth-Gate im Root-Layout:** keine Sitzung → `(auth)/login`; Sitzung ohne Mitgliedschaft → `(auth)/welcome`; admin mit nicht abgeschlossenem Onboarding → `(auth)/onboarding/*` (`companies.onboarding_completed_at` ist leer, gelesen über `company_profile`); Sitzung mit Mitgliedschaft → `(app)`. `portal/[token]` und `(auth)/invite/[token]` sind vom Gate ausgenommen.
 3. **Rollenabhängige Tabs:** Ein Tabs-Layout in `(app)/(tabs)`. Alle Tab-Routen existieren für alle Rollen; sichtbar sind nur die der Rolle (`href: null` für die übrigen). Ausgeblendete Tab-Routen bleiben für berechtigte Rollen über „Mehr“ bzw. die Sidebar erreichbar; die eigene Tab-Leisten-Komponente markiert dann „Mehr“ als aktiv **[Vorschlag]**.
 4. **Route-Guard:** Ruft eine Rolle eine Route ohne Recht auf (Deep Link, alter Push), leitet die App auf den ersten Tab der Rolle um und zeigt „Kein Zugriff auf diesen Bereich“. Rechte setzt immer der Server durch (01 §3.3); die Oberfläche blendet nur aus.
 5. **Details außerhalb der Tabs:** Detail- und Bearbeitungsrouten liegen als Stack in `(app)`, nicht in `(tabs)`. Damit hat jedes Objekt genau eine URL (Push, E-Mail, Web-Lesezeichen). Auf Mobil verdecken Detailseiten die Tab-Leiste (mehr Platz für Aktionsleisten, Zurück-Geste) **[Vorschlag]**.
@@ -282,25 +282,25 @@ Umsetzung **[Vorschlag]**: Headless-Tabs aus `expo-router/ui` (TabList, TabTrigg
 | ID | Name | Route | Rolle(n) | Plattform | Zweck | Kernelemente | Haupt-Aktionen | US / Thema |
 |---|---|---|---|---|---|---|---|---|
 | SC-12 | Start | `(tabs)/start` | admin | M+W | Was ist heute zu tun? | Setup-Checkliste (bis erledigt); Karte „Heute und morgen“; Karte „Zu erledigen“ mit Zählern: Anfragen ohne Angebot > 24 h, Optionen mit Ablauf ≤ 3 Tage, offene Änderungswünsche, abgelaufene Angebote, unbesetzte Slots 7 Tage, offene Bewerbungen, „als durchgeführt markieren“ (0.4); Testphasen-Hinweis; FAB „+“; Web: Karten zweispaltig | Neue Anfrage · Eintrag öffnen · Sammelaktion „Durchgeführt“ | US-17, US-11.5, US-55.2 · Startübersicht |
-| SC-13 | Heute | `(tabs)/today` | kitchen | M+W (Tablet) | Tagesüberblick Küche | Umschalter Heute/Morgen; Auftragskarten: Titel, Gäste, Abfahrt und Ausgabe aus dem Zeitplan, Anzahl Sonderessen, Hinweise Küche; Badges „vorläufig“, „Änderung offen“, „kurzfristig geändert“ (oben, bis geöffnet); „Stand: …“; keine Preise | Auftrag öffnen (SC-25) · Produktion für diesen Tag | US-37 · Küche |
+| SC-13 | Heute | `(tabs)/today` | kitchen | M (auch Tablet) + W; **offline nur in der nativen App**, im Web nur online | Tagesüberblick Küche | Umschalter Heute/Morgen; Auftragskarten: Titel, Gäste (verbindlicher Stand), Abfahrt und Ausgabe aus dem Zeitplan, Anzahl Sonderessen, Hinweise Küche; Badges „vorläufig“, „Änderung offen“, „kurzfristig geändert“ (oben, bis geöffnet); „Stand: …“; keine Preise | Auftrag öffnen (SC-25) · Produktion für diesen Tag | US-37 · Küche |
 | SC-14 | Kalender | `(tabs)/calendar` | admin, kitchen, staff | M+W | Termine überblicken | Ansichten Monat · Woche (ab 768 px **[Vorschlag]**; 01: nur Web) · Liste; Statusdarstellung nach 4.3; admin: Filter Status und Art; staff: Schalter „offene passende Slots“; Fortsetzung über Mitternacht; „Stand: …“ offline | Eintrag öffnen (admin, kitchen → SC-18; staff → SC-51/SC-49) · admin: Tag lange drücken → Neue Anfrage | US-15 · Kalender |
 | SC-15 | Aufträge | `(tabs)/events` | admin | M+W | Aufträge finden und filtern | Suche (Titel, Kunde, Ort, Angebotsnummer); Filterchips Status (Standard „Anstehend“), Zeitraum, Art, Kunde; Trefferzahl; Zeile: Datum, Titel, Kunde, Gäste, Statusbadge, Hinweis-Icons (Option läuft ab, Änderungswunsch, ungesendete Änderungen); Web: sortierbare Tabelle | Neue Anfrage (Chat/Formular) · Öffnen · Kopieren (Kontextmenü) | US-16, US-13 · Aufträge |
 | SC-16 | Schnellerfassung Anfrage | `events/new` (Modal) | admin | M+W | Anfrage in < 2 min ohne Chat | Kunde (Suche ab 2 Zeichen oder neu inline), Pflicht: Art, Datum, Beginn; Ende (+1 Tag), Titel (Hinweis „Eingeplantes Personal sieht den Titel“), Ort, Gästezahl, Ansprechpartner vor Ort, Hinweise Küche und Personal, interne Notiz; Warnungen „Am {Datum} bereits {n} Aufträge“, Datum in der Vergangenheit | Speichern · Speichern und Angebot erstellen | US-10, US-09.2 · Aufträge |
-| SC-17 | Angebots-Chat | `events/intake` (Vollbild, optional `?eventId=`) | admin | M+W | Anfrage geführt erfassen, z. B. am Telefon | Chatverlauf (Frage links, Antwort rechts, antippbar zum Ändern), Antwortfeld je Typ in der Daumenzone, Fortschritt „Frage 5 von ca. 11“, „Überspringen“ bei optionalen Fragen, Live-Zusammenfassung (Web rechte Spalte, mobil einblendbar), Abschlusskarte mit allen Feldern; Details 2.11 | Antworten · Antwort ändern · Auftrag anlegen und Angebot öffnen · Verwerfen | 00 §3 Angebots-Chat (noch keine US), US-10, US-23 · Angebot |
+| SC-17 | Angebots-Chat | `events/intake` (Vollbild, optional `?eventId=`) | admin | M+W | Anfrage geführt erfassen, z. B. am Telefon | Chatverlauf (Frage links, Antwort rechts, antippbar zum Ändern), Antwortfeld je Typ in der Daumenzone, Fortschritt „Frage 5 von ca. 11“, „Überspringen“ nur bei optionalen Fragen, Live-Zusammenfassung (Web rechte Spalte, mobil einblendbar), Abschlusskarte mit allen Feldern und Titelvorschlag; Details 2.11 | Antworten · Antwort ändern · Auftrag anlegen und Angebot öffnen · Verwerfen | F-32: US-63, US-64; US-10, US-23 · Angebot |
 | SC-18 | Auftragsdetail (Rahmen) | `events/[id]/_layout` | admin; kitchen (ab `optioned`, Tabs Übersicht, Personal, Küche, Zeitplan, lesend) | M+W | ein Auftrag, alle Aspekte | Kopf: Titel, Datum/Zeit, Kunde (nur admin), Gäste, Statusbadge, Primäraktion je Status (2.10), Überlauf-Menü; Banner: Änderungswunsch, Option abgelaufen, ungesendete Änderungen; Top-Tabs Übersicht · Angebot · Personal · Küche · Zeitplan · Portal (rollengefiltert); Web: rechte Infospalte | Statuswechsel (SC-31) · Kopieren · Bearbeiten | US-11, US-12, US-13, US-36.1 · Aufträge |
 | SC-19 | Tab Übersicht | `events/[id]` | admin, kitchen | M+W | Stammdaten | Art, Anlass, Ort (öffnet Karten-App), Ansprechpartner vor Ort (Anruf), Hinweise Küche und Personal, interne Notiz (admin), Notizen aus dem Angebots-Chat (admin), Statushistorie aufklappbar (admin) | Bearbeiten (SC-29) | US-10, US-11.7 · Aufträge |
 | SC-20 | Tab Angebot | `events/[id]/quote` | admin | M+W | Angebotsstand und Versand | Angebotsnummer und Revision; Zustand (Entwurf · versendet am · angesehen am · angenommen am/von); Kurzsummen Netto, Brutto, Rohertrag; Positionen lesend; Revisionen mit PDF; Annahmeprotokoll | Angebot erstellen/bearbeiten (SC-32) · Senden/Erneut senden (SC-34) · Link kopieren · PDF · Gültigkeit verlängern · Änderungen verwerfen | US-23.1, US-26.4, US-27, US-28, US-30.6 · Angebot |
-| SC-21 | Tab Personal | `events/[id]/staffing` | admin (bearbeiten), kitchen (lesen) | M+W | Slots des Auftrags | Slot-Zeilen: Qualifikation, Zeit, Besetzung „2/3“ mit Balken, Zustand (Entwurf · offen · voll · abgesagt), „vorläufig“, Anzahl offener Bewerbungen; Hinweis Stufe „Start“ (nur direkt einplanen) | Slot anlegen (SC-24) · Alle veröffentlichen · Duplizieren · Slot öffnen (SC-22) | US-42, US-50.3 · Schichtbörse |
+| SC-21 | Tab Personal | `events/[id]/staffing` | admin (bearbeiten), kitchen (lesen über die View `event_staffing`: Slots, Zeiten, Besetzung, Vornamen der Eingeplanten, keine Bewerbungen) | M+W | Slots des Auftrags | Slot-Zeilen: Qualifikation, Zeit, Besetzung „2/3“ mit Balken, Zustand (Entwurf · offen · voll · abgesagt), „vorläufig“, Anzahl offener Bewerbungen (nur admin); Hinweis Stufe „Start“ (nur direkt einplanen); in `inquiry`/`quoted` Hinweis „Veröffentlichen ab Option“ | Slot anlegen (SC-24) · Alle veröffentlichen · Duplizieren · Slot öffnen (SC-22) | US-42, US-50.3 · Schichtbörse |
 | SC-22 | Slot-Detail (Admin) | `events/[id]/slots/[slotId]` | admin | M+W | Bewerbungen entscheiden | Slot-Kopf (Zeit, Qualifikation, Treffpunkt, Besetzung); Abschnitte Eingeplant · Bewerbungen (inkl. Warteliste) · Verlauf (zurückgezogen, abgesagt, „nach Frist“, ausgeplant); je Person: Name, Qualifikationen, Kommentar, Bewerbungszeitpunkt, Einsätze der letzten 90 Tage, Überschneidungswarnung | Zusagen · Absagen · Übrige absagen · Einplanen (SC-23) · Ausplanen · Absage eintragen · Slot bearbeiten/schließen | US-45, US-46, US-47.4 · Schichtbörse |
 | SC-23 | Einplanen | Sheet in SC-21/SC-22 | admin | M+W | direkt einplanen | Mitgliederliste, qualifizierte zuerst, Überschneidungshinweis, Mehrfachauswahl bis zur Zahl freier Plätze, Bestätigung „ohne passende Qualifikation einplanen“ | Einplanen | US-46 · Schichtbörse |
-| SC-24 | Slot anlegen/bearbeiten | Sheet in SC-21/SC-22 | admin | M+W | Slot definieren | Pflicht: Qualifikation, Beginn, Ende (vorbelegt aus Zeitplan), Anzahl; optional Bezeichnung, Treffpunkt-Hinweis, Dresscode; Fehler „Erst 1 Person ausplanen“; Hinweis bei Zeitänderung „Eingeplante erhalten 24 h Sonderabsagerecht“ | Speichern · Speichern und veröffentlichen | US-42 · Schichtbörse |
-| SC-25 | Tab Küche | `events/[id]/kitchen` | admin, kitchen | M+W | Produktion und Sonderessen eines Auftrags | Produktionsliste des Auftrags (Gericht, Portionen, Allergen-Codes), Allergikerliste mit Ersatz und Konflikten (rot), Hinweise Küche, Banner nach 0.5; keine Preise | Sonderessen erfassen (SC-27) · Einkaufsliste für diesen Auftrag | US-37.2, US-40 · Küche |
+| SC-24 | Slot anlegen/bearbeiten | Sheet in SC-21/SC-22 | admin | M+W | Slot definieren | Pflicht: Qualifikation, Beginn, Ende (vorbelegt aus Zeitplan), Anzahl; optional Bezeichnung, Treffpunkt-Hinweis, Dresscode; Fehler „Erst 1 Person ausplanen“; Hinweis bei wesentlicher Zeitänderung (mehr als 60 min oder anderer Tag) „Eingeplante erhalten 24 h Sonderabsagerecht, längstens bis Schichtbeginn“ | Speichern · Speichern und veröffentlichen (ab `optioned`) | US-42 · Schichtbörse |
+| SC-25 | Tab Küche | `events/[id]/kitchen` | admin, kitchen | M+W (offline nur nativ) | Produktion und Sonderessen eines Auftrags | Produktionsliste des Auftrags aus dem verbindlichen Stand (Gericht, Portionen, Allergen-Codes), Allergikerliste mit Ersatz und Konflikten (rot), Hinweise Küche, Banner nach 0.5; keine Preise | Sonderessen erfassen (SC-27) · Einkaufsliste für diesen Auftrag | US-37.2, US-40 · Küche |
 | SC-26 | Tab Zeitplan | `events/[id]/schedule` | admin (bearbeiten), kitchen (lesen) | M+W | Ablauf mit Uhrzeiten | Zeitleiste: Typ-Icon (Abfahrt, Aufbau, Ausgabe, Abbau, Sonstiges), Beginn–Ende, Notiz; leer: „Standardablauf einfügen“ | Eintrag hinzufügen/bearbeiten · Standardablauf | US-14 · Aufträge |
 | SC-27 | Sonderessen-Eintrag | Sheet in SC-25/SC-45 | admin, kitchen | M+W | Sonderessen erfassen | Pflicht: Anzahl; Diätform, 14 Allergene (Code + Klartext, Mehrfachauswahl), Gast/Tisch (optional, Datenschutzhinweis), Notiz, Ersatzpaare „statt X → Y“, Quelle (Kunde/intern); Prüfung Summe ≤ Gästezahl | Speichern · Löschen | US-40, US-35.3 · Allergene |
 | SC-28 | Tab Portal | `events/[id]/portal` | admin | M+W | Kundensicht steuern | Link-Status (aktiv bis, abgelaufen, widerrufen), zuletzt angesehen; Änderungswunsch alt → neu mit Kommentar; Änderungsschluss des Auftrags; Schalter „Portal-Änderungen sperren“; Protokoll (Annahme, Änderungen) | Übernehmen · Ablehnen mit Begründung · Link kopieren · Als Kunde ansehen · Link neu erzeugen | US-30, US-36, 02 §4.3 · Kundenportal |
-| SC-29 | Auftrag bearbeiten | `events/[id]/edit` (Modal) | admin | M+W | Stammdaten ändern | Felder wie SC-16; bei Zeitänderung mit Slots Dialog „Schichten verschieben / einzeln anpassen / nicht ändern“ | Speichern | US-10, 02 §5.7 · Aufträge |
-| SC-30 | Auftrag kopieren | `events/[id]/copy` (Modal) | admin | M+W | Wiederholung, v. a. Business-Lunch | Neues Datum (Kurzwahl „gleicher Wochentag nächste Woche“), mehrere Termine (Should), Optionen Slots (an) und Sonderessen (aus), Hinweis „{n} Katalogpreise haben sich geändert“ | Kopieren · Kopieren und senden | US-13 · Aufträge |
-| SC-31 | Statuswechsel | Sheet in SC-18 | admin | M+W | Übergang mit Pflichtangaben | je Übergang: Optionieren (optioniert bis), Annahme erfassen (Bestätigungsweg, Bestätigungs-E-Mail an/aus), Stornieren (Grund, Liste der Betroffenen, E-Mail an Kunde an/aus), Ablehnung erfassen bzw. „Anfrage kommt nicht zustande“ (Grund), Durchgeführt, Abgerechnet (externe Rechnungsnummer) | Bestätigen | US-11, US-12 · Status |
+| SC-29 | Auftrag bearbeiten | `events/[id]/edit` (Modal) | admin | M+W | Stammdaten ändern | Felder wie SC-16 plus Anlass und **„Änderungen bis“** (Änderungsschluss des Portals, vorbelegt aus der Firmeneinstellung der Auftragsart, leer = kein Änderungsschluss; 01 US-10.8); bei Zeitänderung mit Slots Dialog „Schichten verschieben / einzeln anpassen / nicht ändern“ | Speichern | US-10, 02 §4.3, §5.7 · Aufträge |
+| SC-30 | Auftrag kopieren | `events/[id]/copy` (Modal) | admin | M+W | Wiederholung, v. a. Business-Lunch | Neues Datum (Kurzwahl „gleicher Wochentag nächste Woche“), mehrere Termine (bis 10, Should), Startstatus „Anfrage“ (Standard) oder „Bestätigt“ (mit Bestätigungsweg), Optionen Slots (an) und Sonderessen (aus), Hinweis „{n} Katalogpreise haben sich geändert“ | Kopieren · Kopieren und senden | US-13 · Aufträge |
+| SC-31 | Statuswechsel | Sheet in SC-18 | admin | M+W | Übergang mit Pflichtangaben | je Übergang nach 02 §1.1: Optionieren bzw. Termin vormerken (optioniert bis, Pflicht), Annahme erfassen bzw. Direkt bestätigen (Bestätigungsweg, Bestätigungs-E-Mail an/aus), Stornieren (Grund, Liste der Betroffenen, E-Mail an Kunde an/aus, Standard an), Ablehnung erfassen bzw. „Anfrage kommt nicht zustande“ (Grund), Durchgeführt, Abgerechnet (externe Rechnungsnummer), Korrektur | Bestätigen | US-11, US-12 · Status |
 
 ### 2.3 Angebot
 
@@ -318,7 +318,7 @@ Umsetzung **[Vorschlag]**: Headless-Tabs aus `expo-router/ui` (TabList, TabTrigg
 | SC-36 | Kundendetail | `customers/[id]` | admin | M+W | Kunde mit Historie | Kontakt (Anruf, E-Mail), Rechnungsanschrift, Notiz, Aufträge mit Datum und Status | Neuer Auftrag (Chat, Kunde vorbelegt) · Bearbeiten · Kundendaten exportieren (Should) · Anonymisieren/Löschen | US-09.4, US-61 · Kunden, Datenschutz |
 | SC-37 | Kunde anlegen/bearbeiten | `customers/new`, `customers/[id]/edit` (Modal) | admin | M+W | Stammdaten | Typ, Pflicht: Name bzw. Firmenname; Ansprechpartner, E-Mail, Telefon, Rechnungsanschrift, Notiz; Hinweis „Möglicher Duplikat: {Kunde}“ mit Link | Speichern | US-09.1, US-09.5 · Kunden |
 | SC-38 | Gerichte | `(tabs)/dishes` | kitchen (Tab), admin (Mehr/Sidebar) | M+W | Gerichte pflegen und finden | mobil oben Segment Gerichte / Pakete / Zutaten (wechselt zu SC-40, SC-42); Suche, Filter Kategorie, „ohne {Allergen}“, Diätform, „ungeprüft“, Archiv; Zeile: Name, Kategorie, Allergen-Codes, Diät-Kennzeichen, Prüfstatus, Preis (nur admin) | Gericht anlegen · Öffnen | US-21, US-22 · Gerichte |
-| SC-39 | Gericht anlegen/bearbeiten | `dishes/new`, `dishes/[id]` | admin, kitchen | M+W | Gericht mit Allergenen und Zutaten | Pflicht: Name; Beschreibung, Kategorie, Portionsbezeichnung; Preis netto und Steuersatz (nur admin); Allergen-Raster 14 × Ja/Nein mit Status „ungeprüft“ bzw. „geprüft von … am …“; Diätformen („vegan“ setzt „vegetarisch“), Widerspruchswarnung; Zutaten mit Menge p. P. (neue Zutat inline), Wareneinsatz pro Portion live (nur admin, „unvollständig“); Hinweis „Betrifft {n} Aufträge“ | Speichern · Allergene geprüft · Archivieren · Löschen (ohne Verwendung) | US-18, US-19, US-21 · Gerichte, Allergene |
+| SC-39 | Gericht anlegen/bearbeiten | `dishes/new`, `dishes/[id]` | admin, kitchen | M+W | Gericht mit Allergenen und Zutaten | Pflicht: Name; Beschreibung, Kategorie, Portionsbezeichnung; Preis netto und Steuersatz (nur admin); Allergen-Raster 14 × Ja/Nein mit Status „ungeprüft“ bzw. „geprüft von … am …“; Diätformen („vegan“ setzt „vegetarisch“), Widerspruchswarnung; Zutaten mit Menge p. P. (neue Zutat inline) und Hinweis am Feld „Einkaufsmenge der Rohware vor Garverlust, z. B. 180 g rohe Rinderschulter“ (01 US-19.2); Wareneinsatz pro Portion live (nur admin, „unvollständig“); Hinweis „Betrifft {n} Aufträge“ | Speichern · Allergene geprüft · Archivieren · Löschen (ohne Verwendung) | US-18, US-19, US-21 · Gerichte, Allergene |
 | SC-40 | Pakete | `packages` | admin (bearbeiten), kitchen (lesen) | M+W | Menüpakete überblicken | Liste: Name, Preis p. P. (nur admin), Anzahl Gerichte, abgeleitete Allergene und Diätformen, „Allergene ungeprüft“; Archiv-Filter | Paket anlegen · Öffnen | US-20, US-21 · Pakete |
 | SC-41 | Paket anlegen/bearbeiten | `packages/new`, `packages/[id]` | admin (bearbeiten), kitchen (lesen, ohne Preis) | M+W | Paket zusammenstellen | Pflicht: Name, Preis netto p. P.; Beschreibung, Steuersatz, Gerichte sortierbar mit Portionsfaktor (Standard 1,0), abgeleitete Allergene und Diätformen, Wareneinsatz und Rohertrag p. P. (nur admin) | Gericht hinzufügen · Speichern · Archivieren | US-20 · Pakete |
 | SC-42 | Zutaten | `ingredients` | admin, kitchen | M+W | Zutatenstamm | Suche, Warengruppe, Archiv; Zeile: Name, Basiseinheit, verwendet in {n} Gerichten; nur admin: Einkaufspreis je kg/l/Stück und „Preis fehlt“ | Zutat anlegen (SC-43) · Archivieren | US-19 · Zutaten |
@@ -328,9 +328,9 @@ Umsetzung **[Vorschlag]**: Headless-Tabs aus `expo-router/ui` (TabList, TabTrigg
 
 | ID | Name | Route | Rolle(n) | Plattform | Zweck | Kernelemente | Haupt-Aktionen | US / Thema |
 |---|---|---|---|---|---|---|---|---|
-| SC-44 | Produktion | `(tabs)/production` | kitchen (Tab), admin (Mehr/Sidebar) | M+W | Was in welcher Menge, Tag oder Woche | Zeitraum-Chips Heute · Morgen · Diese Woche · Zeitraum; Schalter „inkl. Optionen (vorläufig)“; Auftrags-Chips zum Abwählen; Segment Gerichte / Sonderessen; Liste Tag → Kategorie → Gericht mit Portionen gesamt (aufklappbar je Auftrag), Allergen-Codes; Konflikte rot oben; Banner nach 0.5; „Stand: …“ | Aufträge an-/abwählen · Druckansicht (Web, Should) · Zur Einkaufsliste (gleiche Auswahl) | US-38 · Küche |
+| SC-44 | Produktion | `(tabs)/production` | kitchen (Tab), admin (Mehr/Sidebar) | M+W; **offline nur in der nativen App**, im Web nur online | Was in welcher Menge, Tag oder Woche (verbindlicher Stand, ohne Puffer) | Zeitraum-Chips Heute · Morgen · Diese Woche · Zeitraum; Schalter „inkl. Optionen (vorläufig)“; Auftrags-Chips zum Abwählen; Segment Gerichte / Sonderessen; Liste Tag → Kategorie → Gericht mit Portionen gesamt (aufklappbar je Auftrag), Allergen-Codes; Konflikte rot oben; Banner nach 0.5; „Stand: …“ | Aufträge an-/abwählen · Druckansicht (Web, Should) · Zur Einkaufsliste (gleiche Auswahl) | US-38 · Küche |
 | SC-45 | Sonderessen im Zeitraum | `(tabs)/production?view=dietary` | kitchen, admin | M+W | alle Sonderessen und Konflikte | gruppiert nach Auftrag: Anzahl, Diätform, Allergene im Klartext, Gast/Tisch, Ersatz, Konflikt, „kurzfristig“; Filter „nur Konflikte“ | Eintrag bearbeiten (SC-27) · Auftrag öffnen | US-40.2, US-38.4 · Allergene |
-| SC-46 | Einkauf | `(tabs)/shopping` | kitchen (Tab), admin (Mehr/Sidebar) | M+W | Einkaufsliste | Zeitraum und Auftragsauswahl wie SC-44 (geteilt); Puffer % änderbar; gruppiert nach Warengruppe; Mengen in g/kg, ml/l, Stück; lokales Abhaken mit Fortschritt „12 von 30“; Abschnitt „Nicht berücksichtigt“; geschätzte Kosten nur admin (Should) | Teilen (Text) · CSV (Web) · Drucken (Web) · Haken zurücksetzen | US-39 · Küche |
+| SC-46 | Einkauf | `(tabs)/shopping` | kitchen (Tab), admin (Mehr/Sidebar) | M+W; **offline nur in der nativen App**, im Web nur online | Einkaufsliste | Zeitraum und Auftragsauswahl wie SC-44 (geteilt); Puffer % änderbar (Standard 5 %, nur hier); gruppiert nach Warengruppe; Mengen in g/kg, ml/l (ab 1.000 mit einer Nachkommastelle, aufgerundet), Stück; lokales Abhaken mit Fortschritt „12 von 30“; Abschnitt „Nicht berücksichtigt“; geschätzte Kosten nur admin (Should) | Teilen (Text) · CSV (Web) · Drucken (Web) · Haken zurücksetzen | US-39 · Küche |
 
 ### 2.6 Personal & Schichtbörse
 
@@ -338,7 +338,7 @@ Umsetzung **[Vorschlag]**: Headless-Tabs aus `expo-router/ui` (TabList, TabTrigg
 |---|---|---|---|---|---|---|---|---|
 | SC-47 | Personal (Besetzung) | `(tabs)/staffing` | admin | M+W | Besetzung der nächsten 14 Tage | Auftragszeilen: Datum, Titel, Besetzung „4/6“ mit Farbe und Text (voll · teilweise · unbesetzt), offene Bewerbungen; Filter „nur unbesetzt“, „mit offenen Bewerbungen“ | Auftrag öffnen (SC-21) · Slot öffnen (SC-22) | US-50 · Schichtbörse |
 | SC-48 | Schichtbörse – offene Slots | `(tabs)/shift-board` | staff (Tab), kitchen (Mehr) | M+W (Mobil optimiert) | passende Slots finden | nach Datum gruppierte Karten: Datum, Zeit, Slot-Titel/Qualifikation, PLZ + Ort, Eventart, Gäste, freie Plätze, Dresscode, „vorläufig“, Überschneidung, eigener Status; Filter Zeitraum; keine Kundendaten, keine Preise | Slot öffnen (SC-49) · Bewerben | US-43 · Schichtbörse |
-| SC-49 | Slot-Detail vor Zusage | `shifts/[slotId]` | staff, kitchen | M+W | entscheiden und bewerben | Daten der Karte + Slot-Hinweis, „Termin noch nicht fest“, eigener Bewerbungsstatus (Beworben · Warteliste · Abgesagt durch Betrieb), Hinweis „Adresse und Ablauf siehst du nach der Zusage“ | Bewerben (Kommentar optional) · Zurückziehen · Erneut bewerben | US-43, US-44 · Schichtbörse |
+| SC-49 | Slot-Detail vor Zusage | `shifts/[slotId]` | staff, kitchen | M+W | entscheiden und bewerben | Daten der Karte (Slot-Titel, Datum, Zeit, PLZ/Ort, Qualifikation, Dresscode, Eventart, Gäste, freie Plätze), „Termin noch nicht fest“, eigener Bewerbungsstatus (Beworben · Warteliste · Abgesagt durch Betrieb), Hinweis „Adresse, Treffpunkt und Ablauf siehst du nach der Zusage“ | Bewerben (Kommentar optional) · Zurückziehen · Erneut bewerben | US-43, US-44 · Schichtbörse |
 | SC-50 | Meine Einsätze | `(tabs)/my-shifts` | staff (Tab), kitchen (Mehr) | M+W | eigene Planung: Einsätze und Bewerbungen | Segmente Kommend · Bewerbungen · Vergangen (90 Tage); Status im Klartext (4.3); Summe geplanter Stunden im Monat (Should); Kennzeichen „offline verfügbar“ | Einsatz öffnen (SC-51) · Bewerbung öffnen (SC-49) | US-49 · Einsätze |
 | SC-51 | Einsatzdetail | `shifts/[slotId]` (bei `accepted`/`assigned`) | staff, kitchen | M+W | alles für den Einsatz, auch offline | Titel, Datum, Slot-Zeit, Adresse (Karten-App), Treffpunkt, Dresscode, Ablaufplan, Ansprechpartner vor Ort (Anruf), Hinweise Personal, Allergikerliste, Kolleg:innen (Vorname, Qualifikation), „Absage möglich bis {Wochentag, Datum, Uhrzeit}“, geänderte Felder markiert | Route öffnen · Anrufen · Absagen (bis Frist; danach „Absage nur noch telefonisch“ mit Anruf-Button) | US-48, US-47 · Einsätze |
 
@@ -348,22 +348,22 @@ SC-49 und SC-51 teilen sich eine Route, damit Push-Links stabil bleiben: Der Scr
 
 | ID | Name | Route | Rolle(n) | Plattform | Zweck | Kernelemente | Haupt-Aktionen | US / Thema |
 |---|---|---|---|---|---|---|---|---|
-| SC-52 | Benachrichtigungen | `notifications` | alle | M+W | nachlesen | Liste 90 Tage, gruppiert Heute · Diese Woche · Älter, Ungelesen-Punkt, Kategorie-Icon; Banner bei verweigerter Push-Berechtigung mit Weg in die Systemeinstellungen | Eintrag öffnen · Alle als gelesen markieren | US-52, US-51.2, US-51.5 · Benachrichtigungen |
+| SC-52 | Benachrichtigungen | `notifications` | alle | M+W | nachlesen | Liste 90 Tage, gruppiert Heute · Diese Woche · Älter, Ungelesen-Punkt, Kategorie-Icon; Banner bei verweigerter Push-Berechtigung mit Weg in die Systemeinstellungen; Abo-Einträge (Kategorie `billing`) nur neutral („Abo-Status: Lesemodus“), ohne Link, Preis oder Aufforderung (02 §6.3) | Eintrag öffnen · Alle als gelesen markieren | US-52, US-51.2, US-51.5 · Benachrichtigungen |
 | SC-53 | Mehr | `(tabs)/more` | alle | M (Web: Sidebar) | weitere Bereiche | rollenabhängige Liste (1.3), Abo-Status neutral (admin, mobil ohne Link), Hilfe, Impressum und Datenschutz, App-Version | Bereich öffnen · Abmelden | US-55.2, US-62.2 |
-| SC-54 | Team | `team` | admin (bearbeiten), kitchen (lesen: Name, Rolle, Telefon) | M+W | Mitglieder und Einladungen | Segmente Mitglieder · Einladungen; Mitglied: Name, Rolle, Qualifikationen, Telefon, Beitritt; Einladung: Status (offen, angenommen, abgelaufen, widerrufen), gültig bis; Limit „8 von 15 Mitgliedern“ | Einladen (SC-55) · Erneut senden · Widerrufen · Link teilen | US-05, US-07 · Team |
-| SC-55 | Mitglied einladen | Sheet in SC-54 | admin | M+W | Einladung erstellen | Name, Pflicht: Rolle (`admin`, `kitchen`, `staff` mit Kurzerklärung); Qualifikationen; E-Mail (optional bei „Link teilen“); Fehler Limit, „bereits Mitglied“, E-Mail unbestätigt | Per E-Mail einladen · Link teilen | US-05 · Team |
+| SC-54 | Team | `team` | admin (bearbeiten), kitchen (lesen: Name, Rolle, Telefon über die View `team_directory`) | M+W | Mitglieder und Einladungen | Segmente Mitglieder · Einladungen; Mitglied: Name, Rolle, Qualifikationen, Telefon, Beitritt; Einladung: Status (offen, angenommen, abgelaufen, widerrufen), gültig bis; Limit „8 von 15 Mitgliedern“ | Einladen (SC-55) · Erneut senden · Widerrufen · Link teilen | US-05, US-07 · Team |
+| SC-55 | Mitglied einladen | Sheet in SC-54 | admin | M+W | Einladung erstellen | Name, Pflicht: Rolle (`admin`, `kitchen`, `staff` mit Kurzerklärung); Qualifikationen; E-Mail (optional bei „Link teilen“); Fehler „bereits Mitglied“, E-Mail unbestätigt, Limit – nativ neutral „Limit der aktuellen Stufe erreicht ({n} Mitglieder). Bitte ein Mitglied entfernen.“ ohne Kauf- oder Upgrade-Hinweis, im Web mit Link „Stufe wechseln“ (01 US-05.4) | Per E-Mail einladen · Link teilen | US-05 · Team |
 | SC-56 | Mitglied | `team/[memberId]` | admin | M+W | Rolle, Qualifikationen, Entfernen | Kontakt, Rolle ändern (letzter Admin gesperrt), Qualifikationen zuordnen, künftige Einsätze, Einsätze der letzten 90 Tage; Entfernen-Dialog listet die Folgen | Speichern · Entfernen | US-07, US-41.2 · Team |
 | SC-57 | Einstellungen | `settings` | admin | M+W | Einstieg | Gruppen: Firma · Branding · Steuersätze · Qualifikationen · Fristen & Standardwerte · Angebotstexte & Vorlagen · Fragenkatalog · Abo (Web) · Datenschutz & Export (Web) | Bereich öffnen | US-03, US-04 · Einstellungen |
 | SC-58 | Firma | `settings/company` | admin | M+W | Stammdaten | Name, Anschrift, Telefon, Kontakt-E-Mail (Reply-To), Website, USt-IdNr. oder Steuernummer, Fußzeilentext, Links Datenschutzerklärung und Impressum der Firma (02 §10.1) | Speichern | US-03.1 · Einstellungen |
 | SC-59 | Branding | `settings/branding` | admin | M+W | Logo und Akzentfarbe | wie SC-09, zusätzlich Vorschau der E-Mail; Hinweis „wirkt sofort auf Portal und neue PDFs, versendete PDFs bleiben unverändert“ | Speichern | US-03.2 – US-03.5 · Branding |
 | SC-60 | Steuersätze | `settings/tax-rates` | admin | M+W | Sätze und Standards je Positionstyp | Liste: Bezeichnung, %, Standard für Positionstypen, aktiv; Land DE (AT/CH vorbereitet, nicht aktivierbar); „Von mir geprüft“; Prozentsatz bei Verwendung gesperrt | Satz anlegen · Deaktivieren · Standard setzen | US-04.2, US-04.3 · Einstellungen |
 | SC-61 | Qualifikationen | `settings/qualifications` | admin | M+W | Qualifikationen pflegen | Liste mit Anzahl Mitglieder, Archiv, Vorlagen | Anlegen · Umbenennen · Archivieren | US-41 · Schichtbörse |
-| SC-62 | Fristen & Standardwerte | `settings/defaults` | admin | M+W | Regeln des Betriebs | Absagefrist Schichtbörse in h (Standard 48), Änderungsschluss Portal, Angebotsgültigkeit, Kalkulationsart, Aufschlag, Puffer Einkauf, Option-Erinnerung; je Feld Erklärung mit Beispiel („Slot Sa 16:00 → Absage bis Do 16:00“) | Speichern | US-04, 01 §4.2.6 · Einstellungen |
+| SC-62 | Fristen & Standardwerte | `settings/defaults` | admin | M+W | Regeln des Betriebs | Absagefrist Schichtbörse in h (Standard 48), Änderungsschluss Portal je Auftragsart (Event-Catering 72 h, Business-Lunch 24 h; gilt für neue Aufträge), Angebotsgültigkeit, Kalkulationsart, Aufschlag, Preisraster (aufrunden), Puffer Einkauf (5 %), Option-Erinnerung; je Feld Erklärung mit Beispiel („Slot Sa 16:00 → Absage bis Do 16:00“) | Speichern | US-04, 01 §4.2.6 · Einstellungen |
 | SC-63 | Angebotstexte & Vorlagen | `settings/quote-texts` | admin | M+W (Web optimiert) | Standardtexte und Positionsvorlagen | Einleitung, Konditionen (Zahlung, Anzahlung, Storno), Schlusstext, E-Mail-Text mit Platzhaltern, Positionsvorlagen (Servicekraft, Koch vor Ort, Anfahrt, Getränkepauschale) | Speichern | US-04.6, 02 §2.2 · Angebot |
-| SC-64 | Fragenkatalog | `settings/questionnaire` | admin | M+W (Web optimiert) | Fragen für den Angebots-Chat | sortierbare Fragenliste: Fragetext, Antworttyp-Icon, Feldzuordnung oder „Notiz“, Bedingungs-Badge („nur wenn Anlass = Hochzeit“), Pflicht/optional; Hinweis auf Standardkatalog | Frage anlegen (SC-65) · Sortieren · Testlauf (SC-17 ohne Speichern) · Standard wiederherstellen | 00 §3 Angebots-Chat |
-| SC-65 | Frage bearbeiten | Sheet in SC-64 | admin | M+W | eine Frage | Pflicht: Fragetext, Antworttyp (Auswahl, Mehrfachauswahl, Zahl, Datum/Uhrzeit, Text, Ja/Nein; zusätzlich „Kunde“ **[Vorschlag]**); Antwortoptionen; Pflicht/optional; Feldzuordnung (Auftrags-/Angebotsfeld oder Notiz); Bedingung (vorherige Frage + Antwort); Hilfetext | Speichern · Löschen | 00 §3 Angebots-Chat |
+| SC-64 | Fragenkatalog | `settings/questionnaire` | admin | M+W (Web optimiert) | Fragen für den Angebots-Chat (`intake_questions`) | sortierbare Fragenliste: Fragetext, Antworttyp-Icon, Feldzuordnung oder „Notiz“, Bedingungs-Badge („nur wenn Anlass = Hochzeit“), Pflicht/optional; Hinweis auf Standardkatalog | Frage anlegen (SC-65) · Sortieren · Testlauf (SC-17 ohne Speichern) · Standard wiederherstellen | F-32: US-65, US-66 |
+| SC-65 | Frage bearbeiten | Sheet in SC-64 | admin | M+W | eine Frage | Pflicht: Fragetext, Antworttyp (Auswahl, Mehrfachauswahl, Zahl, Datum, Uhrzeit, Zeitspanne Beginn–Ende, Datum + Uhrzeit, Text, Ja/Nein, Kunde; Enum `intake_answer_type`); Antwortoptionen; Pflicht/optional; Feldzuordnung (nur zum Antworttyp passende Felder nach 02 §11.2, oder Notiz); Bedingung (frühere Frage + Vergleich + Wert); Hilfetext | Speichern · Archivieren | F-32: US-65 |
 | SC-66 | Abo | `settings/subscription` (`.web.tsx` / nativ) | admin | W (nativ nur neutraler Status) | Abo abschließen und verwalten | Status (Testphase noch n Tage · aktiv · Zahlung offen · Lesemodus); Stufenkarten mit Preisen und Grenzen; Nutzung (Mitglieder, Admins); monatlich/jährlich; Empfehlung; „Zahlung wird verarbeitet“; nativ: „Abo-Status: …“ ohne Preis, Button, Link | Abo wählen (Stripe Checkout über `create-checkout-session`) · Verwalten (Stripe-Kundenportal) | US-55 – US-58 · Abo |
-| SC-67 | Datenschutz & Export | `settings/privacy` (`.web.tsx` / nativ Hinweis) | admin | W | Pflichten nach DSGVO | Export anfordern (Status, Download-Link per E-Mail), AVV als PDF mit Annahmedatum, Unterauftragsverarbeiter, Firma löschen (Export-Angebot, Firmenname eintippen, erneute Anmeldung) | Export anfordern · AVV laden · Firma löschen | US-59, US-60, US-62 · Datenschutz |
+| SC-67 | Datenschutz & Export | `settings/privacy` (`.web.tsx` / nativ Hinweis) | admin | W | Pflichten nach DSGVO | Export starten (läuft im Browser mit Fortschrittsanzeige, endet mit ZIP-Download; Hinweis „Fenster geöffnet lassen“; kein E-Mail-Link), Protokoll bisheriger Exporte, AVV als PDF mit Annahmedatum, Unterauftragsverarbeiter, Firma löschen (Export-Angebot, Firmenname eintippen, erneute Anmeldung; Hinweis auf sofortigen Zugriffsentzug, automatische Kündigung des Abos und Löschung nach 30 Tagen) | Export starten · AVV laden · Firma löschen | US-59, US-60, US-62 · Datenschutz |
 | SC-68 | Profil | `profile` | alle | M+W | eigenes Konto | Name, Telefon, E-Mail, eigene Qualifikationen (lesen), Links zu SC-69 und SC-70, eigene Daten exportieren, Passwort ändern, Abmelden, Firma verlassen, Konto löschen (Dialog mit künftigen Einsätzen; letzter Admin gesperrt) | Speichern · Abmelden · Konto löschen | US-08, US-41.5, 02 §10.2 · Konto |
 | SC-69 | Benachrichtigungseinstellungen | `profile/notifications` | alle | M+W | Kategorien steuern | Kategorien der Rolle mit Schalter, nicht abschaltbare als „immer aktiv“ gekennzeichnet, Ruhezeit 22–07 Uhr (Should), Status der System-Berechtigung | Schalten · Systemeinstellungen öffnen | US-51.3, US-51.5, US-51.7 · Benachrichtigungen |
 | SC-70 | Kalender-Abo | `profile/calendar-feed` | alle | M+W | iCal-Link (`ical-feed`) | persönlicher Link, Kurzanleitung Apple/Google/Outlook, Hinweis „Aktualisierung bestimmt dein Kalenderdienst“ | Abonnieren (webcal://) · Link kopieren · Link zurücksetzen | US-53 · Kalender |
@@ -392,7 +392,8 @@ Weitere Portal-Zustände von SC-71 (kein eigener Screen): Angebot abgelaufen (An
 | F-05 – F-07 Aufträge, Kopieren, Zeitplan | SC-15 – SC-19, SC-26, SC-29 – SC-31 |
 | F-08 – F-10 Kalender, Liste, Start | SC-12, SC-14, SC-15 |
 | F-11 – F-13 Gerichte, Zutaten, Pakete | SC-38 – SC-43 |
-| F-14, F-15 Angebot, Versand, PDF | SC-20, SC-32 – SC-34 (Angebots-Chat SC-17, Fragenkatalog SC-64/SC-65) |
+| F-14, F-15 Angebot, Versand, PDF | SC-20, SC-32 – SC-34 |
+| F-32 Angebots-Chat & Fragenkatalog | SC-17, SC-64, SC-65 |
 | F-16, F-17 Kundenportal | SC-28, SC-71 – SC-76 |
 | F-18 – F-20 Küche, Einkauf, Sonderessen | SC-13, SC-25, SC-27, SC-44 – SC-46 |
 | F-21 – F-26 Qualifikationen, Schichtbörse, Einsätze, Besetzung | SC-21 – SC-24, SC-47 – SC-51, SC-61 |
@@ -403,58 +404,60 @@ Weitere Portal-Zustände von SC-71 (kein eigener Screen): Angebot abgelaufen (An
 
 ### 2.10 Statusaktionen im Auftragskopf (SC-18)
 
-Gilt für `admin`. Die angebotenen Übergänge kommen aus der Übergangstabelle (0.3); hier ist nur festgelegt, welche Aktion **primär** erscheint.
+Gilt für `admin`. Die angebotenen Übergänge kommen aus der Übergangstabelle in 02 §1.1 (0.3); hier ist nur festgelegt, welche Aktion **primär** erscheint.
 
 | Status | Badge-Text | Primäraktion | weitere Aktionen (Überlauf-Menü) |
 |---|---|---|---|
-| `inquiry` | Anfrage | „Angebot erstellen“ (ohne Angebot) bzw. „Angebot senden“ | Bearbeiten · Kopieren · „Anfrage kommt nicht zustande“ |
+| `inquiry` | Anfrage | „Angebot erstellen“ (ohne Angebot) bzw. „Angebot senden“ | Im Chat ergänzen (SC-17) · Termin vormerken (optioniert bis) · Direkt bestätigen (Bestätigungsweg) · „Anfrage kommt nicht zustande“ · Bearbeiten · Kopieren · Fehleingabe löschen (nur ohne Versand) |
 | `quoted` | Angebot versendet | „Annahme erfassen“ | Optionieren · Erneut senden · Ablehnung erfassen · Kopieren |
-| `optioned` | Optioniert bis {Datum} | „Annahme erfassen“ | Option verlängern · Erneut senden · Stornieren · Kopieren |
+| `optioned` | Optioniert bis {Datum} | „Annahme erfassen“ (mit versendetem Angebot) bzw. „Direkt bestätigen“ (ohne Angebot) | Option verlängern · Angebot senden/erneut senden · Stornieren · Kopieren |
 | `confirmed` | Bestätigt | vor Eventende „Personal planen“ (→ Tab Personal), danach „Als durchgeführt markieren“ | Änderung senden · Stornieren · Kopieren |
-| `completed` | Durchgeführt | „Als abgerechnet markieren“ | Korrektur · Kopieren |
-| `invoiced` | Abgerechnet | – | Kopieren |
-| `declined` | Abgelehnt | „Kopieren“ | Reaktivieren (01, Vorschlag) |
-| `cancelled` | Abgesagt | „Kopieren“ | Reaktivieren (01, Vorschlag) |
+| `completed` | Durchgeführt | „Als abgerechnet markieren“ | Korrektur (→ Bestätigt) · Kopieren |
+| `invoiced` | Abgerechnet | – | Korrektur (→ Durchgeführt) · Kopieren |
+| `declined` | Abgelehnt | „Neue Version senden“ (→ `quoted`) | Kopieren |
+| `cancelled` | Abgesagt | „Kopieren“ (Wiederaufnahme als neuer Auftrag) | – |
 
 ### 2.11 Schlüssel-Screens im Detail
 
 #### SC-17 Angebots-Chat
 
-Verbindlich aus 00 §3: interner Chat für den Admin, feste Fragen ohne KI, eine Frage nach der anderen, Antworttypen Auswahl, Mehrfachauswahl, Zahl, Datum/Uhrzeit, Text, Ja/Nein, Verzweigungen, ein Katalog pro Firma, danach der normale Angebots-Editor ohne automatische Positionsvorschläge.
+Verbindlich aus 00 §3: interner Chat für den Admin, feste Fragen ohne KI, eine Frage nach der anderen, Antworttypen Auswahl, Mehrfachauswahl, Zahl, Datum/Uhrzeit, Text, Ja/Nein, Verzweigungen, ein Katalog pro Firma, danach der normale Angebots-Editor ohne automatische Positionsvorschläge. Akzeptanzkriterien: 01 US-63 bis US-66; Feldzuordnung und Transaktion: 02 §11; Daten: `intake_questions` (03 §3.7), `events.occasion`, `events.intake_answers`.
 
 **Interaktionsregeln [Vorschlag]**
 
 1. **Einstieg:** FAB „+“ → „Anfrage im Chat erfassen“ (Standard), „Neuer Auftrag“ im Kundendetail (Frage „Kunde“ bereits beantwortet) oder „Angebot erstellen“ an einer bestehenden Anfrage (`?eventId=`; bereits gefüllte Felder erscheinen als beantwortet und bleiben änderbar).
 2. **Antwortfeld in der Daumenzone:** Auswahl als große Buttons (≥ 48 pt), Mehrfachauswahl als Chips + „Weiter“, Zahl als Stepper mit Zifferntastatur, Datum/Uhrzeit mit nativen Pickern, Text einzeilig/mehrzeilig, Ja/Nein als zwei Buttons. Web: Enter = weiter, Ziffern 1–9 wählen Optionen, Tab-Reihenfolge logisch.
 3. **Antwort ändern:** Antippen einer früheren Antwort öffnet deren Eingabe. Verzweigungen werden neu ausgewertet; entfallende Folgeantworten werden verworfen und kurz angezeigt („2 Antworten entfallen“).
-4. **Fortschritt:** „Frage 5 von ca. 11“ (Schätzung wegen Verzweigungen) und Balken; optionale Fragen mit „Überspringen“.
+4. **Fortschritt:** „Frage 5 von ca. 11“ (Schätzung wegen Verzweigungen) und Balken; nur optionale Fragen haben „Überspringen“, Pflichtfragen nicht.
 5. **Antworttyp „Kunde“ [Vorschlag]:** Suche ab 2 Zeichen in `customers`, Treffer als Buttons, „Neuer Kunde“ mit Name, Typ, E-Mail inline; Duplikatwarnung wie US-09.5.
 6. **Zwischenstand:** Antworten liegen bis zum Abschluss nur auf dem Gerät; „Verwerfen“ fragt nach. Schreiben erst mit „Auftrag anlegen“ (00 §4: Änderungen nur online). Offline ist der Chat nicht startbar; bricht die Verbindung ab, bleiben die Antworten erhalten.
-7. **Abschluss:** Zusammenfassungskarte aller Felder (antippbar) → „Auftrag anlegen und Angebot öffnen“: Auftrag `inquiry` mit Feldern, Angebot Revision 0, Sonderessen-Einträge, Antworten ohne Feldzuordnung als Notiz → SC-32.
+7. **Abschluss:** Zusammenfassungskarte aller Felder (antippbar) mit Titelvorschlag → „Auftrag anlegen und Angebot öffnen“: RPC `create_event_from_intake` legt in einer Transaktion Auftrag `inquiry` mit Feldern, Angebot Revision 0, Sonderessen-Einträge und Notizen an (Antworten ohne Feldzuordnung in der internen Notiz) → SC-32.
 8. **Testlauf** aus SC-64 nutzt denselben Screen mit Banner „Testlauf – nichts wird gespeichert“.
 
 **Standard-Fragenkatalog für neue Firmen [Vorschlag]**
+
+Deckungsgleich mit dem Seed in 03 §3.7 (dort mit `answer_type`, `target` und `show_if` je Frage). Pflichtfragen: 1, 2, 4, 5.
 
 | # | Frage | Antworttyp | Feldzuordnung | Bedingung |
 |---|---|---|---|---|
 | 1 | Für wen ist die Anfrage? | Kunde | Auftrag: Kunde | – |
 | 2 | Was ist es? | Auswahl: Event-Catering, Business-Lunch | Auftrag: Art | – |
-| 3 | Welcher Anlass? | Auswahl: Hochzeit, Geburtstag, Firmenfeier, Trauerfeier, Sonstiges | Auftrag: Anlass bzw. Titelvorschlag „{Anlass} {Kunde}“ | Art = Event-Catering |
-| 4 | An welchem Tag? | Datum | Auftrag: Datum | – |
-| 5 | Von wann bis wann? | Uhrzeit (Beginn, Ende) | Auftrag: Beginn, Ende | – |
+| 3 | Welcher Anlass? | Auswahl: Hochzeit, Geburtstag, Firmenfeier, Trauerfeier, Sonstiges | Auftrag: Anlass (`events.occasion`) und Titelvorschlag „{Anlass} {Kunde}“ | Art = Event-Catering |
+| 4 | An welchem Tag? | Datum | Auftrag: Datum (Tag von `starts_at`) | – |
+| 5 | Von wann bis wann? | Zeitspanne (Beginn, Ende; Ende vor Beginn = Folgetag) | Auftrag: Beginn und Ende (`starts_at`, `ends_at`) | – |
 | 6 | Wie viele Gäste? | Zahl | Auftrag: Gästezahl | – |
-| 7 | Wo findet es statt? | Text | Auftrag: Ort/Adresse | – |
-| 8 | Gibt es vor Ort eine Küche? | Ja/Nein | Notiz | Art = Event-Catering |
+| 7 | Wo findet es statt? | Text | Auftrag: Ort (Name; Adresse ergänzt der Admin) | – |
+| 8 | Gibt es vor Ort eine Küche? | Ja/Nein | Auftrag: Hinweise Küche | Art = Event-Catering |
 | 9 | Wird Service-Personal gewünscht? | Ja/Nein | Notiz | Art = Event-Catering |
-| 10 | Sind Sonderessen bekannt? | Ja/Nein | – (steuert 11–13) | – |
-| 11 | Wie viele vegetarisch? | Zahl | Sonderessen: Diätform vegetarisch | Frage 10 = Ja |
-| 12 | Wie viele vegan? | Zahl | Sonderessen: Diätform vegan | Frage 10 = Ja |
-| 13 | Allergien oder Unverträglichkeiten? | Text | Sonderessen: Notiz „aus Anfrage“, Küche präzisiert | Frage 10 = Ja |
+| 10 | Sind Sonderessen bekannt? | Ja/Nein | Notiz; steuert 11–13 | – |
+| 11 | Wie viele vegetarisch? | Zahl | Sonderessen: Anzahl, Diätform vegetarisch | Frage 10 = Ja |
+| 12 | Wie viele vegan? | Zahl | Sonderessen: Anzahl, Diätform vegan | Frage 10 = Ja |
+| 13 | Allergien oder Unverträglichkeiten? | Text | Auftrag: Hinweise Küche; die Küche legt daraus genaue Sonderessen an (kein Eintrag mit geschätzter Anzahl) | Frage 10 = Ja |
 | 14 | Sektempfang oder Mitternachtssnack? | Mehrfachauswahl | Notiz | Anlass = Hochzeit |
-| 15 | Budget pro Person? | Zahl (€) | Notiz | optional |
+| 15 | Budget pro Person? | Zahl (€) | Notiz | – (optional) |
 | 16 | Ihre Referenz (Bestellnummer, Kostenstelle)? | Text | Angebot: Ihre Referenz | Art = Business-Lunch |
 
-Ein Feld „Anlass“ gibt es in 01 noch nicht; im Datenmodell ergänzen oder auf den Titel abbilden **[Vorschlag]**.
+Das Feld „Anlass“ ist `events.occasion` (03 §3.2); es erscheint auch in SC-16/SC-29 und im Tab Übersicht (SC-19).
 
 ```text
 SC-17 mobil                              SC-17 Web ≥ 1024 px
@@ -680,7 +683,7 @@ Zusatzkennzeichen (kein Status): „Option abgelaufen“ (danger, Umriss) · „
 
 ### 4.4 Typografie **[Vorschlag]**
 
-Schrift: **Inter** (variabel, über `expo-font`), tabellarische Ziffern (`tnum`) für Beträge und Mengen; Fallback Systemschrift. Begründung: identisches Schriftbild in App, Web, Portal und PDF; gute Lesbarkeit kleiner Größen.
+Schrift: **Inter** als **statische** Schnitte `Inter-Regular.ttf` (400) und `Inter-SemiBold.ttf` (600), per `expo-font` unter eigenen Familiennamen geladen (`Inter_400Regular`, `Inter_600SemiBold`); tabellarische Ziffern (`tnum`) für Beträge und Mengen; Fallback Systemschrift. Der Text-Wrapper bildet die Tokens `weight 400/600` auf diese Familiennamen ab und setzt **kein** `fontWeight`: Bei einer variablen TTF wählt React Native auf Android das Gewicht über `fontWeight` nicht zuverlässig aus. Dieselben Dateien bettet das PDF ein (05 §5.4). Begründung: identisches Schriftbild in App, Web, Portal und PDF; gute Lesbarkeit kleiner Größen.
 
 | Token | Größe / Zeilenhöhe | Gewicht | Verwendung |
 |---|---|---|---|
@@ -726,7 +729,10 @@ export const tokens = {
   },
   space: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64 },
   radius: { sm: 6, md: 8, lg: 12, xl: 16, full: 999 },
-  font: { family: 'Inter', body: { size: 16, lineHeight: 24 } },
+  font: {
+    family: { regular: 'Inter_400Regular', semibold: 'Inter_600SemiBold' }, // statt fontWeight
+    body: { size: 16, lineHeight: 24 },
+  },
 } as const;
 ```
 
@@ -963,7 +969,7 @@ Kontext: Tobias (kitchen), Donnerstag 15:00, Android, Kellerküche mit schwachem
 | 2 | SC-13 | Umschalter „Morgen“ | 2 Karten: „Herbstfest Müller GmbH · 60 Gäste · Abfahrt 07:30 · Ausgabe 12:00 · 3 Sonderessen“ (bestätigt) und „Hochzeit K. · 80 Gäste“ mit „vorläufig“; oben Badge „Änderung offen: Gästezahl 60 → 65“ |
 | 3 | SC-44 | Tab „Produktion“ (Zeitraum „Morgen“ wird übernommen **[Vorschlag]**), Optionen aus | je Gericht Portionen gesamt, aufklappbar je Auftrag; Konflikt rot oben: „2 × vegan: kein Ersatz für Kartoffelgratin“ |
 | 4 | SC-27 | Konflikt antippen → Ersatz „Kartoffelgratin → Ofengemüse vegan“ speichern | Liste rechnet neu (online) |
-| 5 | SC-46 | Tab „Einkauf“ (gleiche Auswahl), Puffer 5 % | nach Warengruppe gruppiert, „Rinderschulter 14,94 kg“ usw.; „Teilen“ → WhatsApp |
+| 5 | SC-46 | Tab „Einkauf“ (gleiche Auswahl), Puffer 5 % | nach Warengruppe gruppiert, „Rinderschulter 15,7 kg“ usw. (Rechnung wie 02 §8.5: 14.940 g + 5 % = 15.687 g, aufgerundet); „Teilen“ → WhatsApp |
 | 6 | SC-46 | im Kühlraum ohne Netz abhaken | Banner „Offline – Stand: Do, 15:04 Uhr“; Haken lokal; Speichern von Sonderessen deaktiviert |
 
 **Designregeln daraus:** Küchen-Zeitraum wird zwischen Heute, Produktion und Einkauf geteilt · Mengen in `text.kitchen` · Konflikte und kurzfristige Änderungen immer oben · nie Preise · Stand-Zeitpunkt sichtbar · Abhaken ohne Netz möglich.
@@ -1024,14 +1030,15 @@ flowchart TD
 | 5 | Mehr-Inhalte je Rolle inkl. „Meine Einsätze“ und „Zutaten“ für `kitchen`; FAB „+“ für admin | 1.3 |
 | 6 | Kalender-Wochenansicht auch ab 768 px (Tablet) | SC-14 |
 | 7 | Onboarding: nur Schritt 1 Pflicht, Branding und Arbeitsweise überspringbar, Rest als Setup-Checkliste | 2.1 |
-| 8 | Angebots-Chat: Antworttyp „Kunde“, Zwischenstand nur lokal bis „Auftrag anlegen“, Start auch aus bestehender Anfrage, Standard-Fragenkatalog mit 16 Fragen, Feld „Anlass“ | 2.11 |
-| 9 | Portal-Screens nach den Regeln aus 01 (Änderungswunsch), Abweichung zu 02 offen | 0.2 |
-| 10 | Statusaktionen aus zentraler Übergangstabelle; Primäraktion je Status | 0.3, 2.10 |
+| 8 | Angebots-Chat: Antworttypen „Kunde“ und „Zeitspanne“, Zwischenstand nur lokal bis „Auftrag anlegen“, Start auch aus bestehender Anfrage, Standard-Fragenkatalog mit 16 Fragen (Allergien als Hinweis Küche) | 2.11 |
+| 9 | Portal-Screens nach den Regeln aus 01 (Änderungswunsch); 02 ist angeglichen (E-10) | 0.2 |
+| 10 | Statusaktionen aus der Übergangstabelle 02 §1.1; Primäraktion je Status | 0.3, 2.10 |
 | 11 | „Version“ im Portal, „Revision“ in der Team-App | 0.6 |
 | 12 | Entwurf im Editor speichert automatisch (online) | SC-32 |
 | 13 | Küchen-Zeitraum geteilt zwischen Heute, Produktion, Einkauf | 6.3 |
 | 14 | Zentrale Schreibprüfung (offline, Lesemodus, Rolle); deaktivieren statt ausblenden bei offline/Lesemodus | 3.3 |
-| 15 | Akzentfarbe Petrol `#0F766E`, Statuspalette 4.3, Inter, Tokens 4.5 | 4 |
+| 15 | Akzentfarbe Petrol `#0F766E`, Statuspalette 4.3, Inter in zwei statischen Schnitten, Tokens 4.5 | 4 |
+| 20 | Küchen-Tablet als native App (offline lesbar); Web-Küchenansichten nur online | SC-13, SC-44, SC-46 |
 | 16 | Kein Dark Mode im MVP, Tokens semantisch für später | 4.6 |
 | 17 | Text auf Caterer-Akzent ab 4,5:1 weiß, sonst dunkel | 4.8 |
 | 18 | Ziel WCAG 2.2 AA; BFSG-Relevanz rechtlich prüfen | 4.7 |

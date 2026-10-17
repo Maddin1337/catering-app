@@ -8,6 +8,7 @@ Stand: 17.10.2026 · Grundlage: [00-entscheidungen.md](00-entscheidungen.md) (ve
 - Tabellen-, Enum-, Rollen- und Funktionsnamen folgen exakt dem Glossar. Tabellen außerhalb des Glossars stehen gesammelt in Abschnitt 3.7 und sind Vorschläge.
 - Spaltennamen, die in 01/02 als Vorschlag genannt wurden, werden hier festgelegt. Abweichungen davon listet Abschnitt 10.
 - Der SQL-Entwurf (Abschnitte 7 und 8) wurde lokal gegen PostgreSQL 16 mit nachgebildeten Supabase-Schemas (`auth.uid()`, `storage`, Rollen `anon`/`authenticated`/`service_role`) geladen und geprüft. Getestet wurden: Küche sieht keine Preise, Mandantentrennung, Spaltenschutz für Systemfelder, Lesemodus, Sichtbarkeit für `staff`, Überbuchung bei zwei parallelen Zusagen und Firmenlöschung per Kaskade.
+- **Stand nach der Prüfrunde:** Eingearbeitet sind die Befunde zu Funktionsrechten (`EXECUTE` für `PUBLIC`/`anon`), DELETE im Lesemodus, Überbuchung unter REPEATABLE READ (`taken_seats`), verbindlichem Stand der Küche (`binding_snapshot`), Menüwahl ohne Revision (`portal_selection`), Versand über Prepare/Commit, Push-Tickets, Idempotenz der Jobs und Teamliste der Küche. Diese geänderten SQL-Blöcke sind **noch nicht erneut** gegen PostgreSQL 16 geladen; das ist der erste Schritt beim Anlegen der Migrationen (pgTAP aus 9.5).
 
 **Inhalt**
 
@@ -43,7 +44,9 @@ Stand: 17.10.2026 · Grundlage: [00-entscheidungen.md](00-entscheidungen.md) (ve
 | ON DELETE | **CASCADE** von `companies` und innerhalb eines Aggregats (Auftrag → Zeitplan, Sonderessen, Angebot, Slots, Portal-Tokens; Angebot → Positionen; Gericht → Allergene). **NO ACTION** für Verweise auf Stammdaten und Katalog (Kunde, Gericht, Paket, Zutat, Steuersatz, Qualifikation, Slot ← Bewerbung). **SET NULL (Spalte)** für optionale Verweise auf Mitglieder | NO ACTION statt RESTRICT: NO ACTION prüft erst am Ende des Statements, deshalb funktioniert die Firmenlöschung per Kaskade (getestet). `SET NULL (spalte)` (ab PG 15) setzt bei zusammengesetzten FKs nur die Verweisspalte, nicht `company_id` |
 | Enums | Postgres-Enums für feste Wertelisten | typsichere generierte TS-Typen; Erweiterung per `alter type … add value` |
 | `jsonb` | nur für Snapshots, Protokolle, Vorlagen, Antworten des Fragenkatalogs, Ersatzgerichte | keine relationale Abfrage nötig, außer in der Küchen-View (Snapshot-Positionen) |
-| Rechenlogik | Beträge berechnet das gemeinsame TypeScript-Modul (02 §3). Die Datenbank speichert die Ergebnisse je Position und die Summen und prüft beim Versand die Konsistenz | eine Rechenquelle für App, Portal und PDF |
+| Rechenlogik | Beträge berechnet das gemeinsame TypeScript-Modul (02 §3, nur Ganzzahlen). Die Datenbank speichert die Ergebnisse je Position und die Summen und prüft beim Versand die Konsistenz | eine Rechenquelle für App, Portal und PDF |
+| Funktionsrechte | Keine Funktion ist für `PUBLIC` oder `anon` ausführbar. Jede RPC erhält `EXECUTE` ausdrücklich und nur für die vorgesehene Rolle (`authenticated` oder `service_role`); rein interne Funktionen liegen im nicht veröffentlichten Schema `private` (4.1, 7.1) | Supabase vergibt sonst per Default `EXECUTE` an `anon` und `authenticated` |
+| Fehlervertrag | Fachliche Fehler: `raise exception '<deutscher Text>' using errcode = 'P0001', hint = '<code>'` (z. B. `slot_full`, `read_only`, `deadline_passed`). Die App liest `hint` (05 §4.6); HTTP-Status vergeben nur Edge Functions | ein maschinenlesbarer Code je Fehler, unabhängig vom Text |
 
 **Kürzel in Abschnitt 3**
 
@@ -156,6 +159,9 @@ erDiagram
         int revision
         quote_status status
         jsonb snapshot
+        jsonb binding_snapshot
+        jsonb portal_selection
+        jsonb pending_change
         timestamptz accepted_at
     }
     quote_items {
@@ -221,6 +227,7 @@ erDiagram
         timestamptz starts_at
         timestamptz ends_at
         int seats
+        int taken_seats
     }
     shift_applications {
         uuid id PK
@@ -254,10 +261,15 @@ Ergänzende Tabellen (Vorschlag, Abschnitt 3.7):
 erDiagram
     companies ||--o{ intake_questions : "Fragenkatalog"
     events ||--o{ event_status_changes : "Statushistorie"
-    companies ||--o{ data_exports : "Exporte"
+    companies ||--o{ data_exports : "Exportprotokoll"
+    notifications ||--o{ push_tickets : "Expo-Tickets"
+    push_tokens |o--o{ push_tickets : "Gerät"
+    companies ||--o{ usage_events : "Nutzungszähler"
     allergens ||--o{ dish_allergens : "Referenz (enum)"
     plan_limits ||--o{ subscriptions : "Grenzen je plan"
 ```
+
+`stripe_events` (verarbeitete Stripe-Ereignisse) ist global und hat keine Kante.
 
 ---
 
@@ -273,7 +285,7 @@ erDiagram
 | `quantity_mode` | `per_guest` Menge folgt der Gästezahl · `fixed` feste Menge | `quote_items.quantity_mode` |
 | `pricing_mode` | `flat` Pauschalpreis pro Person · `cost_based` Wareneinsatz + Aufschlag | `quotes.pricing_mode`, `companies.default_pricing_mode` |
 | `price_basis` | `net` · `gross` | `companies.price_entry_mode` (Eingabeart), `quotes.price_display` (Anzeige) |
-| `acceptance_channel` | `portal` Annahme im Portal · `portal_change` Kundenänderung im Portal gilt als angenommen (02 §4.2) · `admin` manuell erfasst · `info_only` Revision „Zur Info“ versendet (01 US-36.3) | `quotes.acceptance_channel` |
+| `acceptance_channel` | `portal` Annahme im Portal · `portal_confirmation` Änderung im Portal bestätigt („Bitte bestätigen“, 01 US-36.3) · `admin` manuell erfasst · `info_only` Revision „Zur Info“ versendet (01 US-36.3) | `quotes.acceptance_channel` |
 | `application_status` | `applied` beworben · `accepted` vom Admin zugesagt · `rejected` vom Admin abgesagt bzw. ausgeplant · `withdrawn` Bewerber zieht zurück · `cancelled_by_staff` Absage nach Zusage · `assigned` direkt durch Admin eingeplant | `shift_applications.status` |
 | `allergen` | 14 Pflichtallergene, siehe Tabelle unten | `dish_allergens.allergen`, `event_dietary_requirements.avoid_allergens`, `allergens.code` |
 | `diet_type` | `vegetarian` vegetarisch · `vegan` vegan · `halal` halal · `kosher` koscher · `gluten_free` glutenfrei · `lactose_free` laktosefrei | `dishes.diets`, `event_dietary_requirements.diet` |
@@ -285,11 +297,11 @@ erDiagram
 | `schedule_item_kind` | `departure` Abfahrt · `setup` Aufbau · `service` Ausgabe · `teardown` Abbau · `delivery` Lieferung · `other` Sonstiges | `event_schedule_items.kind` |
 | `dietary_source` | `customer` aus dem Portal · `internal` von Admin/Küche | `event_dietary_requirements.source` |
 | `subscription_plan` | `start` · `team` · `profi` · `pilot` (intern, ohne Kosten und Ablauf, US-55.7) | `subscriptions.plan`, `plan_limits.plan` |
-| `subscription_status` | Stripe-Status `trialing`, `active`, `past_due`, `canceled`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`. Die App-Testphase ohne Stripe nutzt ebenfalls `trialing` | `subscriptions.status` |
+| `subscription_status` | Stripe-Status 1:1 gespiegelt: `trialing`, `active`, `past_due`, `canceled`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`. Die App-Testphase ohne Stripe nutzt ebenfalls `trialing`. Einen Status „Testphase abgelaufen“ gibt es nicht; der Lesemodus ergibt sich allein aus `writable_until` (6.1) | `subscriptions.status` |
 | `push_platform` | `ios` · `android` | `push_tokens.platform` |
-| `push_status` | `pending` · `sent` · `failed` · `skipped` (Kategorie abgeschaltet / kein Gerät) | `notifications.push_status` |
-| `notification_category` | `application_received`, `application_decided`, `assignment_created`, `assignment_cancelled`, `slots_published`, `shift_changed`, `shift_called_off`, `shift_reminder`, `quote_accepted`, `quote_declined`, `quote_viewed`, `portal_change`, `dietary_changed`, `event_confirmed`, `event_cancelled`, `guest_count_changed`, `option_expiring`, `quote_expired`, `completion_due`, `slots_unfilled`, `member_joined`, `billing` (Zuordnung zu 01 §4.2.5; abschaltbar je Kategorie über `company_members.notification_prefs`) | `notifications.category` |
-| `intake_answer_type` | `single_choice` · `multi_choice` · `number` · `date` · `time` · `datetime` · `text` · `boolean` | `intake_questions.answer_type` |
+| `push_status` | `pending` wartet auf Versand · `sending` von `push-dispatch` beansprucht (`claim_notifications()`) · `sent` · `failed` · `skipped` (Kategorie abgeschaltet, kein Gerät oder Kategorie `billing`) | `notifications.push_status` |
+| `notification_category` | `application_received`, `application_decided`, `assignment_created`, `assignment_cancelled`, `slots_published`, `shift_changed`, `shift_called_off`, `shift_reminder`, `quote_accepted` (auch „Änderung bestätigt“), `quote_declined`, `quote_viewed`, `quote_delivery_failed` (01 US-27.6), `revision_confirmation_pending` (01 US-36.7), `portal_change` (Änderungswunsch), `dietary_changed`, `event_confirmed`, `event_cancelled`, `guest_count_changed`, `option_expiring`, `quote_expired`, `completion_due`, `slots_unfilled`, `member_joined`, `billing` (nur neutraler Listeneintrag ohne Push und Link, 3.6). Zuordnung zu 01 §4.2.5; abschaltbar je Kategorie über `company_members.notification_prefs` | `notifications.category` |
+| `intake_answer_type` | `single_choice` · `multi_choice` · `number` · `date` · `time` · `time_range` (Beginn und Ende in einer Frage) · `datetime` · `text` · `boolean` · `customer` (Kundensuche bzw. neuer Kunde) | `intake_questions.answer_type` |
 | `intake_target` | `customer` · `event_kind` · `occasion` · `starts_at` · `ends_at` · `guest_count` · `venue` · `dietary_requirements` · `kitchen_notes` · `staff_notes` · `customer_reference` (null = Antwort wird Notiz) | `intake_questions.target` |
 
 **Die 14 Pflichtallergene** (LMIV Anhang II; Kurzcodes nach dem österreichischen Schema, 01 §4.2.6)
@@ -336,22 +348,26 @@ Mandant: Stammdaten, Branding und Firmeneinstellungen. Die Tabelle ist selbst de
 | `phone` | text | null | im Portal und bei „Absage nur telefonisch“ |
 | `contact_email` | text | not null, Formatprüfung | Reply-To aller Kunden-E-Mails |
 | `website`, `vat_id`, `tax_number`, `footer_text`, `privacy_policy_url` | text | null | PDF-Kopf/-Fuß, Portal (US-03.1) |
+| `imprint_url` | text | null | Impressum des Caterers für Portal-, PDF- und Kunden-E-Mail-Fußzeile (02 §10.1, 04 SC-58, 05 §5.5) |
 | `logo_path` | text | null | Pfad im Bucket `logos` |
 | `accent_color` | text | null, `^#[0-9A-Fa-f]{6}$` | Akzentfarbe für Portal, PDF, E-Mail |
 | `price_entry_mode` | price_basis | not null, `'net'` | Eingabeart der Preise (02 §3.6) |
 | `default_pricing_mode` | pricing_mode | not null, `'flat'` | Vorbelegung `quotes.pricing_mode` |
 | `default_markup_bp` | integer | not null, `20000` | Aufschlag auf den Wareneinsatz (200 % = Faktor 3,0) |
-| `price_rounding_cents` | integer | not null, `10`, ∈ {1, 10, 50, 100} | Preisraster für den Preisvorschlag; `1` = kein Raster |
+| `price_rounding_cents` | integer | not null, `10`, ∈ {1, 10, 50, 100} | Preisraster für den Preisvorschlag, immer aufgerundet (02 §3.3); `1` = kein Raster |
 | `is_small_business` | boolean | not null, `false` | Kleinunternehmer: keine USt, Hinweistext (**Vorschlag** aus 02 §3.5) |
 | `quote_validity_days` | integer | not null, `14` | Vorbelegung `quotes.valid_until` |
-| `portal_change_lead_hours` | integer | `72`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` |
+| `portal_change_lead_hours` | integer | `72`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Event-Catering |
+| `portal_change_lead_hours_business_lunch` | integer | `24`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Business-Lunch (**Vorschlag**, 01 §4.2.6) |
 | `portal_token_ttl_days` | integer | not null, `60` | Portal-Link gültig bis Eventende + n Tage |
 | `shift_cancel_deadline_hours` | integer | not null, `48`, 0–168 | Absagefrist der Schichtbörse |
-| `shopping_buffer_bp` | integer | not null, `500` | Puffer der Einkaufsliste (5 %) |
+| `shopping_buffer_bp` | integer | not null, `500` | Puffer nur der Einkaufsliste (5 %); die Produktionsliste hat keinen Puffer (02 §8) |
 | `quote_intro_text`, `quote_terms_text`, `quote_closing_text` | text | null | Standardtexte für neue Angebote |
 | `quote_item_templates` | jsonb | not null, `'[]'` | Vorlagen für Zusatzpositionen: `[{type, name, unit_label, unit_price_cents, quantity_mode, hours}]` („Servicekraft 32,00 €/h“, „Anfahrt“, „Getränkepauschale“) |
 | `quote_number_year`, `quote_number_seq` | integer | null / `0` | Zähler für die Angebotsnummer `A-JJJJ-NNNN` (Trigger) |
 | `avv_accepted_at`, `avv_accepted_by` | timestamptz / uuid | null | Annahme des AVV (US-62.1) |
+| `avv_version` | text | null | angenommene AVV-Version (02 §10.1); `create_company()` setzt die aktuelle Version |
+| `onboarding_completed_at` | timestamptz | null | Onboarding abgeschlossen oder übersprungen; steuert das Auth-Gate (04 §1.1 Nr. 2) |
 | `created_by` | uuid | null | Nutzer, der die Firma angelegt hat |
 | `deletion_requested_at` | timestamptz | null | gesetzt = Löschung beantragt; ab sofort liefern die `auth_*`-Funktionen null, damit hat niemand mehr Zugriff (US-60.2) |
 | `created_at`, `updated_at` | timestamptz | not null, `now()` | |
@@ -378,6 +394,7 @@ Mitgliedschaft eines Nutzers. Verknüpft `auth.users` 1:1 mit genau einer Firma.
 | `removed_reason` | text | null | `removed_by_admin`, `left`, `account_deleted` |
 
 - **Aktiv** = `user_id is not null and removed_at is null`.
+- **Lesen:** `admin` alle Zeilen der Firma; `kitchen` und `staff` nur die eigene Zeile. Die Teamliste der Küche (Name, Rolle, Telefon, 01 §3.2) kommt aus der View `team_directory` (4.6), damit `login_email`, `notification_prefs`, `ical_token_hash` und `removed_reason` anderer Mitglieder nie ausgeliefert werden.
 - **Unique:** `user_id` (ein Nutzer, eine Firma); `(company_id, id)`.
 - **Index:** `(company_id, role) where removed_at is null`.
 - **Regeln:** Der letzte aktive `admin` kann weder herabgestuft noch entfernt werden (Prüfung in `set_member_role()`/`remove_member()` plus Trigger als Sicherung, **Vorschlag**). Beim Entfernen: `removed_at`, `user_id = null`, `ical_token_hash = null`, Push-Tokens löschen, Bewerbungen nach US-07.3. Bei Kontolöschung zusätzlich `display_name = 'Ehemaliges Mitglied'`, `phone`/`login_email = null` (US-08.1).
@@ -414,7 +431,7 @@ Aktueller Abo-Zustand je Firma (eine Zeile pro Firma). Die Historie liegt bei St
 |---|---|---|---|
 | [S] | | | `company_id` zusätzlich **unique** |
 | `plan` | subscription_plan | not null, `'profi'` | gebuchte Stufe; in der Testphase `profi` |
-| `status` | subscription_status | not null, `'trialing'` | gespiegelt aus Stripe |
+| `status` | subscription_status | not null, `'trialing'` | 1:1 gespiegelt aus Stripe; ohne Stripe `trialing` (App-Testphase) |
 | `billing_interval` | text | null, `month`/`year` | |
 | `stripe_customer_id`, `stripe_subscription_id` | text | null, unique | |
 | `stripe_price_id` | text | null | |
@@ -423,7 +440,8 @@ Aktueller Abo-Zustand je Firma (eine Zeile pro Firma). Die Historie liegt bei St
 | `cancel_at_period_end` | boolean | not null, `false` | |
 | `canceled_at`, `payment_failed_at` | timestamptz | null | `payment_failed_at` startet die 14-Tage-Kulanz |
 | `writable_until` | timestamptz | not null | **einzige Quelle** für `company_is_writable()`; Regeln in Abschnitt 6.1 |
-| `last_stripe_event_id`, `last_stripe_event_at` | text / timestamptz | null | Idempotenz des `stripe-webhook` |
+| `stripe_synced_at` | timestamptz | null | Zeitpunkt, zu dem `stripe-webhook` den geschriebenen Stand bei Stripe abgerufen hat; ein Stand mit älterem Abrufzeitpunkt wird verworfen (6.1) |
+| `last_stripe_event_id`, `last_stripe_event_at` | text / timestamptz | null | zuletzt verarbeitetes Ereignis (Diagnose); Idempotenz über `stripe_events` (3.7) |
 
 - **Schreiben:** nur `service_role` (`stripe-webhook`, `create_company()`). `admin` liest; alle anderen sehen `is_writable` und `effective_plan` über `company_profile`.
 
@@ -470,8 +488,8 @@ Auftrag (Event-Catering oder Business-Lunch) mit Status, Termin, Ort und Hinweis
 | `meeting_point`, `dress_code`, `staff_notes` | text | null | Hinweise fürs Personal (Slot kann überschreiben) |
 | `kitchen_notes` | text | null | Hinweise für die Küche |
 | `internal_notes` | text | null | nur `admin`; nimmt auch Antworten des Fragenkatalogs ohne Feldzuordnung auf |
-| `option_expires_at` | timestamptz | null | „optioniert bis“ (Ende des gewählten Tages in Europe/Berlin); nur in `optioned` erlaubt (Check) |
-| `changes_until` | timestamptz | null | Änderungsschluss im Portal; vorbelegt aus `companies.portal_change_lead_hours` |
+| `option_expires_at` | timestamptz | null | „optioniert bis“ (Ende des gewählten Tages in Europe/Berlin); in `optioned` Pflicht, sonst null (Check) |
+| `changes_until` | timestamptz | null | Änderungsschluss im Portal; vorbelegt aus `companies.portal_change_lead_hours` (Event-Catering) bzw. `portal_change_lead_hours_business_lunch` (Business-Lunch), je Auftrag änderbar; null = kein Änderungsschluss |
 | `portal_locked` | boolean | not null, `false` | Portal-Änderungen gesperrt |
 | `cancellation_agreement` | text | null | Freitext „Stornovereinbarung“ (02 §1.1) |
 | `invoice_reference`, `invoiced_on` | text / date | null | externe Rechnungsnummer und -datum bis zum Rechnungsmodul |
@@ -480,10 +498,10 @@ Auftrag (Event-Catering oder Business-Lunch) mit Status, Termin, Ort und Hinweis
 | `created_by_member_id` | uuid | null, Default `auth_member_id()` | (c, …) → `company_members` SET NULL (Spalte) |
 
 - **Unique:** `(company_id, id)`.
-- **Checks:** `ends_at > starts_at`; `option_expires_at is null or status = 'optioned'`.
+- **Checks:** `ends_at > starts_at`; `(status = 'optioned') = (option_expires_at is not null)` („optioniert bis“ Pflicht, 02 §1.3).
 - **Indizes:** `(company_id, starts_at)` Kalender; `(company_id, status, event_date)` Listen und Tagesansicht; `(customer_id)`; GIN-Trigramm auf `title`.
 - **Trigger (Vorschlag):** Ändert sich `starts_at`/`ends_at`, werden `portal_tokens.expires_at` der aktiven Tokens neu berechnet.
-- **Löschen** („Anfrage verwerfen“) nur im Status `inquiry` und ohne versendete Revision (Policy).
+- **Löschen** („Fehleingabe löschen“, 02 §1.1) nur im Status `inquiry` und ohne versendete Revision (Policy). Eine Anfrage, die nicht zustande kommt, wird `declined`.
 
 #### `event_schedule_items`
 
@@ -540,7 +558,7 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `event_id` | uuid | not null, **unique** | (c, …) → `events` CASCADE |
 | `number` | text | not null | `A-JJJJ-NNNN` je Firma fortlaufend (Trigger `assign_quote_number`, race-sicher über Zeilensperre auf `companies`); Revision als Zusatz `R2` nur in der Anzeige |
 | `status` | quote_status | not null, `'draft'` | |
-| `revision` | integer | not null, `0` | 0 = nie versendet; +1 je Versand und je Portal-Änderung |
+| `revision` | integer | not null, `0` | 0 = nie versendet; +1 je Versand (Portal-Aktionen erzeugen keine Revision, 02 §4) |
 | `pricing_mode` | pricing_mode | not null, `'flat'` | Kalkulationsart des Angebots |
 | `markup_bp` | integer | not null, `20000` | Aufschlag des Angebots (überschreibbar je Position) |
 | `price_display` | price_basis | not null, `'gross'` | Anzeige netto/brutto; bei Anlage aus `customers.type` vorbelegt, umschaltbar |
@@ -554,10 +572,16 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `cost_total_cents` | integer | null | Wareneinsatz gesamt (nur `admin`) |
 | `cost_incomplete` | boolean | not null, `false` | „Wareneinsatz unvollständig“ |
 | `has_unsent_changes` | boolean | not null, `false` | Banner „Änderungen nicht versendet“ |
-| `snapshot` | jsonb | null; gesetzt genau dann, wenn `revision > 0` | eingefrorener Stand der aktuellen Revision (Format unten) |
-| `snapshot_hash` | text | null | SHA-256 (hex) über `snapshot::text` (jsonb-Textausgabe ist kanonisch sortiert) |
+| `snapshot` | jsonb | null; gesetzt genau dann, wenn `revision > 0` | eingefrorener Stand der aktuellen Revision (Format unten); unveränderlich bis zur nächsten Revision |
+| `snapshot_hash` | text | null | `encode(sha256(convert_to(snapshot::text, 'UTF8')), 'hex')`, berechnet **nur** in `commit_quote_send()` (jsonb-Textausgabe ist kanonisch; ein in TypeScript berechneter Hash würde abweichen) |
+| `pdf_path` | text | null | Objektpfad des PDFs der aktuellen Revision im Bucket `quotes` (8), gesetzt in `commit_quote_send()` |
+| `send_log` | jsonb | not null, `'[]'` | Versandprotokoll, nur anhängen: `{revision, sent_at, via, send_mode, pdf_path, snapshot_hash, member_id}`; Grundlage der PDF-Historie (US-28.2) |
+| `binding_snapshot` | jsonb | null | **verbindlicher Stand** für Küche und Portal (01 §4.2.3): Snapshot der zuletzt angenommenen, im Portal bestätigten oder „Zur Info“ versendeten Revision, mit eingearbeiteter Menüwahl und Mengen aus `portal_selection` |
+| `binding_revision` | integer | null, ≤ `revision` | Revision von `binding_snapshot`; `< revision` = neuere Revision noch nicht verbindlich |
+| `portal_selection` | jsonb | null | Menüwahl und Mengen, die der Kunde **vor** der Annahme direkt setzt (02 §4.1): `{"choices": {choice_group: item_id}, "quantities": {item_id: quantity}}`; ändert weder Snapshot noch Hash |
+| `selection_updated_at` | timestamptz | null | letzte Änderung von `portal_selection` |
 | `sent_at` | timestamptz | null | letzter Versand |
-| `sent_via` | text | null, `email`/`link`/`internal` | `link` = „Link kopieren“; `internal` = Snapshot ohne Versand (z. B. Portal-Änderung) |
+| `sent_via` | text | null, `email`/`link` | `link` = „Link kopieren“ |
 | `send_mode` | text | null, `confirm_required`/`info_only` | Versandart bei `confirmed` (01 US-36.3) |
 | `email_status` | text | null, `pending`/`sent`/`failed`/`bounced` | Ergebnis von `send-email` |
 | `first_viewed_at`, `last_viewed_at` | timestamptz | null | Portal-Aufrufe der aktuellen Revision |
@@ -566,8 +590,8 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `acceptance_name`, `acceptance_email` | text | null | eingegebener Name und E-Mail |
 | `acceptance_ip` | inet | null | IP aus dem Request-Header (Edge Function) |
 | `acceptance_user_agent` | text | null | |
-| `acceptance_snapshot_hash` | text | null | Hash des angenommenen Snapshots |
-| `acceptance_total_gross_cents` | integer | null | Bruttosumme bei Annahme |
+| `acceptance_snapshot_hash` | text | null | Hash über Snapshot und Menüwahl: `sha256(convert_to(snapshot::text \|\| coalesce(portal_selection::text, ''), 'UTF8'))` |
+| `acceptance_total_gross_cents` | integer | null | Bruttosumme inklusive Menüwahl bei Annahme |
 | `acceptance_channel` | acceptance_channel | null | |
 | `acceptance_note` | text | null | bei `admin`: Bestätigungsweg (Telefon, E-Mail, persönlich); Kommentar des Kunden |
 | `acceptance_member_id` | uuid | null | (c, …) → `company_members` SET NULL (Spalte) |
@@ -575,13 +599,14 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `acceptance_log` | jsonb | not null, `'[]'` | alle Annahmen aller Revisionen, nur anhängen |
 | `declined_at`, `decline_reason`, `decline_comment` | timestamptz / text / text | null | Ablehnung mit Grund aus der Auswahlliste |
 | `change_log` | jsonb | not null, `'[]'` | Änderungsprotokoll, nur anhängen |
-| `pending_change` | jsonb | null | offener Änderungswunsch; nur nötig, falls die Variante „Änderungswunsch“ aus 01 gilt (Abschnitt 10) |
+| `pending_change` | jsonb | null | höchstens ein offener Änderungswunsch des Kunden (02 §4.2): `{requested_at, revision, name, comment, ip, user_agent, changes: {guest_count, choices, quantities}}`; gesetzt von `portal_request_change()`, geschlossen von `resolve_pending_change()` |
 | `editor_active_seconds` | integer | not null, `0` | aktive Editorzeit für Kennzahl K-01 |
 
 - **Unique:** `event_id`; `(company_id, number)`; `(company_id, id)`.
-- **Checks:** ein Rabatt-Typ; eine Anzahlungsart; `(revision = 0) = (snapshot is null)`; Annahmefelder vollständig.
-- **Status-Semantik:** `draft` ⇔ `revision = 0`. `send_quote()` setzt `sent`. Eine Annahme setzt `accepted` mit `acceptance_revision = revision`. Eine neue Revision nach einer Annahme setzt wieder `sent`; die frühere Annahme bleibt in `accepted_at`/`acceptance_log` erhalten. Bei `info_only` gilt die neue Revision sofort als angenommen (`acceptance_channel = 'info_only'`).
-- **Systemfelder** (`status`, `revision`, `snapshot*`, `sent_*`, `accepted_at`, `acceptance_*`, `declined_*`, `*_log`, `pending_change`, `number`) sind für `authenticated` nicht direkt schreibbar (Spaltenprivileg, Abschnitt 4.4).
+- **Checks:** ein Rabatt-Typ; eine Anzahlungsart; `(revision = 0) = (snapshot is null)`; `(binding_revision is null) = (binding_snapshot is null)` und `binding_revision ≤ revision`; Annahmefelder vollständig.
+- **Status-Semantik:** `draft` ⇔ `revision = 0`. `commit_quote_send()` setzt `sent`. Eine Annahme (`portal_accept_quote()`, `record_acceptance()`) bzw. Bestätigung (`portal_confirm_revision()`) setzt `accepted` mit `acceptance_revision = revision`. Eine neue Revision nach einer Annahme setzt wieder `sent`; die frühere Annahme bleibt in `accepted_at`/`acceptance_log` erhalten. Bei `info_only` gilt die neue Revision sofort als angenommen (`acceptance_channel = 'info_only'`).
+- **Verbindlicher Stand:** `binding_snapshot`/`binding_revision` werden gesetzt bei Annahme (Portal oder erfasst), bei Bestätigung einer Revision im Portal und bei einem `info_only`-Versand, solange der Auftrag `confirmed` ist. Ein Versand mit „Bitte bestätigen“ lässt sie unverändert: Revision n bleibt verbindlich, bis der Kunde n+1 bestätigt (01 US-34.4, US-38.2). Dabei wird die Menüwahl aus `portal_selection` in die Positionen eingearbeitet (`is_selected`, Mengen), ebenso in den Live-Stand (`quote_items`), damit Revision n+1 die Wahl fortführt; `portal_selection` wird danach geleert.
+- **Systemfelder** (`status`, `revision`, `snapshot*`, `binding_*`, `portal_selection`, `selection_updated_at`, `pdf_path`, `sent_*`, `accepted_at`, `acceptance_*`, `declined_*`, `*_log`, `pending_change`, `number`) sind für `authenticated` nicht direkt schreibbar (Spaltenprivileg, Abschnitt 4.4).
 
 **Snapshot-Format** (`schema_version` 1; enthält keine Kalkulationsdaten und ist damit für Portal und PDF geeignet)
 
@@ -603,7 +628,8 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
   "items": [
     { "id": "…", "type": "package", "sort_order": 1, "name": "Menü Klassik", "description": "…",
       "menu_package_id": "…", "dish_id": null, "quantity": 80, "quantity_mode": "per_guest",
-      "unit_label": "Person", "hours": null, "unit_price_cents": 3900, "discount_bp": 0,
+      "unit_label": "Person", "hours": null, "unit_price_cents": 3900, "unit_price_display_cents": 3900,
+      "discount_bp": 0,
       "tax_rate_bp": 700, "line_net_cents": 291589, "line_tax_cents": 20411, "line_gross_cents": 312000,
       "choice_group": "menu", "is_selected": true, "is_heading": false,
       "allergens": ["celery", "milk", "sulphites"], "diets": [],
@@ -616,10 +642,10 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 }
 ```
 
-- `send_quote()` baut den Snapshot in SQL aus `quotes`, `quote_items`, Firma, Kunde und Auftrag zusammen und rechnet nichts neu. Vorher prüft die Funktion: Σ Positionsbeträge = Kopfsummen, Prüfregeln aus 02 §2.3, `expected_updated_at` (Schutz vor Doppelklick, US-27.5).
+- **Versand** (02 §2.4, 05 §5.4): Den Snapshot baut `render-quote-pdf` mit dem TS-Rechenmodul aus den Daten, die `prepare_quote_send()` liefert. `commit_quote_send()` rechnet nichts neu, sondern prüft die Konsistenz (Schema-Version, Σ Positionsbeträge = Kopfsummen je Steuersatz, Positions-IDs = Live-Stand, erwartete Revision) und berechnet den Hash. Beide RPCs sind nur für `service_role` ausführbar; ohne PDF gibt es keinen Versand und keine neue Revision (01 US-27.7). `unit_price_display_cents` ist der angezeigte Einzelpreis auf der Rechenseite (02 §3.6).
 - Allergene zeigen Portal und Küche **live** aus `dish_allergens`, nicht aus dem Snapshot (01 US-18.7: Sicherheit geht vor Snapshot). Das versendete PDF bleibt unverändert.
-- `change_log`-Eintrag: `{at, revision, source: "portal"|"admin", name, ip, user_agent, changes: [{field, from, to}]}`.
-- `acceptance_log`-Eintrag: `{at, revision, channel, name, email, ip, user_agent, snapshot_hash, total_gross_cents, member_id, portal_token_id, note}`.
+- `change_log`-Eintrag: `{at, revision, source: "portal"|"admin", kind: "choice"|"change_request"|"change_resolved", name, ip, user_agent, changes: [{field, from, to}]}`.
+- `acceptance_log`-Eintrag: `{at, revision, channel, name, email, ip, user_agent, snapshot_hash, total_gross_cents, member_id, portal_token_id, note, pdf_path}`; `pdf_path` zeigt auf `r{revision}-angenommen.pdf`.
 
 #### `quote_items`
 
@@ -652,7 +678,7 @@ Positionen des Live-Stands. Werte aus Katalog und Paket werden beim Hinzufügen 
 
 - **Checks:** `(type = 'package') = (menu_package_id is not null)`; `(type = 'dish') = (dish_id is not null)`; `hours` nur bei `service`; Überschrift nur als `custom` ohne Preis.
 - **Indizes:** `(quote_id, sort_order)`; `(dish_id)` und `(menu_package_id)` partiell (Verwendungsprüfung beim Archivieren/Löschen); `(tax_rate_id)`.
-- **Küche** liest Positionen nie direkt, sondern über `kitchen_production_lines` (ohne Preise).
+- **Küche** liest Positionen nie direkt, sondern über `kitchen_production_lines` (ohne Preise, aus dem verbindlichen Stand, 4.6).
 
 #### `tax_rates`
 
@@ -729,7 +755,7 @@ Die 14 Pflichtallergene je Gericht. Eine Zeile = „enthält“; keine Zeile = �
 | [S ohne id] | | | |
 | `dish_id` | uuid | not null | (c, …) → `dishes` CASCADE |
 | `ingredient_id` | uuid | not null | (c, …) → `ingredients` NO ACTION (Zutat in Verwendung nur archivierbar) |
-| `quantity_per_person` | numeric(10,1) | not null, > 0 | Menge pro Person in der Basiseinheit |
+| `quantity_per_person` | numeric(10,1) | not null, > 0 | Menge pro Person in der Basiseinheit = **Einkaufsmenge der Rohware vor Garverlust** (02 §3.3); Grundlage von Wareneinsatz und Einkaufsliste |
 | `sort_order` | integer | not null, `0` | |
 
 - **PK:** `(dish_id, ingredient_id)`. **Index:** `(ingredient_id)`.
@@ -789,19 +815,20 @@ Die 14 Pflichtallergene je Gericht. Eine Zeile = „enthält“; keine Zeile = �
 |---|---|---|---|
 | [S] | | | |
 | `event_id` | uuid | not null | (c, …) → `events` CASCADE |
-| `qualification_id` | uuid | null = jede Qualifikation | (c, …) → `qualifications` NO ACTION |
+| `qualification_id` | uuid | **not null** | (c, …) → `qualifications` NO ACTION; Pflicht (00 §3, 01 US-42.1) |
 | `title` | text | not null | „Service“, „Bar“, „Spüle“ |
 | `starts_at`, `ends_at` | timestamptz | not null, `ends_at > starts_at` | Schichtzeit (darf von der Eventzeit abweichen) |
 | `seats` | integer | not null, 1–100 | Anzahl Plätze |
+| `taken_seats` | integer | not null, `0`, Check `taken_seats between 0 and seats` | belegte Plätze (`accepted` + `assigned`), gepflegt vom Trigger `track_slot_occupancy` (7.5); nie direkt schreibbar |
 | `meeting_point`, `dress_code`, `notes` | text | null | überschreiben die Angaben des Auftrags |
 | `published_at` | timestamptz | null = Entwurf | Veröffentlichung erst ab `optioned` (`publish_slots()`) |
 | `cancelled_at`, `cancel_reason` | timestamptz / text | null | Slot abgesagt bzw. geschlossen |
-| `special_cancel_until` | timestamptz | null | Sonderabsagerecht: Benachrichtigung + 24 h nach einer Zeitänderung (01 §4.2.4, 02 §5.7) |
+| `special_cancel_until` | timestamptz | null | Sonderabsagerecht: Benachrichtigung + 24 h nach einer **wesentlichen** Zeitänderung (Beginn oder Ende > 60 min verschoben oder anderer Kalendertag, 02 §5.7); wirkt höchstens bis `starts_at` |
 
-- **Zustand** wird berechnet (02 §5.2): Entwurf, offen, besetzt, abgesagt, vergangen. Belegt = Bewerbungen mit `status in ('accepted', 'assigned')`.
+- **Zustand** wird berechnet (02 §5.2): Entwurf, offen, besetzt, abgesagt, vergangen. Belegt = `taken_seats` (= Bewerbungen mit `status in ('accepted', 'assigned')`).
 - **Indizes:** `(company_id, starts_at) where published_at is not null and cancelled_at is null` (Börse); `(event_id)`; `(qualification_id)`.
-- **Trigger:** `guard_slot_seats` verhindert `seats` unter der Zahl der Belegten.
-- **Lesen** `kitchen`/`staff`: nur über `shift_board` und `my_shifts`.
+- **Kapazität:** Die Check-Constraint `taken_seats between 0 and seats` verhindert auch, dass `seats` unter die Zahl der Belegten sinkt (Fehler `23514`, Constraint `shift_slots_taken_le_seats` → App-Code `seats_below_taken`).
+- **Lesen** `kitchen`/`staff`: nur über `shift_board`, `my_shifts`; `kitchen` zusätzlich `event_staffing` (Besetzung je Auftrag, 01 §3.2), `staff` zusätzlich `event_colleagues` (4.6).
 
 #### `shift_applications`
 
@@ -822,7 +849,7 @@ Bewerbung, Zusage, Einplanung und Absage. Je Slot und Mitglied gibt es genau ein
 
 - **Unique:** `(shift_slot_id, member_id)`.
 - **Indizes:** `(member_id, status)` für „Meine Einsätze“; `(shift_slot_id) where status in ('accepted', 'assigned')` für die Belegungszählung.
-- **Überbuchungsschutz:** Trigger `enforce_slot_capacity` (Abschnitt 7.5). Er sperrt die Slot-Zeile per `SELECT … FOR UPDATE`, zählt danach mit frischem Snapshot und bricht bei vollem Slot mit `hint = 'slot_full'` ab. Er greift auf jedem Schreibweg (RPC, `service_role`). Getestet: Zwei parallele Zusagen auf den letzten Platz → die zweite wartet auf die erste und scheitert.
+- **Überbuchungsschutz:** Trigger `track_slot_occupancy` (Abschnitt 7.5). Jede neue Belegung führt eine echte Schreiboperation auf dem Slot aus (`update shift_slots set taken_seats = taken_seats + 1 where id = … and taken_seats < seats`); trifft sie keine Zeile, bricht er mit `hint = 'slot_full'` ab. Verlässt eine Bewerbung `accepted`/`assigned`, zählt er wieder herunter. Er greift auf jedem Schreibweg (RPC, `service_role`) und ist unter READ COMMITTED und REPEATABLE READ sicher (Begründung in 7.5).
 - **Schreiben** ausschließlich über RPCs (Abschnitt 4.7); auch `admin` hat kein direktes INSERT/UPDATE.
 
 ### 3.6 Kommunikation und externer Zugang
@@ -839,7 +866,7 @@ Bewerbung, Zusage, Einplanung und Absage. Je Slot und Mitglied gibt es genau ein
 | `last_seen_at` | timestamptz | not null, `now()` | bei App-Start aktualisiert |
 
 - **Index:** `(member_id)`.
-- **Registrierung** über `register_push_token()`: löscht eine vorhandene Zeile mit demselben Token (Gerätewechsel zwischen Konten) und legt sie für das aktuelle Mitglied neu an. `push-dispatch` löscht Tokens, die Expo als `DeviceNotRegistered` meldet.
+- **Registrierung** über `register_push_token()`: löscht eine vorhandene Zeile mit demselben Token (Gerätewechsel zwischen Konten) und legt sie für das aktuelle Mitglied neu an. `push-dispatch` löscht Tokens, die Expo im Ticket oder Receipt als `DeviceNotRegistered` meldet (`push_tickets.push_token_id` wird dabei null).
 
 #### `notifications`
 
@@ -855,14 +882,18 @@ Benachrichtigungsliste in der App und Warteschlange für Push.
 | `event_id` | uuid | null | (c, …) → `events` CASCADE |
 | `bundle_key` | text | null | Bündelung, z. B. `application_received:{event_id}` |
 | `bundle_count` | integer | not null, `1` | Zähler für „3 neue Bewerbungen“ |
-| `deliver_after` | timestamptz | not null, `now()` | Ruhezeit 22–7 Uhr für abschaltbare Kategorien |
-| `push_status` | push_status | not null, `'pending'` | |
+| `dedupe_key` | text | null | Idempotenz zeitgesteuerter Erinnerungen, z. B. `option_expiring:{event_id}:{lokales Datum}`, `shift_reminder:{application_id}`, `slots_unfilled:{shift_slot_id}` |
+| `deliver_after` | timestamptz | not null, `now()` | frühester Versand: Bündelfenster (15 min für Bewerbungen) bzw. Ruhezeit 22–7 Uhr für abschaltbare Kategorien |
+| `push_status` | push_status | not null, `'pending'` | `pending` → `sending` → `sent`/`failed`; `skipped` ohne Push |
+| `claimed_at` | timestamptz | null | Beanspruchung durch `push-dispatch` (`claim_notifications()`); Zeilen in `sending`, die älter als 10 min sind, setzt der Job `push_deferred` auf `pending` zurück |
 | `push_sent_at`, `push_error` | timestamptz / text | null | |
 | `read_at` | timestamptz | null | |
 
 - **Indizes:** `(member_id, created_at desc)`; `(member_id) where read_at is null` (Badge); `(deliver_after) where push_status = 'pending'`.
-- **Unique:** `(member_id, bundle_key) where push_status = 'pending' and bundle_key is not null`. Neue Ereignisse derselben Bündelung erhöhen per Upsert `bundle_count`, statt eine neue Zeile anzulegen.
+- **Unique:** `(member_id, bundle_key) where push_status = 'pending' and bundle_key is not null`: Neue Ereignisse derselben Bündelung erhöhen per Upsert `bundle_count`, statt eine neue Zeile anzulegen (nur Bündelung). `(member_id, dedupe_key)` **ohne Prädikat**: Jobs fügen Erinnerungen mit `on conflict (member_id, dedupe_key) do nothing` ein; ein erneuter Joblauf, ein Wiederholungslauf nach Fehler oder eine Bedingung wie „Stunde ≥ 8“ legt dieselbe Erinnerung daher nie doppelt an, auch nach dem Versand.
+- **Kategorie `billing`** (Abo-Hinweise, 02 §6.3): nie Push, kein Link, neutraler Text. Check: `category <> 'billing' or (push_status = 'skipped' and data = '{}'::jsonb)`; die erzeugende Funktion verwendet nur neutrale Texte ohne Preis und Aufforderung („Abo-Status: Lesemodus“).
 - **Anlegen** nur serverseitig (RPCs, Edge Functions); Mitglieder ändern nur `read_at` an eigenen Zeilen. Aufbewahrung 90 Tage (Job).
+- **Push-Tickets** der Expo-API stehen je Gerät in `push_tickets` (3.7); daraus liest der Job `push_receipts` die Receipts und löscht Tokens mit `DeviceNotRegistered` (01 US-51.6).
 
 #### `portal_tokens`
 
@@ -904,7 +935,7 @@ Lesen: alle `authenticated`; Schreiben: nur Migrationen.
 
 #### `intake_questions` – Fragenkatalog des Angebots-Chats
 
-Verbindlich aus 00 §3; Tabellenname und Struktur sind ein Vorschlag. Ein Katalog je Firma, Verzweigung über `show_if`.
+Verbindlich aus 00 §3; Tabellenname und Struktur sind ein Vorschlag. Ein Katalog je Firma, Verzweigung über `show_if`. Regeln für Ablauf und Feldzuordnung: 02 §11; Stories: 01 US-63 bis US-66.
 
 | Spalte | Typ | Null / Default | Beschreibung |
 |---|---|---|---|
@@ -914,15 +945,74 @@ Verbindlich aus 00 §3; Tabellenname und Struktur sind ein Vorschlag. Ein Katalo
 | `help_text` | text | null | |
 | `answer_type` | intake_answer_type | not null | |
 | `options` | jsonb | not null, `'[]'` | bei Auswahl: `[{value, label}]` |
-| `is_required` | boolean | not null, `false` | |
-| `target` | intake_target | null | Feldzuordnung; null = Antwort wird Notiz (`events.internal_notes` + `intake_answers`) |
-| `target_config` | jsonb | null | Zusatz zur Zuordnung, z. B. `{"diet": "vegetarian"}` bei `dietary_requirements` mit Antworttyp `number` |
+| `is_required` | boolean | not null, `false` | Pflichtfrage (kein „Überspringen“) |
+| `target` | intake_target | null | Feldzuordnung (02 §11.2); null = Antwort wird Notiz (`events.internal_notes` + `intake_answers`) |
+| `target_config` | jsonb | null | Zusatz zur Zuordnung, z. B. `{"diet": "vegetarian"}` bei `dietary_requirements` mit Antworttyp `number`. Bei `time_range` mit `target = 'starts_at'` füllt die Antwort Beginn und Ende (`starts_at`, `ends_at`); der Tag kommt aus einer Frage vom Typ `date` mit demselben Ziel |
 | `show_if` | jsonb | null | eine Bedingung: `{"question_id": "…", "operator": "equals" \| "in" \| "not_equals" \| "gt" \| "lt" \| "is_true", "value": …}` |
 | `archived_at` | timestamptz | null | Fragen werden archiviert, damit `show_if`-Verweise gültig bleiben |
 
 - **Index:** `(company_id, sort_order) where archived_at is null`.
-- Nur `admin`. Kompatibilität `target` ↔ `answer_type` und Zyklenfreiheit von `show_if` prüft die App beim Speichern.
-- **Standardkatalog (Vorschlag)** über `seed_company_defaults()`: Kunde · Art · Anlass (Hochzeit, Geburtstag, Firmenfeier, Trauerfeier, Sonstiges) · Datum und Beginn · Ende · Gästezahl · Ort · *nur bei Anlass = Hochzeit:* Sektempfang? · Anzahl vegetarisch · Anzahl vegan · Allergien bekannt? → *bei Ja:* Freitext · Budget pro Person · Servicepersonal gewünscht?
+- Nur `admin`. Kompatibilität `target` ↔ `answer_type` (Tabelle 02 §11.2) und Zyklenfreiheit von `show_if` (Bedingung nur auf eine frühere Frage) prüft die App beim Speichern.
+- **Standardkatalog (Vorschlag)** über `private.seed_company_defaults()`, deckungsgleich mit 04 §2.11:
+
+| # | `prompt` | `answer_type` (`options`) | `target` (`target_config`) | `is_required` | `show_if` |
+|---|---|---|---|---|---|
+| 1 | Für wen ist die Anfrage? | `customer` | `customer` | ja | – |
+| 2 | Was ist es? | `single_choice` (`event_catering` Event-Catering, `business_lunch` Business-Lunch) | `event_kind` | ja | – |
+| 3 | Welcher Anlass? | `single_choice` (Hochzeit, Geburtstag, Firmenfeier, Trauerfeier, Sonstiges) | `occasion`; Titelvorschlag „{Anlass} {Kunde}“ | nein | Frage 2 `equals` `event_catering` |
+| 4 | An welchem Tag? | `date` | `starts_at` (Tag) | ja | – |
+| 5 | Von wann bis wann? | `time_range` | `starts_at` (Beginn und Ende) | ja (Beginn) | – |
+| 6 | Wie viele Gäste? | `number` | `guest_count` | nein | – |
+| 7 | Wo findet es statt? | `text` | `venue` | nein | – |
+| 8 | Gibt es vor Ort eine Küche? | `boolean` | `kitchen_notes` | nein | Frage 2 `equals` `event_catering` |
+| 9 | Wird Service-Personal gewünscht? | `boolean` | – (Notiz) | nein | Frage 2 `equals` `event_catering` |
+| 10 | Sind Sonderessen bekannt? | `boolean` | – (Notiz; steuert 11–13) | nein | – |
+| 11 | Wie viele vegetarisch? | `number` | `dietary_requirements` (`{"diet": "vegetarian"}`) | nein | Frage 10 `is_true` |
+| 12 | Wie viele vegan? | `number` | `dietary_requirements` (`{"diet": "vegan"}`) | nein | Frage 10 `is_true` |
+| 13 | Allergien oder Unverträglichkeiten? | `text` | `kitchen_notes` (die Küche legt daraus genaue Sonderessen an) | nein | Frage 10 `is_true` |
+| 14 | Sektempfang oder Mitternachtssnack? | `multi_choice` (Sektempfang, Mitternachtssnack) | – (Notiz) | nein | Frage 3 `equals` Hochzeit |
+| 15 | Budget pro Person? | `number` (€) | – (Notiz) | nein | – |
+| 16 | Ihre Referenz (Bestellnummer, Kostenstelle)? | `text` | `customer_reference` | nein | Frage 2 `equals` `business_lunch` |
+
+#### `push_tickets` – Expo-Push-Tickets je Gerät (Vorschlag, 05 §5.6)
+
+| Spalte | Typ | Null / Default | Beschreibung |
+|---|---|---|---|
+| [S] | | | |
+| `notification_id` | uuid | not null | (c, …) → `notifications` CASCADE |
+| `push_token_id` | uuid | null | (c, …) → `push_tokens` SET NULL (Spalte) |
+| `expo_push_token` | text | not null | Kopie, falls der Token inzwischen gelöscht ist |
+| `ticket_id` | text | null, **unique** | Ticket-ID der Expo-API (null, wenn Expo sofort einen Fehler meldet) |
+| `status` | text | not null, `ok`/`error` | Ergebnis des Tickets |
+| `error` | text | null | z. B. `DeviceNotRegistered`, `MessageRateExceeded` |
+| `receipt_status` | text | null, `ok`/`error` | Ergebnis des Receipts |
+| `receipt_checked_at` | timestamptz | null | |
+
+- **Index:** `(receipt_checked_at) where ticket_id is not null and receipt_checked_at is null`.
+- Nur `service_role` (`push-dispatch`); Aufbewahrung 7 Tage (Job `push_receipts`).
+
+#### `stripe_events` – verarbeitete Stripe-Ereignisse (global, Vorschlag, 05 §7.4)
+
+| Spalte | Typ | Null / Default | Beschreibung |
+|---|---|---|---|
+| `id` | text | PK | Stripe-Event-ID (`evt_…`) |
+| `type` | text | not null | z. B. `invoice.payment_failed` |
+| `company_id` | uuid | null | → `companies` SET NULL; zur Diagnose |
+| `processed_at` | timestamptz | not null, `now()` | |
+
+- `stripe-webhook` legt die Zeile in derselben Transaktion an, in der `apply_stripe_subscription()` schreibt; ein Duplikat (`unique violation`) beendet die Verarbeitung ohne Nebenwirkungen (keine doppelte E-Mail B3/B4). Nur `service_role`; Aufbewahrung 90 Tage (Job `data_retention`).
+
+#### `usage_events` – Nutzungszähler für Kennzahlen (Vorschlag, 01 §7 K-10)
+
+| Spalte | Typ | Null / Default | Beschreibung |
+|---|---|---|---|
+| [S] | | | |
+| `member_id` | uuid | null | (c, …) → `company_members` SET NULL (Spalte) |
+| `kind` | text | not null, `shopping_list_viewed` | erweiterbar per Check |
+| `event_date` | date | not null | Tag in Europe/Berlin (für „Wochen mit Abruf“) |
+
+- **Unique:** `(company_id, member_id, kind, event_date)`: höchstens ein Eintrag je Mitglied, Art und Tag.
+- Schreiben nur über `log_usage_event(kind)`, auch im Lesemodus (keine Fachwirkung); Lesen nur über das Schema `analytics` (05 §10.4).
 
 #### `event_status_changes` – Statushistorie (US-11.7)
 
@@ -952,18 +1042,18 @@ Grenzen je Stufe als Konfiguration statt im Code (01 §6.1). Werte = Vorschlag a
 
 Lesen: alle `authenticated`. In der Testphase gilt `profi` (`effective_plan`).
 
-#### `data_exports` (US-59)
+#### `data_exports` – Exportprotokoll (US-59.4)
+
+Der Export läuft im Browser des Web-Admins (01 US-59.2, 02 §10.2, Entscheidung E-17); die Datenbank erzeugt keine Datei. Die Tabelle protokolliert nur, wer wann was exportiert hat.
 
 | Spalte | Typ | Null / Default | Beschreibung |
 |---|---|---|---|
 | [S] | | | |
 | `requested_by_member_id` | uuid | null | (c, …) → `company_members` SET NULL (Spalte) |
-| `status` | text | not null, `queued`/`running`/`ready`/`failed`/`expired` | |
-| `file_path` | text | null | Pfad im Bucket `exports` |
-| `ready_at`, `expires_at` | timestamptz | null | Download 24 h gültig |
-| `error` | text | null | |
+| `scope` | text | not null, `company`/`customer` | Firma komplett oder ein Endkunde (US-61.1) |
+| `customer_id` | uuid | null | bei `scope = 'customer'`; (c, …) → `customers` SET NULL (Spalte) |
 
-Lesen und Anlegen: `admin`, auch im Lesemodus. Die Tabelle dient zugleich als Protokoll, wer wann exportiert hat (US-59.4).
+Anlegen nur über `request_data_export(scope, customer_id)`, das der Web-Admin vor dem Abruf aufruft; Lesen `admin`, beides auch im Lesemodus.
 
 ---
 
@@ -971,7 +1061,7 @@ Lesen und Anlegen: `admin`, auch im Lesemodus. Die Tabelle dient zugleich als Pr
 
 ### 4.1 Grundsätze
 
-1. **Default deny.** RLS ist auf jeder Tabelle aktiv. `anon` hat keine Rechte auf Tabellen, Views und Funktionen in `public` (`revoke all … from anon` plus geänderte Default Privileges). `authenticated` erhält nur, was Policies und Grants ausdrücklich erlauben.
+1. **Default deny.** RLS ist auf jeder Tabelle aktiv. `anon` hat keine Rechte auf Tabellen, Views und Funktionen in `public`. `authenticated` erhält nur, was Policies und Grants ausdrücklich erlauben. **Funktionen:** Postgres vergibt `EXECUTE` global an `PUBLIC`, und Supabase vergibt per Default Privileges in `public` zusätzlich `EXECUTE` an `anon` und `authenticated`. Ein `alter default privileges in schema public revoke … from public` wirkt nicht, weil globale Default-Rechte nicht pro Schema widerrufen werden können. Deshalb gilt ab der ersten Migration (7.1): `alter default privileges for role postgres revoke execute on functions from public;` (ohne `in schema`) und `alter default privileges for role postgres in schema public revoke execute on functions from anon, authenticated;`. Jede RPC wird danach ausdrücklich freigegeben (`grant execute … to authenticated` bzw. `to service_role`). Rein interne Funktionen (`seed_company_defaults()`) liegen im nicht veröffentlichten Schema `private`; Trigger-Funktionen erhalten kein `EXECUTE` für App-Rollen (Trigger prüfen beim Feuern kein `EXECUTE`). Ein pgTAP-Test sichert das ab (9.5).
 2. **Mandantenfilter in jeder Policy:** `company_id = (select public.auth_company_id())`. Die Klammerung mit `select` lässt Postgres die Funktion einmal je Statement auswerten (InitPlan) statt je Zeile.
 3. **Rolle und Firma kommen aus der Datenbank, nicht aus JWT-Claims.** Die Hilfsfunktionen lesen `company_members`. Damit wirken Rollenwechsel und Entfernen sofort (US-07.3 „verliert sofort den Zugriff“), ohne auf den Token-Refresh (bis zu 1 h) zu warten. Kosten: ein Index-Lookup über `company_members.user_id` je Statement.
 4. **Lesemodus:** Jede Schreib-Policy enthält `(select public.company_is_writable())`; jede schreibende RPC ruft `assert_writable()` auf (Abschnitt 6).
@@ -989,7 +1079,7 @@ Alle Funktionen: `language sql stable security definer set search_path = ''`, `g
 | `auth_role()` | member_role | Rolle des aktiven Mitglieds |
 | `company_is_writable(p_company_id default auth_company_id())` | boolean | `subscriptions.writable_until > now()` und keine Löschung beantragt |
 | `assert_writable()` | void | wirft `hint = 'read_only'` im Lesemodus (für RPCs) |
-| `can_read_event(p_event_id)` | boolean | `admin`: Auftrag der eigenen Firma · `kitchen`: Status `optioned`, `confirmed`, `completed`, `invoiced`, `cancelled` · `staff`: Status `optioned` bis `invoiced` **und** eigener Slot mit `accepted`/`assigned`, Slot nicht abgesagt |
+| `can_read_event(p_event_id)` | boolean | `admin`: Auftrag der eigenen Firma · `kitchen`: Status `optioned`, `confirmed`, `completed`, `invoiced`, `cancelled` · `staff`: Status `optioned` bis `invoiced` **und** eigener Slot mit `accepted`/`assigned`, Slot nicht abgesagt. Bei Migrationen je Meilenstein entsteht die Funktion in M3 ohne den `staff`-Zweig (`staff` → false) und wird in M7 mit `shift_slots`/`shift_applications` per `create or replace` ergänzt (9.2) |
 
 ### 4.3 Entscheidung: Preise vor der Küche verbergen
 
@@ -1017,7 +1107,8 @@ RLS filtert Zeilen, nicht Spalten. Die Küche braucht Gerichte, Zutaten, Pakete 
 | Tabelle | nicht direkt schreibbar | Weg |
 |---|---|---|
 | `events` | `status`, `company_id`, `created_by_member_id` | `set_event_status()` |
-| `quotes` | `number`, `status`, `revision`, `snapshot`, `snapshot_hash`, `sent_*`, `send_mode`, `email_status`, `*_viewed_at`, `accepted_at`, `acceptance_*`, `declined_*`, `change_log`, `acceptance_log`, `pending_change` | `send_quote()`, `discard_quote_changes()`, `record_acceptance()`, `record_decline()`, `portal_*` |
+| `quotes` | `number`, `status`, `revision`, `snapshot`, `snapshot_hash`, `binding_snapshot`, `binding_revision`, `portal_selection`, `selection_updated_at`, `pdf_path`, `send_log`, `sent_*`, `send_mode`, `email_status`, `*_viewed_at`, `accepted_at`, `acceptance_*`, `declined_*`, `change_log`, `acceptance_log`, `pending_change` | `prepare_quote_send()`/`commit_quote_send()` (nur `service_role`), `discard_quote_changes()`, `record_acceptance()`, `record_decline()`, `resolve_pending_change()`, `portal_*` |
+| `shift_slots` | `taken_seats`, `published_at`, `cancelled_at`, `cancel_reason`, `special_cancel_until` | Trigger `track_slot_occupancy`; `publish_slots()`, `cancel_slot()`, `shift_slot_times_changed()` |
 | `companies` | `quote_number_*`, `avv_*`, `created_by`, `deletion_requested_at`, `country` | Trigger, `create_company()`, `request_company_deletion()` |
 | `company_members` | alles außer `display_name`, `phone`, `notification_prefs` an der eigenen Zeile | `set_member_role()`, `remove_member()`, `accept-invitation` |
 | `shift_applications`, `subscriptions`, `notifications` (außer `read_at`), `portal_tokens` | vollständig | RPCs bzw. `service_role` |
@@ -1031,7 +1122,7 @@ Legende: **L** lesen · **S** schreiben (insert/update/delete laut Policy) · **
 | Tabelle | `admin` | `kitchen` | `staff` | Hinweise |
 |---|---|---|---|---|
 | `companies` | L, S (Spaltenrechte) | V `company_profile` | V `company_profile` | Insert `create_company()`, Löschung `request_company_deletion()` ¹ |
-| `company_members` | L; Rolle/Entfernen R (Entfernen ¹) | L (Teamliste) | L eigene Zeile | eigene Zeile: `display_name`, `phone`, `notification_prefs` ¹ |
+| `company_members` | L; Rolle/Entfernen R (Entfernen ¹) | L eigene Zeile; Teamliste V `team_directory` | L eigene Zeile | eigene Zeile: `display_name`, `phone`, `notification_prefs` ¹ |
 | `invitations` | L; S über R | – | – | `create_invitation()`, `resend_invitation()`, `revoke_invitation()` |
 | `subscriptions` | L | – | – | schreiben nur `service_role` |
 | `customers` | L, S | – | – | Delete nur ohne Aufträge |
@@ -1049,7 +1140,7 @@ Legende: **L** lesen · **S** schreiben (insert/update/delete laut Policy) · **
 | `menu_package_dishes` | L, S | L | – | |
 | `qualifications` | L, S | L | L | |
 | `member_qualifications` | L, S | L eigene | L eigene | |
-| `shift_slots` | L, S | V `shift_board`, `my_shifts` | V `shift_board`, `my_shifts` | Veröffentlichen/Absagen über R |
+| `shift_slots` | L, S | V `shift_board`, `my_shifts`, `event_staffing` | V `shift_board`, `my_shifts`, `event_colleagues` | Veröffentlichen/Absagen über R |
 | `shift_applications` | L; S nur R | L eigene; S nur R | L eigene; S nur R | Überbuchungs-Trigger |
 | `push_tokens` | eigene L, S ¹ | eigene L, S ¹ | eigene L, S ¹ | `register_push_token()` |
 | `notifications` | eigene L, `read_at` ¹ | eigene L, `read_at` ¹ | eigene L, `read_at` ¹ | Insert nur serverseitig |
@@ -1057,7 +1148,9 @@ Legende: **L** lesen · **S** schreiben (insert/update/delete laut Policy) · **
 | `allergens`, `plan_limits` | L | L | L | |
 | `intake_questions` | L, S | – | – | |
 | `event_status_changes` | L | – | – | |
-| `data_exports` | L, Insert ¹ | – | – | |
+| `data_exports` | L; Insert über R ¹ | – | – | `request_data_export()` |
+| `push_tickets`, `stripe_events` | – | – | – | nur `service_role` |
+| `usage_events` | Insert über R ¹ | Insert über R ¹ | Insert über R ¹ | `log_usage_event()`; Lesen nur Schema `analytics` |
 
 Der Endkunde hat keine Zeile in dieser Matrix: Er greift nie auf die Datenbank zu, sondern nur über `portal-api` (Abschnitt 5).
 
@@ -1067,59 +1160,79 @@ Alle Views: `with (security_invoker = false, security_barrier = true)`, `revoke 
 
 | View | Rollen | Zeilenfilter | Spalten (Auszug) | bewusst ausgelassen |
 |---|---|---|---|---|
-| `company_profile` | alle | eigene Firma | Name, Logo, Akzentfarbe, Telefon, Kontakt-E-Mail, Land, Absagefrist, `is_writable`, `effective_plan` | Positionsvorlagen mit Preisen, Aufschlag, Zähler, AVV, Steuer-IDs |
-| `kitchen_events` | `admin`, `kitchen` | Status `optioned`, `confirmed`, `completed`, `invoiced`, `cancelled` (gekennzeichnet) | Titel, Art, Status, Termin, Gästezahl, Ort, Ansprechpartner vor Ort, Hinweise Küche und Personal, `has_open_change` | Kunde, `internal_notes`, `intake_answers`, Rechnungs- und Stornofelder |
-| `kitchen_production_lines` | `admin`, `kitchen` | wie oben ohne `cancelled`; nur gewählte Positionen `package`/`dish` | Auftrag, Gericht, Kategorie, Portionen (Menge × Portionsfaktor), Herkunft Snapshot/Live | alle Beträge, übrige Positionstypen |
+| `company_profile` | alle | eigene Firma | Name, Logo, Akzentfarbe, Telefon, Kontakt-E-Mail, Land, Absagefrist, `onboarding_completed_at`, `is_writable`, `effective_plan` | Positionsvorlagen mit Preisen, Aufschlag, Zähler, AVV, Steuer-IDs |
+| `kitchen_events` | `admin`, `kitchen` | Status `optioned`, `confirmed`, `completed`, `invoiced`, `cancelled` (gekennzeichnet) | Titel, Art, Status, Termin, `guest_count` **aus dem verbindlichen Stand** (siehe unten), `draft_guest_count` (Live-Wert, nur für den Hinweis), `basis` (`binding`/`snapshot`/`live`), Ort, Ansprechpartner vor Ort, Hinweise Küche und Personal, `has_open_change` | Kunde, `internal_notes`, `intake_answers`, Rechnungs- und Stornofelder |
+| `kitchen_production_lines` | `admin`, `kitchen` | wie oben ohne `cancelled`; nur gewählte Positionen `package`/`dish` | Auftrag, Gericht, Kategorie, Portionen (Menge × Portionsfaktor), `basis` | alle Beträge, übrige Positionstypen |
+| `team_directory` | `admin`, `kitchen` | eigene Firma, aktive Mitglieder | `id`, `display_name`, `role`, `phone`, `joined_at` (01 §3.2: Name, Rolle, Telefon) | `login_email`, `notification_prefs`, `ical_token_hash`, `removed_*`, `user_id` |
+| `event_staffing` | `admin`, `kitchen` | Aufträge ab `optioned` (ohne `cancelled`, `declined`), nicht abgesagte Slots | je Slot: Auftrag, Titel, Qualifikation, Zeiten, `seats`, `taken_seats`, veröffentlicht ja/nein, Vornamen der Eingeplanten (01 §3.2 „Besetzung sehen“, 04 SC-21) | Bewerbungen, Kommentare, Telefon, Nachnamen |
 | `kitchen_dishes` | `admin`, `kitchen` | eigene Firma | alle Gerichtsspalten außer Preis/Steuer/Aufschlag, Allergene als Array | `price_cents`, `tax_rate_id`, `markup_bp` |
 | `kitchen_ingredients` | `admin`, `kitchen` | eigene Firma | Name, Einheit, Warengruppe, Archiv | `price_cents` |
 | `kitchen_menu_packages` | `admin`, `kitchen` | eigene Firma | Name, Beschreibung, Archiv, abgeleitete Allergene/Diätformen | Preis, Steuersatz, Aufschlag |
-| `shift_board` | `kitchen`, `staff` | veröffentlicht, nicht abgesagt, nicht begonnen, nicht voll, Auftrag `optioned`/`confirmed`, Qualifikation leer oder vorhanden | Slot-Titel, Zeiten, Qualifikation, freie Plätze, Dresscode, Art, Gästezahl, PLZ/Ort, „vorläufig“, eigener Bewerbungsstatus | Adresse, Auftragstitel, Kunde, Ansprechpartner, Preise |
-| `my_shifts` | alle (eigene Bewerbungen) | `member_id = auth_member_id()` | Status, Zeiten, Absagefrist (`cancel_deadline_at`), „Einsatz entfällt“; Einsatzinfos (Adresse, Treffpunkt, Dresscode, Ansprechpartner, Hinweise) **nur bei** `accepted`/`assigned` | Kunde, Preise |
-| `event_colleagues` (**Vorschlag**) | `staff`, `kitchen` | Aufträge mit eigenem Einsatz | Vorname und Qualifikation der übrigen Eingeplanten (01 Fußnote ⁹) | Telefon, Nachname |
+| `shift_board` | `kitchen`, `staff` | veröffentlicht, nicht abgesagt, nicht begonnen, nicht voll, Auftrag `optioned`/`confirmed`, Qualifikation vorhanden | Slot-Titel, Zeiten, Qualifikation, freie Plätze, Dresscode, Art, Gästezahl, PLZ/Ort, „vorläufig“, eigener Bewerbungsstatus | Adresse, Auftragstitel, Kunde, Ansprechpartner, Slot-Hinweis, Preise |
+| `my_shifts` | alle (eigene Bewerbungen) | `member_id = auth_member_id()` | Status, Zeiten, Absagefrist (`cancel_deadline_at`, höchstens Schichtbeginn), „Einsatz entfällt“; Einsatzinfos (Adresse, Treffpunkt, Dresscode, Ansprechpartner, Hinweise) **nur bei** `accepted`/`assigned` | Kunde, Preise |
+| `event_colleagues` | `staff`, `kitchen` | Aufträge, in denen das Mitglied selbst `accepted`/`assigned` ist (Slot nicht abgesagt) | Vorname und Slot-Qualifikation der übrigen Eingeplanten (01 Fußnote ⁹) | Telefon, Nachname, Bewerber |
 
-**Küche liest den verbindlichen Stand:** `kitchen_production_lines` liest die Positionen aus `quotes.snapshot` (versendete bzw. angenommene Revision, inklusive der Menüwahl). Nur wenn noch nie eine Revision existierte (`revision = 0`, z. B. direkt bestätigt), dient der Live-Stand. Unversendete Admin-Entwürfe landen so nie in Produktions- und Einkaufslisten. Aggregation über Tage, Ersatzgerichte und Konflikte berechnet das TS-Modul.
+**Küche liest den verbindlichen Stand** (01 §4.2.3, 02 §8): `kitchen_production_lines` und `kitchen_events` nehmen Positionen und Gästezahl aus der ersten vorhandenen Quelle:
+
+1. `quotes.binding_snapshot` (`basis = 'binding'`): zuletzt angenommene, bestätigte oder „Zur Info“ versendete Revision mit eingearbeiteter Menüwahl;
+2. sonst `quotes.snapshot` mit der Menüwahl aus `portal_selection` (`basis = 'snapshot'`, z. B. `optioned` vor der Annahme);
+3. sonst bei `revision = 0` der Live-Stand (`basis = 'live'`, z. B. Direktbestätigung ohne Angebot).
+
+Ein „Bitte bestätigen“-Versand ändert die Küchendaten also erst nach der Bestätigung; übernimmt der Admin einen Wunsch 80 → 95 in den Entwurf, zeigt die Küche weiter 80 Gäste und den Hinweis „Änderung offen“ (`has_open_change`: offener `pending_change`, `binding_revision < revision` oder Live-Gästezahl ≠ verbindliche Gästezahl). Unversendete Admin-Entwürfe landen so nie in Produktions- und Einkaufslisten. Aggregation über Tage, Ersatzgerichte, Konflikte, Puffer und Einkaufsliste berechnet das TS-Modul (`_shared/domain/kitchen`) aus diesen Views, `kitchen_ingredients`, `dish_ingredients` und `event_dietary_requirements`; eine eigene RPC für die Einkaufsliste gibt es nicht (05 §4.4). Abrufe der Einkaufsliste zählt die App über `log_usage_event()` (K-10).
 
 ### 4.7 RPC-Katalog
 
-Alle Funktionen: `security definer`, `set search_path = ''`, eigene Prüfung von Rolle und Mandant, `revoke execute … from public, anon`, `grant execute` nur an die genannte Rolle. Fehler werden mit `errcode` und einem maschinenlesbaren `hint` gemeldet (z. B. `slot_full`, `read_only`, `deadline_passed`), den die App in deutsche Texte übersetzt.
+Alle Funktionen: `security definer`, `set search_path = ''`, eigene Prüfung von Rolle und Mandant, `revoke execute … from public, anon, authenticated` und danach `grant execute` **nur** an die genannte Rolle (`authenticated` bzw. `service_role`). Funktionen „nur `service_role`“ sind damit für angemeldete Nutzer nicht aufrufbar (sonst könnte z. B. jeder sein Abo über `apply_stripe_subscription()` selbst schreibbar setzen). Fehlervertrag (0): `errcode = 'P0001'`, deutscher Text in `message`, maschinenlesbarer Code in `hint` (z. B. `slot_full`, `read_only`, `deadline_passed`, `revision_outdated`, `invalid_transition`); die App übersetzt `hint` in deutsche Texte (05 §4.6).
 
 | Funktion | Aufrufer | Zweck | Lesemodus |
 |---|---|---|---|
-| `create_company(name, contact_email, accept_avv, country)` | Nutzer ohne Firma | Firma, `admin`, Testphase, `seed_company_defaults()` | – |
-| `set_event_status(event_id, new_status, reason, confirmation_channel)` | `admin` | Übergangstabelle 02 §1.1, `event_status_changes`, Nebenwirkungen (Slots absagen, Benachrichtigungen, `option_expires_at` leeren) | gesperrt |
-| `copy_event(event_id, new_starts_at[], copy_slots, copy_dietary)` | `admin` | Kopie inkl. Angebot (Revision 0, neue Nummer), Zeitplan relativ verschoben (US-13) | gesperrt |
-| `send_quote(quote_id, expected_updated_at, via, send_mode)` | `admin` | Prüfregeln, Snapshot, `revision++`, Hash, Status, Portal-Token (gibt Klartext einmalig zurück) | gesperrt |
+| `create_company(name, contact_email, accept_avv, country)` | Nutzer ohne Firma | Firma, `admin`, Testphase, AVV-Version, `private.seed_company_defaults()` | – |
+| `set_event_status(event_id, new_status, reason, confirmation_channel)` | `admin` | Übergangstabelle 02 §1.1 (einzige Quelle), `event_status_changes`, Nebenwirkungen (Slots absagen, Benachrichtigungen, `option_expires_at` setzen bzw. leeren); bei `confirmed` per Annahme setzt sie den verbindlichen Stand | gesperrt |
+| `copy_event(event_id, new_starts_at[], copy_slots, copy_dietary, start_status, confirmation_channel)` | `admin` | Kopie inkl. Angebot (Revision 0, neue Nummer), Zeitplan relativ verschoben (US-13); `start_status` ∈ {`inquiry`, `confirmed`}, bei `confirmed` ist `confirmation_channel` Pflicht (Direktbestätigung, 02 §9); höchstens 10 Termine | gesperrt |
+| `create_event_from_intake(payload jsonb)` | `admin` | Abschluss des Angebots-Chats (02 §11.3): Kunde (falls neu), Auftrag `inquiry` (bzw. Update des Auftrags aus `payload.event_id`, nur `inquiry` mit Revision 0), Angebotsentwurf Revision 0, Sonderessen, Notizen und `intake_answers` in einer Transaktion | gesperrt |
+| `prepare_quote_send(quote_id, expected_updated_at, idempotency_key)` | nur `service_role` (`render-quote-pdf`) | Rolle `admin` und bestätigte Login-E-Mail des aufrufenden Mitglieds (übergeben aus dem geprüften JWT), Schreibbarkeit, Prüfregeln 02 §2.3; liefert Live-Stand, Firma, Kunde, Auftrag und eine `send_attempt_id`; dieselbe `idempotency_key` liefert dasselbe Ergebnis | gesperrt |
+| `commit_quote_send(quote_id, send_attempt_id, expected_revision, snapshot jsonb, pdf_path, via, send_mode)` | nur `service_role` (`render-quote-pdf`) | eine Transaktion: Zeilensperre, `revision = expected_revision` prüfen (sonst `revision_outdated`), Konsistenz des Snapshots (3.3), Hash in SQL, `revision++`, `pdf_path`, `send_log`, Status (`inquiry`/`declined` → `quoted`), bei `info_only` verbindlicher Stand, neuer Portal-Token (Klartext einmalig zurück) | gesperrt |
 | `discard_quote_changes(quote_id)` | `admin` | Live-Stand aus dem Snapshot wiederherstellen | gesperrt |
-| `record_acceptance(quote_id, note)`, `record_decline(quote_id, reason)` | `admin` | telefonische Annahme bzw. Ablehnung erfassen | gesperrt |
+| `record_acceptance(quote_id, note)`, `record_decline(quote_id, reason)` | `admin` | telefonische Annahme bzw. Ablehnung erfassen; die Annahme setzt `binding_snapshot` | gesperrt |
+| `resolve_pending_change(quote_id, accept boolean, reason)` | `admin` | offenen Änderungswunsch übernehmen (Werte in den Live-Stand, `has_unsent_changes`) oder ablehnen (Begründung Pflicht, E-Mail A10 über `send-email`); `change_log` (02 §4.2) | gesperrt |
 | `issue_portal_token(event_id, channel)` / `revoke_portal_tokens(event_id)` | `admin` | Link erzeugen (Klartext einmalig) / alle widerrufen | gesperrt / erlaubt |
 | `save_dish(payload jsonb)`, `save_ingredient(payload jsonb)` | `admin`, `kitchen` | atomar speichern; Preisfelder nur `admin` | gesperrt |
 | `anonymize_customer(customer_id)` | `admin` | US-61.2 | gesperrt |
 | `create_invitation(...)`, `resend_invitation(id)`, `revoke_invitation(id)` | `admin` | Planlimit, Token (Klartext einmalig) | gesperrt |
 | `set_member_role(member_id, role)`, `set_member_qualifications(member_id, uuid[])` | `admin` | letzter Admin, Admin-Limit | gesperrt |
 | `remove_member(member_id)` | `admin` | Folgen nach US-07.3 | erlaubt |
-| `leave_company()`, `delete_my_account()` | jedes Mitglied | US-08 (letzter Admin gesperrt) | erlaubt |
-| `publish_slots(slot_ids uuid[])`, `cancel_slot(slot_id, reason)`, `shift_slot_times_changed(slot_id)` | `admin` | Planprüfung `shift_board`; gebündelter Push; Sonderabsagerecht | gesperrt |
+| `leave_company()`, `delete_my_account()` | jedes Mitglied | US-08: künftige Zusagen → `cancelled_by_staff` (nach Fristablauf mit `late_cancellation`), letzter Admin gesperrt; bei Apple-Konten ruft die App die Function `delete-account` auf, die zuerst das Apple-Token widerruft (05 §6.7) | erlaubt |
+| `publish_slots(slot_ids uuid[])`, `cancel_slot(slot_id, reason)` | `admin` | Auftrag mindestens `optioned`; Planprüfung `shift_board`; gebündelter Push | gesperrt |
+| `shift_slot_times_changed(slot_id, old_starts_at, old_ends_at)` | `admin` (aus dem Slot-Speichern) | Push „Einsatz geändert“; bei **wesentlicher** Änderung (Beginn oder Ende um mehr als 60 min verschoben oder Beginn an anderem Kalendertag in Europe/Berlin) `special_cancel_until = now() + 24 h` | gesperrt |
 | `apply_for_slot(slot_id, comment)` | `kitchen`, `staff` | Bewerbung bzw. Neubewerbung | gesperrt |
-| `cancel_my_application(application_id, reason)` | jedes Mitglied (eigene) | `applied` → `withdrawn`; `accepted`/`assigned` → `cancelled_by_staff` bis zur Frist | gesperrt (US-47.7) |
-| `decide_application(application_id, accept, note)` | `admin` | Zusage/Absage/Ausplanen | gesperrt |
-| `assign_member(slot_id, member_id, ignore_qualification)` | `admin` | Direkt einplanen | gesperrt |
+| `cancel_my_application(application_id, reason)` | jedes Mitglied (eigene) | `applied` → `withdrawn`; `accepted`/`assigned` → `cancelled_by_staff` bis zur Frist bzw. innerhalb des Sonderabsagerechts, nie nach Schichtbeginn | gesperrt (US-47.7) |
+| `decide_application(application_id, accept, note)` | `admin` | Zusage (auch `rejected` → `accepted`) / Absage / Ausplanen | gesperrt |
+| `assign_member(slot_id, member_id, ignore_qualification)` | `admin` | Direkt einplanen, Auftrag mindestens `optioned` | gesperrt |
 | `record_late_cancellation(application_id, reason)` | `admin` | Absage nach Frist, `late_cancellation = true` | gesperrt |
 | `register_push_token(token, platform)`, `mark_notifications_read(ids uuid[])`, `reset_ical_token()` | jedes Mitglied | | erlaubt |
-| `request_data_export()`, `request_company_deletion(confirm_name)` | `admin` | US-59, US-60 | erlaubt |
-| `portal_get(token_hash)`, `portal_accept_quote(...)`, `portal_decline_quote(...)`, `portal_apply_change(...)`, `portal_save_dietary(...)`, `portal_mark_viewed(...)` | nur `service_role` (`portal-api`) | Abschnitt 5 | eigene Regel (6.4) |
+| `log_usage_event(kind)` | jedes Mitglied | Nutzungszähler (`usage_events`, K-10), höchstens ein Eintrag je Mitglied, Art und Tag | erlaubt |
+| `request_data_export(scope, customer_id)`, `request_company_deletion(confirm_name)` | `admin` | US-59 (nur Protokoll, der Export läuft im Browser); US-60 (sofortiger Zugriffsentzug über `deletion_requested_at`; stößt per `pg_net` die sofortige Kündigung eines laufenden Stripe-Abos an, interne Aktion `cancel_subscription` von `create-checkout-session`; endgültige Löschung nach 30 Tagen, 6.4) | erlaubt |
+| `portal_get(token_hash)` | nur `service_role` (`portal-api`) | Ansicht nach 5.3 | erlaubt |
+| `portal_accept_quote(token_hash, revision, name, email, ip, user_agent, comment)`, `portal_decline_quote(token_hash, revision, reason, comment, ip, user_agent)` | nur `service_role` | Annahme bzw. Ablehnung in `quoted`/`optioned`; Annahme setzt `binding_snapshot` mit Menüwahl | eigene Regel (6.4) |
+| `portal_select_choice(token_hash, revision, choice_group, item_id, quantities jsonb)` | nur `service_role` | Menüwahl und Mengen **vor** der Annahme direkt in `portal_selection` (02 §4.1), keine neue Revision; nur `quoted`/`optioned`, vor dem Änderungsschluss | eigene Regel (6.4) |
+| `portal_request_change(token_hash, revision, payload jsonb, name, ip, user_agent)` | nur `service_role` | Änderungswunsch (Gästezahl; Menüwahl und Mengen nach Bestätigung) in `pending_change`; ersetzt einen offenen Wunsch (US-34.2); Benachrichtigung A8 | eigene Regel (6.4) |
+| `portal_confirm_revision(token_hash, revision, name, email, ip, user_agent)` | nur `service_role` | „Änderung bestätigen“: nur bei `confirmed`, `send_mode = 'confirm_required'` und `acceptance_revision < revision`; Protokoll wie eine Annahme (Kanal `portal_confirmation`), verbindlicher Stand = neue Revision | eigene Regel (6.4) |
+| `portal_save_dietary(token_hash, payload jsonb, name)`, `portal_delete_dietary(token_hash, dietary_id)`, `portal_mark_viewed(token_hash, revision)` | nur `service_role` | Sonderessen direkt (Quelle `customer`); Aufruf protokollieren | eigene Regel (6.4) / erlaubt |
+| `claim_notifications(p_limit int)` | nur `service_role` (`push-dispatch`) | `update notifications set push_status = 'sending', claimed_at = now() where id in (select id … where push_status = 'pending' and deliver_after <= now() order by deliver_after for update skip locked limit p_limit) returning *`; verhindert doppelten Versand durch Webhook und Job | – |
 | `ical_feed_entries(token_hash)` | nur `service_role` (`ical-feed`) | Feed-Einträge je Rolle ohne Preise, Kundenkontakt und Gesundheitsdaten | erlaubt |
-| `apply_stripe_subscription(payload jsonb)` | nur `service_role` (`stripe-webhook`) | `subscriptions` + `writable_until` | – |
+| `apply_stripe_subscription(payload jsonb)` | nur `service_role` (`stripe-webhook`) | `subscriptions` + `writable_until` (6.1); sperrt die Zeile (`for update`) und schreibt nur, wenn `payload.fetched_at > stripe_synced_at`; legt `stripe_events` an | – |
 
 ### 4.8 Edge Functions und Datenbankzugriff
 
 | Edge Function | Authentifizierung | Datenbankzugriff | Zweck |
 |---|---|---|---|
-| `portal-api` | Portal-Token im `Authorization`-Header | `service_role`, ausschließlich `portal_*`-RPCs | Portal lesen und schreiben |
-| `render-quote-pdf` | JWT `admin` oder interner Aufruf mit Secret | `service_role`: liest `quotes.snapshot`, schreibt Bucket `quotes` | PDF je Revision |
+| `portal-api` | Portal-Token im `Authorization`-Header (GET zum Ansehen, POST für Aktionen, 5.1) | `service_role`, ausschließlich `portal_*`-RPCs | Portal lesen und schreiben |
+| `render-quote-pdf` | JWT `admin` oder interner Aufruf mit Secret | `service_role`: `prepare_quote_send()`, `commit_quote_send()`; liest Snapshots, schreibt Bucket `quotes` ohne Überschreiben | Versand und PDF je Revision, PDF „angenommen“ |
 | `send-email` | JWT `admin` oder interner Aufruf | `service_role`; nimmt nur IDs und Vorlagennamen an, Empfänger ermittelt die Funktion selbst aus der DB; den vom Admin editierten Text setzt sie als reinen Text ein | E-Mails, `quotes.email_status` |
-| `push-dispatch` | Database Webhook auf `notifications` + Cron | `service_role` | Expo Push, `push_status`, ungültige Tokens löschen |
+| `push-dispatch` | Database Webhook auf `notifications` + Cron | `service_role` → `claim_notifications()`, `push_tickets` | Expo Push, Receipts, `push_status`, ungültige Tokens löschen |
 | `stripe-webhook` | Stripe-Signatur | `service_role` → `apply_stripe_subscription()` | Abo-Zustand |
-| `create-checkout-session` | JWT `admin`, nur Web | liest `subscriptions`, `plan_limits` | Stripe Checkout mit Limitprüfung (US-56.6) |
+| `create-checkout-session` | JWT `admin`, nur Web; intern (`cancel_subscription` bei Firmenlöschung) | liest `subscriptions`, `plan_limits` | Stripe Checkout mit Limitprüfung (US-56.6), Customer Portal, Kündigung bei Firmenlöschung |
+| `delete-account` (**Glossar-Ergänzung, Vorschlag**, 05 §5.10) | JWT des Mitglieds + frischer Apple-`authorizationCode` | `service_role` → `delete_my_account()` | Apple-Token widerrufen, dann Konto löschen (Apple-Pflicht) |
 | `ical-feed` | iCal-Token im Pfad | `service_role` → `ical_feed_entries()` | ICS-Feed |
 | `accept-invitation` | JWT des neuen Nutzers + Einladungstoken | `service_role` | Mitglied anlegen; `unique (user_id)` verhindert eine zweite Firma |
 
@@ -1144,10 +1257,11 @@ sequenceDiagram
     DB-->>P: Whitelist-JSON (Snapshot, Live-Allergene, Sonderessen, Firma)
     P-->>W: Ansicht
     K->>W: „Verbindlich annehmen“ (Name, Revision n)
-    W->>P: POST /v1/portal/accept
+    W->>P: POST /v1/portal/accept (Token im Authorization-Header)
     P->>DB: portal_accept_quote(token_hash, revision, name, email, ip, user_agent, comment)
-    DB->>DB: eine Transaktion: Status quoted/optioned, Revision aktuell, gültig, Portalaktionen erlaubt → acceptance_*, Log, Status confirmed, Historie, notifications
-    DB-->>P: ok / 409 (neue Revision) / 423 (gesperrt)
+    DB->>DB: eine Transaktion: Status quoted/optioned, Revision aktuell, gültig, Wahl vollständig, Portalaktionen erlaubt → acceptance_*, binding_snapshot, Log, Status confirmed, Historie, notifications
+    DB-->>P: ok / hint revision_outdated / hint portal_locked
+    P->>P: hint → HTTP: revision_outdated 409, deadline_passed bzw. portal_locked 423
     P->>F: PDF mit Annahmevermerk, Bestätigungs-E-Mail
     P-->>W: Bestätigung
 ```
@@ -1156,7 +1270,9 @@ sequenceDiagram
 
 - 32 Byte Zufall (256 Bit, Anforderung ≥ 128 Bit, US-30.4), base64url; gespeichert wird nur `sha256(token)` in `portal_tokens.token_hash`. Die Suche läuft über den Unique-Index; bei dieser Entropie ist kein Salz nötig.
 - Gültig, solange `revoked_at is null and expires_at > now()`. Die Antworten unterscheiden „unbekannt“ (neutrale Seite ohne Firmendaten) und „abgelaufen/widerrufen“ (Kontaktdaten der Firma) (US-30.3).
-- Den Token liest die Seite aus der URL und sendet ihn im `Authorization`-Header, nicht als Query-Parameter, damit er nicht in Zugriffsprotokollen landet. Die Portalseite setzt `Referrer-Policy: no-referrer` und `noindex` und lädt keine Ressourcen von Dritten.
+- **Transport an `portal-api`:** Die Seite liest den Token aus der Route `app/portal/[token]` und sendet ihn im `Authorization`-Header (GET `/v1/portal` zum Ansehen, POST `/v1/portal/{aktion}` für Aktionen), nie als Query-Parameter oder im Body. So steht er nicht in den Protokollen von Supabase und Edge Functions.
+- **Restrisiko (bewusst getragen):** Der Link selbst hat das Format `https://portal.{domain}/portal/{token}` (Glossar-Route `app/portal/[token]`). Der Pfad mit Token steht deshalb in den Zugriffsprotokollen des Web-Hostings (Netlify, 05 §8.10), im Browserverlauf und ggf. in Proxy-Protokollen von Firmenkunden. Ein Token im URL-Fragment (`#t=…`) würde das vermeiden, verlangt aber eine andere Route als das Glossar (`app/portal/index.tsx`) und ist deshalb nicht umgesetzt. Gegenmaßnahmen: 256 Bit Zufall; Ablauf nach Eventende + `portal_token_ttl_days`; Widerruf jederzeit („Alle Links widerrufen“, neuer Link je Versand); Rate-Limit; `Referrer-Policy: no-referrer`; keine Ressourcen von Dritten; Sentry ersetzt den Token in URLs (05 §10.3); Aufbewahrung der Hosting-Protokolle beim Anbieter prüfen, möglichst kurz einstellen und in der Datenschutzerklärung nennen; kein Log-Export mit Pfaden. Ändert sich die Bewertung, ist die Fragment-Variante eine Glossar-Änderung.
+- Die Portalseite setzt `Referrer-Policy: no-referrer` und `noindex` und lädt keine Ressourcen von Dritten.
 - Rate-Limit (**Vorschlag**): fehlerhafte Tokens je IP-Hash und Minute in einer `unlogged`-Hilfstabelle zählen. Ab 20 Fehlversuchen gibt es 15 Minuten lang 429.
 
 ### 5.3 Datenumfang
@@ -1164,14 +1280,14 @@ sequenceDiagram
 | `portal-api` liefert | `portal-api` liefert nie |
 |---|---|
 | Firma: Name, Logo-URL, Akzentfarbe, Anschrift, Telefon, Kontakt-E-Mail, Fußzeile, Link zur Datenschutzerklärung | interne Notizen, Hinweise Küche/Personal |
-| Auftrag: Titel, Art, Termin, Ort, Gästezahl, Status, `option_expires_at`, `changes_until`, `portal_locked` | Kalkulation: `unit_cost`, `markup_bp`, `pricing_mode`, `cost_*` |
-| Angebot: Nummer, aktuelle Revision **aus dem Snapshot** (Positionen, Wahlgruppen, Summen, Texte, Anzahlung, Referenz), `valid_until` live, Allergene/Diätformen **live** | Live-Entwurf und `has_unsent_changes` |
-| Annahmestatus: `accepted_at`, `acceptance_name`, angenommene Revision | IP/User-Agent früherer Annahmen, `change_log` |
+| Auftrag: Titel, Art, Termin, Ort, Status, `option_expires_at`, `changes_until`, `portal_locked`; **Gästezahl aus dem Snapshot** der angezeigten Revision bzw. bei `confirmed` aus `binding_snapshot` („verbindlich: 80 Gäste“), nie aus dem Live-Stand | Kalkulation: `unit_cost`, `markup_bp`, `pricing_mode`, `cost_*`; Live-Gästezahl des Entwurfs |
+| Angebot: Nummer, aktuelle Revision **aus dem Snapshot** (Positionen, Wahlgruppen, Summen, Texte, Anzahlung, Referenz) mit der Menüwahl aus `portal_selection` bzw. nach der Annahme aus `binding_snapshot`; bei offener Bestätigung beide Fassungen („Neue Version – bitte bestätigen“, verbindlich bleibt Version n); `valid_until` live, Allergene/Diätformen **live** | Live-Entwurf und `has_unsent_changes` |
+| Annahmestatus: `accepted_at`, `acceptance_name`, angenommene Revision; offener Änderungswunsch (`pending_change` ohne IP/User-Agent) | IP/User-Agent früherer Annahmen, `change_log` |
 | Sonderessen des Auftrags (alle Einträge, auch interne, US-35.7) | Slots, Bewerbungen, Mitglieder, andere Aufträge desselben Kunden |
 | Kunde: Name und Rechnungsanschrift nur lesend | Kundennotiz, andere Kunden |
-| PDF der aktuellen Revision als Signed URL (5 min) | ältere Revisionen |
+| PDF der aktuellen Revision (`pdf_path`) bzw. nach der Annahme `r{n}-angenommen.pdf` als Signed URL (5 min) | ältere Revisionen |
 
-Schreibende Aktionen: annehmen, ablehnen, Sonderessen anlegen, ändern und löschen, Gästezahl/Menüwahl ändern (je nach Variante direkt oder als Änderungswunsch, Abschnitt 10). Jede Aktion prüft in der RPC: Token, Status, `revision` aus dem Request = aktuelle Revision (sonst 409), Änderungsschluss und `portal_locked`, Portalaktionen erlaubt (Abschnitt 6.4). Neue Summen berechnet `portal-api` mit dem gemeinsamen TS-Modul und übergibt sie der RPC; die RPC prüft die Konsistenz und schreibt Live-Stand, Snapshot und Protokoll in einer Transaktion.
+Schreibende Aktionen (Regeln 02 §4): annehmen (`portal_accept_quote`), ablehnen (`portal_decline_quote`), Menüwahl vor der Annahme (`portal_select_choice`), Änderungswunsch (`portal_request_change`), Änderung bestätigen (`portal_confirm_revision`), Sonderessen anlegen, ändern und löschen (`portal_save_dietary`, `portal_delete_dietary`). Jede Aktion prüft in der RPC: Token, Status, `revision` aus dem Request = aktuelle Revision (sonst `revision_outdated`), Änderungsschluss und `portal_locked` (sonst `portal_locked`/`deadline_passed`), Portalaktionen erlaubt (6.4). Keine Portal-Aktion verändert Snapshot oder Revision; Summen inklusive Menüwahl berechnet `portal-api` mit dem gemeinsamen TS-Modul für die Anzeige, die RPC speichert bei der Annahme die Bruttosumme und prüft sie gegen Snapshot und Wahl.
 
 ### 5.4 Warum nicht anon-RLS
 
@@ -1190,7 +1306,7 @@ Schreibende Aktionen: annehmen, ablehnen, Sonderessen anlegen, ändern und lösc
 | Zustand (01 §6.3) | `subscriptions.status` | `writable_until` | gesetzt von |
 |---|---|---|---|
 | Testphase | `trialing` (ohne Stripe-IDs) | `trial_ends_at` = Tag 14, 23:59:59 Europe/Berlin | `create_company()` |
-| Abo während der Testphase abgeschlossen | `trialing` (Stripe, `trial_end` = `trial_ends_at`) | `trial_ends_at` | `stripe-webhook` |
+| Abo während der Testphase abgeschlossen | `trialing` (Stripe, `trial_end` = `trial_ends_at`) | `trial_end` + 3 Tage (Puffer wie bei `active`, damit die Firma am Testende nicht bis zum Eingang des Webhooks schreibgeschützt ist) | `stripe-webhook` |
 | Aktiv | `active` | `current_period_end` + 3 Tage (**Vorschlag**: Puffer für verspätete Verlängerungs-Webhooks) | `stripe-webhook` |
 | Aktiv, zum Periodenende gekündigt | `active`, `cancel_at_period_end = true` | `current_period_end` | `stripe-webhook` |
 | Zahlung offen | `past_due` | `payment_failed_at` + 14 Tage (US-58.4) | `stripe-webhook` |
@@ -1198,21 +1314,22 @@ Schreibende Aktionen: annehmen, ablehnen, Sonderessen anlegen, ändern und lösc
 | Pilot | `active`, `plan = 'pilot'` | `'infinity'` | Support/Migration |
 | Löschung beantragt | unverändert | unverändert; `companies.deletion_requested_at` sperrt Zugriff und Schreiben | `request_company_deletion()` |
 
-- `company_is_writable()` = `writable_until > now()` und keine Löschung beantragt. Eine einzige Spalte bedeutet einen Lookup ohne Fallunterscheidung in jeder Policy.
-- **`stripe-webhook`** verarbeitet ein Ereignis idempotent (`last_stripe_event_id`). Statt der Reihenfolge der Ereignisse zu vertrauen, liest er den aktuellen Abo-Zustand per Stripe-API nach und schreibt ihn vollständig (**Vorschlag**). Das ist robust gegen doppelte und vertauschte Webhooks.
+- `company_is_writable()` = `writable_until > now()` und keine Löschung beantragt. Eine einzige Spalte bedeutet einen Lookup ohne Fallunterscheidung in jeder Policy. Es gibt keinen Status „Testphase abgelaufen“; Jobs ändern den Status nie (der Job `billing_lifecycle` versendet nur E-Mails).
+- **`stripe-webhook`** (**Vorschlag**): (1) Signatur prüfen; (2) Event-ID in `stripe_events` eintragen – ein Duplikat beendet die Verarbeitung ohne Nebenwirkungen; (3) statt der Reihenfolge der Ereignisse zu vertrauen, die Subscription frisch per Stripe-API lesen und den Abrufzeitpunkt als `fetched_at` mitgeben; (4) `apply_stripe_subscription()` sperrt die Zeile (`select … for update`) und schreibt Status (1:1), Plan, Perioden und `writable_until` nur, wenn `fetched_at > stripe_synced_at`. Damit überschreibt ein parallel verarbeiteter, älterer Stand nie einen neueren.
+- **Plan** `pilot` für den Pilotbetrieb und die Review-Firma (kein Stripe, `writable_until = 'infinity'`, von Löschjobs ausgenommen).
 - **Eine Testphase je Nutzer** (US-55.6, **Vorschlag**): `create_company()` setzt `auth.users.raw_app_meta_data.trial_used_at`. Bei einer weiteren Firmengründung desselben Nutzers wird `writable_until = now()` gesetzt (sofort Lesemodus bis zum Abschluss).
 
 ### 6.2 Durchsetzung
 
 | Schicht | Mechanismus |
 |---|---|
-| Direkte Tabellenzugriffe | `with check (… and (select public.company_is_writable()))` in allen Insert-/Update-Policies, `using (…)` in Delete-Policies |
+| Direkte Tabellenzugriffe | `with check (… and (select public.company_is_writable()))` in allen Insert-/Update-Policies; in Delete-Policies und in `for all`-Policies zusätzlich im `using`, weil DELETE nur `using` auswertet (getrennte SELECT-Policies sorgen dafür, dass Lesen im Lesemodus erhalten bleibt) |
 | RPCs | `perform public.assert_writable()` als erste Fachprüfung → Fehler `hint = 'read_only'` |
 | Storage | Upload-Policy für Logos mit `company_is_writable()` |
 | Edge Functions | `portal-api`, `send-email`, `render-quote-pdf` prüfen den Zustand über die RPCs |
 | App | liest `company_profile.is_writable` für Banner und deaktivierte Buttons (nur UX, keine Sicherheit) |
 
-**Ausnahmen (im Lesemodus erlaubt, 01 §6.4):** Lesen aller rollengerechten Daten; `remove_member()`, `leave_company()`, `delete_my_account()`; `register_push_token()`, `mark_notifications_read()`, `reset_ical_token()`; `request_data_export()`, `request_company_deletion()`; `revoke_portal_tokens()`; eigenes Profil (`display_name`, `phone`, `notification_prefs`); Abo-Abschluss (`create-checkout-session`); iCal-Feeds; Benachrichtigungen zu Abo und Portal-Ereignissen.
+**Ausnahmen (im Lesemodus erlaubt, 01 §6.4):** Lesen aller rollengerechten Daten; `remove_member()`, `leave_company()`, `delete_my_account()`; `register_push_token()`, `mark_notifications_read()`, `reset_ical_token()`, `log_usage_event()`; `request_data_export()`, `request_company_deletion()`; `revoke_portal_tokens()`; eigenes Profil (`display_name`, `phone`, `notification_prefs`); Abo-Abschluss (`create-checkout-session`); iCal-Feeds; Benachrichtigungen zu Abo und Portal-Ereignissen.
 
 ### 6.3 Planlimits
 
@@ -1252,6 +1369,18 @@ Die Blöcke entsprechen den Migrationsdateien aus Abschnitt 9.2 in dieser Reihen
 create extension if not exists pgcrypto with schema extensions;
 create extension if not exists pg_trgm  with schema extensions;
 
+-- Funktionsrechte zuerst festlegen (4.1 Nr. 1): EXECUTE nie an PUBLIC, anon oder
+-- authenticated per Default. Globale Default-Rechte lassen sich nicht pro Schema
+-- widerrufen, deshalb die erste Zeile ohne IN SCHEMA. Die zweite Zeile hebt die
+-- Supabase-Default-Grants in public für anon und authenticated auf.
+alter default privileges for role postgres revoke execute on functions from public;
+alter default privileges for role postgres in schema public
+  revoke execute on functions from anon, authenticated;
+
+-- Nicht über PostgREST veröffentlichtes Schema für rein interne Funktionen
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
 create type public.member_role         as enum ('admin', 'kitchen', 'staff');
 create type public.event_status        as enum ('inquiry', 'quoted', 'optioned', 'confirmed',
                                                 'completed', 'invoiced', 'declined', 'cancelled');
@@ -1262,7 +1391,7 @@ create type public.quote_item_type     as enum ('package', 'dish', 'service', 'e
 create type public.quantity_mode       as enum ('per_guest', 'fixed');
 create type public.pricing_mode        as enum ('flat', 'cost_based');
 create type public.price_basis         as enum ('net', 'gross');
-create type public.acceptance_channel  as enum ('portal', 'portal_change', 'admin', 'info_only');
+create type public.acceptance_channel  as enum ('portal', 'portal_confirmation', 'admin', 'info_only');
 create type public.application_status  as enum ('applied', 'accepted', 'rejected', 'withdrawn',
                                                 'cancelled_by_staff', 'assigned');
 create type public.allergen            as enum ('gluten', 'crustaceans', 'eggs', 'fish', 'peanuts',
@@ -1285,15 +1414,16 @@ create type public.schedule_item_kind  as enum ('departure', 'setup', 'service',
                                                 'delivery', 'other');
 create type public.dietary_source      as enum ('customer', 'internal');
 create type public.push_platform       as enum ('ios', 'android');
-create type public.push_status         as enum ('pending', 'sent', 'failed', 'skipped');
+create type public.push_status         as enum ('pending', 'sending', 'sent', 'failed', 'skipped');
 create type public.notification_category as enum (
   'application_received', 'application_decided', 'assignment_created', 'assignment_cancelled',
   'slots_published', 'shift_changed', 'shift_called_off', 'shift_reminder', 'quote_accepted',
-  'quote_declined', 'quote_viewed', 'portal_change', 'dietary_changed', 'event_confirmed',
-  'event_cancelled', 'guest_count_changed', 'option_expiring', 'quote_expired', 'completion_due',
-  'slots_unfilled', 'member_joined', 'billing');
+  'quote_declined', 'quote_viewed', 'quote_delivery_failed', 'revision_confirmation_pending',
+  'portal_change', 'dietary_changed', 'event_confirmed', 'event_cancelled', 'guest_count_changed',
+  'option_expiring', 'quote_expired', 'completion_due', 'slots_unfilled', 'member_joined', 'billing');
 create type public.intake_answer_type  as enum ('single_choice', 'multi_choice', 'number', 'date',
-                                                'time', 'datetime', 'text', 'boolean');
+                                                'time', 'time_range', 'datetime', 'text',
+                                                'boolean', 'customer');
 create type public.intake_target       as enum ('customer', 'event_kind', 'occasion', 'starts_at',
                                                 'ends_at', 'guest_count', 'venue',
                                                 'dietary_requirements', 'kitchen_notes',
@@ -1310,6 +1440,8 @@ begin
   return new;
 end;
 $$;
+-- Trigger-Funktionen brauchen kein EXECUTE für App-Rollen (gilt für alle Trigger-Funktionen)
+revoke execute on function public.set_updated_at() from public, anon, authenticated;
 ```
 
 ### 7.2 Mandant, Team, Abo und Hilfsfunktionen
@@ -1332,6 +1464,7 @@ create table public.companies (
   tax_number                  text,
   footer_text                 text,
   privacy_policy_url          text,
+  imprint_url                 text,
   logo_path                   text,
   accent_color                text check (accent_color ~ '^#[0-9A-Fa-f]{6}$'),
   -- Einstellungen (Abschnitt 4.2.6 in 01-produkt.md)
@@ -1344,6 +1477,9 @@ create table public.companies (
   is_small_business           boolean not null default false,
   quote_validity_days         integer not null default 14 check (quote_validity_days between 1 and 365),
   portal_change_lead_hours    integer default 72 check (portal_change_lead_hours between 0 and 720),
+  portal_change_lead_hours_business_lunch
+                              integer default 24
+                              check (portal_change_lead_hours_business_lunch between 0 and 720),
   portal_token_ttl_days       integer not null default 60 check (portal_token_ttl_days between 1 and 365),
   shift_cancel_deadline_hours integer not null default 48
                               check (shift_cancel_deadline_hours between 0 and 168),
@@ -1356,6 +1492,8 @@ create table public.companies (
   quote_number_seq            integer not null default 0,
   avv_accepted_at             timestamptz,
   avv_accepted_by             uuid references auth.users (id) on delete set null,
+  avv_version                 text,
+  onboarding_completed_at     timestamptz,
   created_by                  uuid references auth.users (id) on delete set null,
   deletion_requested_at       timestamptz,
   created_at                  timestamptz not null default now(),
@@ -1397,6 +1535,7 @@ create table public.subscriptions (
   canceled_at            timestamptz,
   payment_failed_at      timestamptz,
   writable_until         timestamptz not null,   -- einzige Quelle für company_is_writable()
+  stripe_synced_at       timestamptz,            -- Abrufzeitpunkt des geschriebenen Stripe-Stands
   last_stripe_event_id   text,
   last_stripe_event_at   timestamptz,
   created_at             timestamptz not null default now(),
@@ -1665,7 +1804,8 @@ create table public.events (
   foreign key (company_id, created_by_member_id)
     references public.company_members (company_id, id) on delete set null (created_by_member_id),
   constraint events_end_after_start check (ends_at is null or ends_at > starts_at),
-  constraint events_option_only_when_optioned check (option_expires_at is null or status = 'optioned')
+  -- „optioniert bis“ ist in optioned Pflicht und sonst leer (02 §1.3); set_event_status() setzt beides zusammen
+  constraint events_option_iff_optioned check ((status = 'optioned') = (option_expires_at is not null))
 );
 create index events_calendar_idx on public.events (company_id, starts_at);
 create index events_status_idx   on public.events (company_id, status, event_date);
@@ -1699,9 +1839,15 @@ create table public.quotes (
   cost_incomplete              boolean not null default false,
   has_unsent_changes           boolean not null default false,
   snapshot                     jsonb,                               -- eingefrorene Revision
-  snapshot_hash                text,
+  snapshot_hash                text,                                -- nur commit_quote_send()
+  pdf_path                     text,                                -- PDF der aktuellen Revision
+  send_log                     jsonb not null default '[]'::jsonb,  -- Versandprotokoll
+  binding_snapshot             jsonb,                               -- verbindlicher Stand (Küche, Portal)
+  binding_revision             integer,
+  portal_selection             jsonb,                               -- Menüwahl vor der Annahme
+  selection_updated_at         timestamptz,
   sent_at                      timestamptz,
-  sent_via                     text check (sent_via in ('email', 'link', 'internal')),
+  sent_via                     text check (sent_via in ('email', 'link')),
   send_mode                    text check (send_mode in ('confirm_required', 'info_only')),
   email_status                 text check (email_status in ('pending', 'sent', 'failed', 'bounced')),
   first_viewed_at              timestamptz,
@@ -1735,6 +1881,9 @@ create table public.quotes (
   constraint quotes_one_discount_kind check (discount_bp = 0 or discount_cents = 0),
   constraint quotes_one_deposit_kind  check (deposit_bp is null or deposit_cents is null),
   constraint quotes_snapshot_iff_sent check ((revision = 0) = (snapshot is null)),
+  constraint quotes_binding_consistent
+    check ((binding_revision is null) = (binding_snapshot is null)
+       and (binding_revision is null or binding_revision <= revision)),
   constraint quotes_acceptance_complete
     check ((accepted_at is null) = (acceptance_revision is null)
        and (acceptance_revision is null or acceptance_revision <= revision))
@@ -1806,6 +1955,7 @@ begin
   return new;
 end;
 $$;
+revoke execute on function public.assign_quote_number() from public, anon, authenticated;
 create trigger quotes_assign_number
   before insert on public.quotes
   for each row execute function public.assign_quote_number();
@@ -1863,11 +2013,12 @@ create table public.shift_slots (
   id                   uuid primary key default gen_random_uuid(),
   company_id           uuid not null references public.companies (id) on delete cascade,
   event_id             uuid not null,
-  qualification_id     uuid,                 -- null = jede Qualifikation
+  qualification_id     uuid not null,        -- Pflicht (00 §3, 01 US-42.1)
   title                text not null,
   starts_at            timestamptz not null,
   ends_at              timestamptz not null,
   seats                integer not null check (seats between 1 and 100),
+  taken_seats          integer not null default 0,   -- gepflegt von track_slot_occupancy
   meeting_point        text,
   dress_code           text,
   notes                text,
@@ -1880,7 +2031,9 @@ create table public.shift_slots (
   unique (company_id, id),
   foreign key (company_id, event_id) references public.events (company_id, id) on delete cascade,
   foreign key (company_id, qualification_id) references public.qualifications (company_id, id),
-  constraint shift_slots_end_after_start check (ends_at > starts_at)
+  constraint shift_slots_end_after_start check (ends_at > starts_at),
+  -- verhindert Überbuchung und das Senken von seats unter die Belegung
+  constraint shift_slots_taken_le_seats check (taken_seats between 0 and seats)
 );
 create index shift_slots_board_idx on public.shift_slots (company_id, starts_at)
   where published_at is not null and cancelled_at is null;
@@ -1939,72 +2092,52 @@ as $$
            end)
 $$;
 
--- Überbuchungsschutz: jede Belegung sperrt die Slot-Zeile -> Belegungen eines Slots laufen seriell
-create or replace function public.enforce_slot_capacity()
+-- Überbuchungsschutz: jede neue Belegung ist eine echte Schreiboperation auf dem Slot.
+-- Die bedingte UPDATE-Anweisung prüft und zählt atomar; parallele Belegungen desselben
+-- Slots laufen über die Zeilensperre seriell (Begründung unter dem Block).
+create or replace function public.track_slot_occupancy()
 returns trigger
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  v_seats integer;
-  v_taken integer;
+  v_was boolean := false;   -- Zeile belegte vorher einen Platz
+  v_is  boolean := false;   -- Zeile belegt nachher einen Platz
 begin
-  if new.status not in ('accepted', 'assigned') then
-    return new;
+  if tg_op <> 'INSERT' then
+    v_was := old.status in ('accepted', 'assigned');
   end if;
-  if tg_op = 'UPDATE'
-     and old.status in ('accepted', 'assigned')
-     and old.shift_slot_id = new.shift_slot_id then
-    return new;                                    -- belegt bleibt belegt
+  if tg_op <> 'DELETE' then
+    v_is := new.status in ('accepted', 'assigned');
   end if;
 
-  select s.seats into v_seats
-    from public.shift_slots s
-   where s.id = new.shift_slot_id
-     for update;                                   -- Row-Lock: wartet auf parallele Zusagen
+  if v_is and not v_was then
+    update public.shift_slots s
+       set taken_seats = s.taken_seats + 1
+     where s.id = new.shift_slot_id
+       and s.taken_seats < s.seats;
+    if not found then
+      raise exception 'Alle Plätze sind bereits vergeben'
+        using errcode = 'P0001', hint = 'slot_full';
+    end if;
+  elsif v_was and not v_is then
+    update public.shift_slots s
+       set taken_seats = s.taken_seats - 1
+     where s.id = old.shift_slot_id;
+  end if;
 
-  select count(*) into v_taken                     -- neuer Snapshot nach dem Warten (READ COMMITTED)
-    from public.shift_applications a
-   where a.shift_slot_id = new.shift_slot_id
-     and a.status in ('accepted', 'assigned')
-     and a.id <> new.id;
-
-  if v_taken >= v_seats then
-    raise exception 'Alle Plätze sind bereits vergeben'
-      using errcode = 'P0001', hint = 'slot_full';
+  if tg_op = 'DELETE' then
+    return old;
   end if;
   return new;
 end;
 $$;
-create trigger shift_applications_capacity
-  before insert or update of status, shift_slot_id on public.shift_applications
-  for each row execute function public.enforce_slot_capacity();
-
--- seats darf nicht unter die Zahl der Belegten sinken (UPDATE hält bereits die Zeilensperre)
-create or replace function public.guard_slot_seats()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_taken integer;
-begin
-  select count(*) into v_taken
-    from public.shift_applications a
-   where a.shift_slot_id = new.id and a.status in ('accepted', 'assigned');
-  if new.seats < v_taken then
-    raise exception 'Erst % Person(en) ausplanen', v_taken - new.seats
-      using errcode = 'P0001', hint = 'seats_below_taken';
-  end if;
-  return new;
-end;
-$$;
-create trigger shift_slots_guard_seats
-  before update of seats on public.shift_slots
-  for each row when (new.seats < old.seats)
-  execute function public.guard_slot_seats();
+revoke execute on function public.track_slot_occupancy() from public, anon, authenticated;
+create trigger shift_applications_occupancy
+  before insert or update of status or delete on public.shift_applications
+  for each row execute function public.track_slot_occupancy();
+-- shift_slot_id einer Bewerbung ist unveränderlich (kein Grant, RPCs ändern ihn nie)
 
 -- updated_at-Trigger für alle Tabellen dieser Migrationen
 do $$
@@ -2025,7 +2158,13 @@ end;
 $$;
 ```
 
-**Warum race-sicher:** Jede Belegung (`accepted`/`assigned`) sperrt zuerst die Slot-Zeile mit `FOR UPDATE`. Eine zweite Transaktion wartet an dieser Sperre, bis die erste committet. Unter READ COMMITTED bekommt die anschließende Zählung einen neuen Snapshot, sieht also die erste Belegung und bricht ab. `guard_slot_seats` hält beim Senken von `seats` dieselbe Zeilensperre (UPDATE), daher gibt es auch dort kein Rennen. Unter REPEATABLE READ endet der Konflikt mit einem Serialisierungsfehler, ebenfalls ohne Überbuchung.
+**Warum race-sicher:** Die frühere Variante (`select … for update` auf dem Slot, danach zählen) war nur unter READ COMMITTED sicher: Unter REPEATABLE READ bricht Postgres nur ab, wenn die gesperrte Zeile tatsächlich **geändert** wurde, nicht wenn sie nur gesperrt war; die Zählung lief dann auf dem alten Snapshot und belegte 2 von 1 Plätzen (nachgeprüft). Jetzt ändert jede Belegung die Slot-Zeile (`taken_seats + 1`):
+
+- **READ COMMITTED** (Standard von PostgREST): Die zweite Transaktion wartet an der Zeilensperre, wertet danach `taken_seats < seats` auf der neuen Zeilenversion aus, trifft keine Zeile und bricht mit `slot_full` ab.
+- **REPEATABLE READ / SERIALIZABLE**: Die zweite Transaktion bricht mit SQLSTATE `40001` („could not serialize access due to concurrent update“) ab. `errors.ts` bildet `40001` auf `slot_full` bzw. „Bitte erneut versuchen“ ab (05 §4.6); es entsteht keine Überbuchung.
+- **`seats` senken parallel zu einer Zusage**: Beide Anweisungen ändern dieselbe Zeile und laufen seriell; die Check-Constraint `taken_seats between 0 and seats` prüft die neueste Version und lehnt ab (`23514`, Constraint `shift_slots_taken_le_seats` → `seats_below_taken`, „Erst {n} Person(en) ausplanen“).
+
+Die frühere Funktion `guard_slot_seats` entfällt; die Check-Constraint ersetzt sie.
 
 ### 7.6 RLS-Policies und Spaltenprivilegien
 
@@ -2033,14 +2172,16 @@ $$;
 -- =====================================================================
 -- 20261102090600_rls.sql
 -- =====================================================================
--- Grundsatz: anon hat keinerlei Rechte; authenticated nur über RLS-Policies.
+-- Grundsatz: anon hat keinerlei Rechte; authenticated nur über RLS-Policies und
+-- ausdrücklich freigegebene Funktionen. Die Default Privileges für Funktionen setzt
+-- bereits die erste Migration (7.1); hier werden bestehende Objekte bereinigt.
 revoke all on all tables    in schema public from anon;
-revoke all on all functions in schema public from public, anon;
-alter default privileges in schema public revoke all on tables    from anon;
-alter default privileges in schema public revoke all on functions from public, anon;
+revoke all on all functions in schema public from public, anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on tables from anon;
 
 grant execute on function public.auth_member_id(), public.auth_company_id(), public.auth_role(),
-                          public.company_is_writable(uuid), public.can_read_event(uuid)
+                          public.company_is_writable(uuid), public.assert_writable(),
+                          public.can_read_event(uuid)
   to authenticated;
 
 do $$
@@ -2070,21 +2211,24 @@ create policy companies_update_admin on public.companies
 revoke insert, delete on public.companies from authenticated;
 revoke update on public.companies from authenticated;
 grant update (name, street, postal_code, city, phone, contact_email, website, vat_id, tax_number,
-              footer_text, privacy_policy_url, logo_path, accent_color, price_entry_mode,
-              default_pricing_mode, default_markup_bp, price_rounding_cents, is_small_business,
-              quote_validity_days, portal_change_lead_hours, portal_token_ttl_days,
+              footer_text, privacy_policy_url, imprint_url, logo_path, accent_color,
+              price_entry_mode, default_pricing_mode, default_markup_bp, price_rounding_cents,
+              is_small_business, quote_validity_days, portal_change_lead_hours,
+              portal_change_lead_hours_business_lunch, portal_token_ttl_days,
               shift_cancel_deadline_hours, shopping_buffer_bp, quote_intro_text, quote_terms_text,
-              quote_closing_text, quote_item_templates)
+              quote_closing_text, quote_item_templates, onboarding_completed_at)
   on public.companies to authenticated;
 
 -- ---------- company_members ----------
+-- admin: alle Zeilen der Firma; kitchen/staff: nur die eigene Zeile.
+-- Die Teamliste der Küche kommt aus der View team_directory (Name, Rolle, Telefon).
 create policy members_select on public.company_members
   for select to authenticated
   using (
     company_id = (select public.auth_company_id())
     and (
-      (select public.auth_role()) in ('admin', 'kitchen')      -- Teamliste
-      or user_id = (select auth.uid())                          -- staff: nur sich selbst
+      (select public.auth_role()) = 'admin'
+      or user_id = (select auth.uid())
     )
   );
 create policy members_update_self on public.company_members
@@ -2167,13 +2311,31 @@ grant update (pricing_mode, markup_bp, price_display, discount_bp, discount_cent
               deposit_cents, deposit_due_on, customer_reference, intro_text, terms_text,
               closing_text, valid_until, total_net_cents, total_tax_cents, total_gross_cents,
               cost_total_cents, cost_incomplete, has_unsent_changes, editor_active_seconds)
-  on public.quotes to authenticated;          -- revision, snapshot, acceptance_* nur per RPC
+  on public.quotes to authenticated;          -- revision, snapshot, binding_*, acceptance_* nur per RPC
+
+-- shift_slots: Belegung (taken_seats) nur per Trigger; Veröffentlichen, Absagen und
+-- Sonderabsagerecht nur per RPC (publish_slots, cancel_slot, shift_slot_times_changed)
+revoke insert, update on public.shift_slots from authenticated;
+grant insert (company_id, event_id, qualification_id, title, starts_at, ends_at, seats,
+              meeting_point, dress_code, notes)
+  on public.shift_slots to authenticated;
+grant update (qualification_id, title, starts_at, ends_at, seats, meeting_point, dress_code, notes)
+  on public.shift_slots to authenticated;
 
 -- ---------- dishes: Basistabelle nur admin (Preise); kitchen über kitchen_dishes + save_dish() ----------
-create policy dishes_admin_all on public.dishes for all to authenticated
-  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin')
+-- getrennte Policies: Lesen auch im Lesemodus, Schreiben und Löschen nur bei schreibbarem Abo
+create policy dishes_admin_select on public.dishes for select to authenticated
+  using (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin');
+create policy dishes_admin_insert on public.dishes for insert to authenticated
   with check (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
               and (select public.company_is_writable()));
+create policy dishes_admin_update on public.dishes for update to authenticated
+  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+              and (select public.company_is_writable()))
+  with check (company_id = (select public.auth_company_id()) and (select public.company_is_writable()));
+create policy dishes_admin_delete on public.dishes for delete to authenticated
+  using (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+         and (select public.company_is_writable()));
 
 -- ---------- preisfreie Katalogtabellen: admin + kitchen direkt ----------
 do $$
@@ -2190,14 +2352,19 @@ begin
   end loop;
 end;
 $$;
+-- Schreib-Policies "for all": company_is_writable() auch im USING, weil DELETE nur USING
+-- auswertet (sonst wäre Löschen im Lesemodus möglich). Lesen läuft über die getrennten
+-- SELECT-Policies und bleibt im Lesemodus erhalten.
 create policy dish_allergens_write on public.dish_allergens for all to authenticated
   using      (company_id = (select public.auth_company_id())
-              and (select public.auth_role()) in ('admin', 'kitchen'))
+              and (select public.auth_role()) in ('admin', 'kitchen')
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id())
               and (select public.auth_role()) in ('admin', 'kitchen')
               and (select public.company_is_writable()));
 create policy menu_package_dishes_write on public.menu_package_dishes for all to authenticated
-  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin')
+  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
               and (select public.company_is_writable()));
 
@@ -2205,14 +2372,16 @@ create policy menu_package_dishes_write on public.menu_package_dishes for all to
 create policy qualifications_select on public.qualifications for select to authenticated
   using (company_id = (select public.auth_company_id()));
 create policy qualifications_admin_write on public.qualifications for all to authenticated
-  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin')
+  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
               and (select public.company_is_writable()));
 create policy member_qualifications_select on public.member_qualifications for select to authenticated
   using (company_id = (select public.auth_company_id())
          and ((select public.auth_role()) = 'admin' or member_id = (select public.auth_member_id())));
 create policy member_qualifications_admin_write on public.member_qualifications for all to authenticated
-  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin')
+  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
               and (select public.company_is_writable()));
 
@@ -2220,7 +2389,8 @@ create policy member_qualifications_admin_write on public.member_qualifications 
 create policy event_schedule_items_select on public.event_schedule_items for select to authenticated
   using (company_id = (select public.auth_company_id()) and public.can_read_event(event_id));
 create policy event_schedule_items_admin_write on public.event_schedule_items for all to authenticated
-  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin')
+  using      (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id()) and (select public.auth_role()) = 'admin'
               and (select public.company_is_writable()));
 
@@ -2229,7 +2399,8 @@ create policy event_dietary_select on public.event_dietary_requirements for sele
 create policy event_dietary_write on public.event_dietary_requirements for all to authenticated
   using      (company_id = (select public.auth_company_id())
               and (select public.auth_role()) in ('admin', 'kitchen')
-              and public.can_read_event(event_id))
+              and public.can_read_event(event_id)
+              and (select public.company_is_writable()))
   with check (company_id = (select public.auth_company_id())
               and (select public.auth_role()) in ('admin', 'kitchen')
               and public.can_read_event(event_id)
@@ -2253,7 +2424,7 @@ revoke insert, update, delete on public.shift_applications from authenticated;
 create view public.company_profile
   with (security_invoker = false, security_barrier = true) as
 select c.id, c.name, c.phone, c.contact_email, c.logo_path, c.accent_color, c.country,
-       c.shift_cancel_deadline_hours,
+       c.shift_cancel_deadline_hours, c.onboarding_completed_at,
        public.company_is_writable(c.id) as is_writable,
        case when s.status = 'trialing' then 'profi'::public.subscription_plan else s.plan end
          as effective_plan
@@ -2273,27 +2444,46 @@ select d.id, d.company_id, d.name, d.description, d.category, d.portion_label, d
    and (select public.auth_role()) in ('admin', 'kitchen')
  group by d.id;
 
+-- Gästezahl und Hinweise aus dem verbindlichen Stand (4.6): binding_snapshot → snapshot → live
 create view public.kitchen_events
   with (security_invoker = false, security_barrier = true) as
 select e.id, e.company_id, e.kind, e.title, e.status, e.starts_at, e.ends_at, e.event_date,
-       e.guest_count, e.venue_name, e.street, e.postal_code, e.city, e.is_pickup,
+       b.guest_count,                         -- verbindliche bzw. vorläufige Gästezahl
+       e.guest_count as draft_guest_count,    -- Live-Wert, nur für den Hinweis „Änderung offen“
+       b.basis,
+       e.venue_name, e.street, e.postal_code, e.city, e.is_pickup,
        e.onsite_contact_name, e.onsite_contact_phone, e.meeting_point, e.dress_code,
        e.kitchen_notes, e.staff_notes, e.updated_at,
        coalesce(q.pending_change is not null
-                or (q.accepted_at is not null and q.acceptance_revision < q.revision), false)
-         as has_open_change
+                or q.binding_revision < q.revision
+                or b.guest_count is distinct from e.guest_count, false) as has_open_change
   from public.events e
   left join public.quotes q on q.event_id = e.id
+ cross join lateral (
+         select case when q.binding_snapshot is not null then 'binding'
+                     when q.revision > 0 then 'snapshot'
+                     else 'live' end as basis,
+                case when q.binding_snapshot is not null
+                       then (q.binding_snapshot -> 'event' ->> 'guest_count')::integer
+                     when q.revision > 0
+                       then (q.snapshot -> 'event' ->> 'guest_count')::integer
+                     else e.guest_count end as guest_count) b
  where e.company_id = (select public.auth_company_id())
    and (select public.auth_role()) in ('admin', 'kitchen')
    and e.status in ('optioned', 'confirmed', 'completed', 'invoiced', 'cancelled');
 
--- Produktionszeilen je Gericht: verbindlicher Stand = Snapshot; ohne Revision der Live-Stand
+-- Produktionszeilen je Gericht aus dem verbindlichen Stand:
+-- 1. binding_snapshot (Wahl eingearbeitet), 2. snapshot + portal_selection, 3. Live-Stand bei Revision 0
 create view public.kitchen_production_lines
   with (security_invoker = false, security_barrier = true) as
 with visible as (
   select e.id as event_id, e.company_id, e.status as event_status, e.event_date,
-         q.id as quote_id, q.revision, q.snapshot
+         q.id as quote_id,
+         case when q.binding_snapshot is not null then 'binding'
+              when q.revision > 0 then 'snapshot'
+              else 'live' end as basis,
+         coalesce(q.binding_snapshot, q.snapshot) as source_snapshot,
+         case when q.binding_snapshot is null then q.portal_selection end as selection
     from public.events e
     join public.quotes q on q.event_id = e.id
    where e.company_id = (select public.auth_company_id())
@@ -2301,55 +2491,112 @@ with visible as (
      and e.status in ('optioned', 'confirmed', 'completed', 'invoiced')
 ),
 items as (
-  select v.*, i.id as item_id, i.type, i.dish_id, i.menu_package_id, i.name as item_name,
-         i.quantity, i.is_selected, i.package_dishes, true as from_snapshot
+  select v.event_id, v.company_id, v.event_status, v.event_date, v.basis,
+         i.id as item_id, i.type, i.dish_id, i.menu_package_id, i.name as item_name,
+         coalesce((v.selection -> 'quantities' ->> i.id::text)::numeric, i.quantity) as quantity,
+         case when i.choice_group is not null and (v.selection -> 'choices') ? i.choice_group
+              then (v.selection -> 'choices' ->> i.choice_group) = i.id::text
+              else i.is_selected end as is_selected,
+         i.package_dishes
     from visible v
-   cross join lateral jsonb_to_recordset(v.snapshot -> 'items')
+   cross join lateral jsonb_to_recordset(v.source_snapshot -> 'items')
          as i(id uuid, type public.quote_item_type, dish_id uuid, menu_package_id uuid,
-              name text, quantity numeric, is_selected boolean, package_dishes jsonb)
-   where v.revision > 0
+              name text, quantity numeric, is_selected boolean, choice_group text,
+              package_dishes jsonb)
+   where v.basis <> 'live'
   union all
-  select v.*, qi.id, qi.type, qi.dish_id, qi.menu_package_id, qi.name,
-         qi.quantity, qi.is_selected, null::jsonb, false
+  select v.event_id, v.company_id, v.event_status, v.event_date, v.basis,
+         qi.id, qi.type, qi.dish_id, qi.menu_package_id, qi.name,
+         qi.quantity, qi.is_selected, null::jsonb
     from visible v
     join public.quote_items qi on qi.quote_id = v.quote_id
-   where v.revision = 0
+   where v.basis = 'live'
 )
 select it.event_id, it.company_id, it.event_status, it.event_date, it.item_id, it.type,
-       it.item_name, it.from_snapshot,
+       it.item_name, it.basis,
        d.id as dish_id, d.name as dish_name, d.category as dish_category,
        round(it.quantity * coalesce(pd.portion_factor, 1), 2) as portions
   from items it
   left join lateral (
          select x.dish_id, x.portion_factor
            from jsonb_to_recordset(it.package_dishes) as x(dish_id uuid, portion_factor numeric)
-          where it.from_snapshot
+          where it.basis <> 'live'
          union all
          select mpd.dish_id, mpd.portion_factor
            from public.menu_package_dishes mpd
-          where not it.from_snapshot and mpd.menu_package_id = it.menu_package_id
+          where it.basis = 'live' and mpd.menu_package_id = it.menu_package_id
        ) pd on it.type = 'package'
   join public.dishes d on d.id = coalesce(pd.dish_id, it.dish_id)
  where it.type in ('package', 'dish')
    and it.is_selected;
+
+-- Teamliste für die Küche: nur Name, Rolle, Telefon (01 §3.2)
+create view public.team_directory
+  with (security_invoker = false, security_barrier = true) as
+select m.id, m.company_id, m.display_name, m.role, m.phone, m.joined_at
+  from public.company_members m
+ where m.company_id = (select public.auth_company_id())
+   and (select public.auth_role()) in ('admin', 'kitchen')
+   and m.removed_at is null
+   and m.user_id is not null;
+
+-- Besetzung je Auftrag für die Küche (01 §3.2 „Besetzung sehen“, 04 SC-21 lesend)
+create view public.event_staffing
+  with (security_invoker = false, security_barrier = true) as
+select s.id as shift_slot_id, s.company_id, s.event_id, e.title as event_title, e.event_date,
+       s.title, q.name as qualification_name, s.starts_at, s.ends_at, s.seats, s.taken_seats,
+       (s.published_at is not null) as is_published,
+       coalesce(array_agg(split_part(m.display_name, ' ', 1) order by m.display_name)
+                  filter (where m.id is not null), '{}') as assigned_first_names
+  from public.shift_slots s
+  join public.events e         on e.id = s.event_id
+  join public.qualifications q on q.id = s.qualification_id
+  left join public.shift_applications a
+         on a.shift_slot_id = s.id and a.status in ('accepted', 'assigned')
+  left join public.company_members m on m.id = a.member_id
+ where s.company_id = (select public.auth_company_id())
+   and (select public.auth_role()) in ('admin', 'kitchen')
+   and s.cancelled_at is null
+   and e.status in ('optioned', 'confirmed', 'completed', 'invoiced')
+ group by s.id, e.id, q.id;
+
+-- Kolleg:innen am eigenen Einsatz: Vorname und Slot-Qualifikation (01 Fußnote 9)
+create view public.event_colleagues
+  with (security_invoker = false, security_barrier = true) as
+select s.event_id, s.company_id, s.id as shift_slot_id, q.name as qualification_name,
+       split_part(m.display_name, ' ', 1) as first_name
+  from public.shift_applications a
+  join public.shift_slots s     on s.id = a.shift_slot_id
+  join public.events e          on e.id = s.event_id
+  join public.qualifications q  on q.id = s.qualification_id
+  join public.company_members m on m.id = a.member_id
+ where s.company_id = (select public.auth_company_id())
+   and (select public.auth_role()) in ('staff', 'kitchen')
+   and a.status in ('accepted', 'assigned')
+   and a.member_id <> (select public.auth_member_id())
+   and s.cancelled_at is null
+   and e.status in ('optioned', 'confirmed', 'completed', 'invoiced')
+   and exists (select 1
+                 from public.shift_applications mine
+                 join public.shift_slots ms on ms.id = mine.shift_slot_id
+                where ms.event_id = s.event_id
+                  and ms.cancelled_at is null
+                  and mine.member_id = (select public.auth_member_id())
+                  and mine.status in ('accepted', 'assigned'));
 
 -- Schichtbörse: nur offene, passende Slots; keine Adresse, keine Kundendaten
 create view public.shift_board
   with (security_invoker = false, security_barrier = true) as
 select s.id as shift_slot_id, s.company_id, s.title, s.qualification_id,
        q.name as qualification_name, s.starts_at, s.ends_at, s.seats,
-       s.seats - occ.taken as free_seats,
+       s.seats - s.taken_seats as free_seats,
        coalesce(s.dress_code, e.dress_code) as dress_code,
        e.kind as event_kind, e.guest_count, e.postal_code, e.city,
        (e.status = 'optioned') as is_tentative,
        mine.status as my_application_status
   from public.shift_slots s
   join public.events e on e.id = s.event_id
-  left join public.qualifications q on q.id = s.qualification_id
- cross join lateral (
-         select count(*)::integer as taken
-           from public.shift_applications a
-          where a.shift_slot_id = s.id and a.status in ('accepted', 'assigned')) occ
+  join public.qualifications q on q.id = s.qualification_id
   left join public.shift_applications mine
          on mine.shift_slot_id = s.id and mine.member_id = (select public.auth_member_id())
  where s.company_id = (select public.auth_company_id())
@@ -2358,11 +2605,10 @@ select s.id as shift_slot_id, s.company_id, s.title, s.qualification_id,
    and s.cancelled_at is null
    and s.starts_at > now()
    and e.status in ('optioned', 'confirmed')
-   and occ.taken < s.seats
-   and (s.qualification_id is null
-        or exists (select 1 from public.member_qualifications mq
-                    where mq.member_id = (select public.auth_member_id())
-                      and mq.qualification_id = s.qualification_id));
+   and s.taken_seats < s.seats
+   and exists (select 1 from public.member_qualifications mq
+                where mq.member_id = (select public.auth_member_id())
+                  and mq.qualification_id = s.qualification_id);
 
 -- Meine Einsätze: alle eigenen Bewerbungen; Einsatzinfos nur bei accepted/assigned
 create view public.my_shifts
@@ -2372,8 +2618,10 @@ select a.id as application_id, a.company_id, a.status, a.applied_at, a.decided_a
        s.id as shift_slot_id, s.title, q.name as qualification_name, s.starts_at, s.ends_at,
        (s.cancelled_at is not null or e.status in ('cancelled', 'declined')) as is_called_off,
        (e.status = 'optioned') as is_tentative,
-       greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
-                coalesce(s.special_cancel_until, '-infinity'::timestamptz)) as cancel_deadline_at,
+       -- Sonderabsagerecht verlängert die Frist, aber nie über den Schichtbeginn hinaus
+       least(greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
+                      coalesce(s.special_cancel_until, '-infinity'::timestamptz)),
+             s.starts_at) as cancel_deadline_at,
        e.postal_code, e.city,
        case when ok.active then e.id                                  end as event_id,
        case when ok.active then e.title                               end as event_title,
@@ -2389,7 +2637,7 @@ select a.id as application_id, a.company_id, a.status, a.applied_at, a.decided_a
   join public.shift_slots s on s.id = a.shift_slot_id
   join public.events e      on e.id = s.event_id
   join public.companies c   on c.id = a.company_id
-  left join public.qualifications q on q.id = s.qualification_id
+  join public.qualifications q on q.id = s.qualification_id
  cross join lateral (
          select a.status in ('accepted', 'assigned')
                 and s.cancelled_at is null
@@ -2401,7 +2649,8 @@ declare
   v text;
 begin
   foreach v in array array['company_profile', 'kitchen_dishes', 'kitchen_events',
-                           'kitchen_production_lines', 'shift_board', 'my_shifts']
+                           'kitchen_production_lines', 'team_directory', 'event_staffing',
+                           'event_colleagues', 'shift_board', 'my_shifts']
   loop
     execute format('revoke all on public.%I from anon, authenticated', v);
     execute format('grant select on public.%I to authenticated', v);
@@ -2446,8 +2695,9 @@ begin
   v_trial_end := ((((now() at time zone 'Europe/Berlin')::date + 14)::timestamp
                    + interval '23:59:59') at time zone 'Europe/Berlin');
 
-  insert into public.companies (name, contact_email, country, created_by, avv_accepted_at, avv_accepted_by)
-  values (p_name, p_contact_email, p_country, v_uid, now(), v_uid)
+  insert into public.companies (name, contact_email, country, created_by,
+                                avv_accepted_at, avv_accepted_by, avv_version)
+  values (p_name, p_contact_email, p_country, v_uid, now(), v_uid, '2026-10')  -- aktuelle AVV-Version
   returning id into v_company_id;
 
   insert into public.company_members (company_id, user_id, role, display_name, login_email)
@@ -2459,12 +2709,15 @@ begin
   insert into public.subscriptions (company_id, plan, status, trial_ends_at, writable_until)
   values (v_company_id, 'profi', 'trialing', v_trial_end, v_trial_end);
 
-  perform public.seed_company_defaults(v_company_id);
+  perform private.seed_company_defaults(v_company_id);
   return v_company_id;
 end;
 $$;
 
-create or replace function public.seed_company_defaults(p_company_id uuid)
+-- Interne Funktion im nicht veröffentlichten Schema private: über PostgREST nicht erreichbar,
+-- kein EXECUTE für anon/authenticated (sonst könnte jeder mit einer fremden company_id,
+-- die z. B. im öffentlichen Logo-Pfad steht, Steuersätze in fremde Firmen schreiben)
+create or replace function private.seed_company_defaults(p_company_id uuid)
 returns void
 language sql
 security definer
@@ -2480,8 +2733,9 @@ as $$
   insert into public.qualifications (company_id, name, sort_order) values
     (p_company_id, 'Service', 1), (p_company_id, 'Bar', 2), (p_company_id, 'Küche vor Ort', 3),
     (p_company_id, 'Spülküche', 4), (p_company_id, 'Fahrer', 5), (p_company_id, 'Auf-/Abbau', 6);
-  -- analog: Standard-Fragenkatalog (intake_questions), Standardtexte, Positionsvorlagen
+  -- analog: Standard-Fragenkatalog (16 Fragen aus 3.7), Standardtexte, Positionsvorlagen
 $$;
+revoke execute on function private.seed_company_defaults(uuid) from public, anon, authenticated;
 
 -- Mitarbeiter bewirbt sich (staff/kitchen)
 create or replace function public.apply_for_slot(p_slot_id uuid, p_comment text default null)
@@ -2513,13 +2767,12 @@ begin
      or v_slot.starts_at <= now() or v_status not in ('optioned', 'confirmed') then
     raise exception 'Bewerbung nicht möglich' using errcode = 'P0001', hint = 'slot_not_open';
   end if;
-  if v_slot.qualification_id is not null and not exists (
+  if not exists (
        select 1 from public.member_qualifications mq
         where mq.member_id = v_member_id and mq.qualification_id = v_slot.qualification_id) then
     raise exception 'Qualifikation fehlt' using errcode = '42501', hint = 'missing_qualification';
   end if;
-  if (select count(*) from public.shift_applications a
-       where a.shift_slot_id = p_slot_id and a.status in ('accepted', 'assigned')) >= v_slot.seats then
+  if v_slot.taken_seats >= v_slot.seats then   -- voller Slot: keine neue Bewerbung (US-44.4)
     raise exception 'Alle Plätze sind bereits vergeben' using errcode = 'P0001', hint = 'slot_full';
   end if;
 
@@ -2573,7 +2826,7 @@ begin
        set status = 'accepted', decided_at = now(), decided_by = public.auth_member_id(),
            status_note = p_note
      where id = v_app.id
-    returning * into v_app;                          -- Kapazität: Trigger enforce_slot_capacity
+    returning * into v_app;                          -- Kapazität: Trigger track_slot_occupancy
   else
     if v_app.status not in ('applied', 'accepted', 'assigned') then
       raise exception 'Absage nicht möglich (Status %)', v_app.status
@@ -2611,8 +2864,10 @@ begin
     raise exception 'Einsatz nicht gefunden' using errcode = 'P0002';
   end if;
   select s.starts_at,
-         greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
-                  coalesce(s.special_cancel_until, '-infinity'::timestamptz))
+         -- Sonderabsagerecht verlängert die Frist höchstens bis Schichtbeginn (wie my_shifts)
+         least(greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
+                        coalesce(s.special_cancel_until, '-infinity'::timestamptz)),
+               s.starts_at)
     into v_starts, v_deadline
     from public.shift_slots s
     join public.companies c on c.id = s.company_id
@@ -2623,7 +2878,7 @@ begin
            cancel_reason = p_reason
      where id = v_app.id returning * into v_app;
   elsif v_app.status in ('accepted', 'assigned') then
-    if now() > v_deadline then
+    if now() > v_deadline or now() >= v_starts then
       raise exception 'Absagefrist abgelaufen – bitte telefonisch absagen'
         using errcode = 'P0001', hint = 'deadline_passed';
     end if;
@@ -2667,7 +2922,7 @@ begin
                     and m.removed_at is null and m.user_id is not null) then
     raise exception 'Mitglied nicht gefunden' using errcode = 'P0002';
   end if;
-  if v_slot.qualification_id is not null and not p_ignore_qualification and not exists (
+  if not p_ignore_qualification and not exists (
        select 1 from public.member_qualifications mq
         where mq.member_id = p_member_id and mq.qualification_id = v_slot.qualification_id) then
     raise exception 'Mitglied hat die Qualifikation nicht'
@@ -2683,7 +2938,7 @@ begin
          decided_at = now(), decided_by = excluded.decided_by, cancelled_at = null,
          cancel_reason = null, late_cancellation = false, status_note = null
    where a.status not in ('accepted', 'assigned')
-  returning a.* into v_app;                          -- Kapazität: Trigger enforce_slot_capacity
+  returning a.* into v_app;                          -- Kapazität: Trigger track_slot_occupancy
 
   if v_app.id is null then
     raise exception 'Bereits eingeplant' using errcode = 'P0001', hint = 'already_assigned';
@@ -2692,12 +2947,23 @@ begin
 end;
 $$;
 
+-- Freigabemuster für jede RPC: erst allen entziehen, dann genau der vorgesehenen Rolle geben
+revoke execute on function public.create_company(text, text, boolean, public.country_code),
+                           public.apply_for_slot(uuid, text),
+                           public.decide_application(uuid, boolean, text),
+                           public.cancel_my_application(uuid, text),
+                           public.assign_member(uuid, uuid, boolean)
+  from public, anon, authenticated;
 grant execute on function public.create_company(text, text, boolean, public.country_code),
                           public.apply_for_slot(uuid, text),
                           public.decide_application(uuid, boolean, text),
                           public.cancel_my_application(uuid, text),
                           public.assign_member(uuid, uuid, boolean)
   to authenticated;
+-- Funktionen nur für Edge Functions (Muster):
+-- revoke execute on function public.apply_stripe_subscription(jsonb) from public, anon, authenticated;
+-- grant  execute on function public.apply_stripe_subscription(jsonb) to service_role;
+-- ebenso prepare_quote_send, commit_quote_send, claim_notifications, ical_feed_entries, alle portal_*
 ```
 
 **Verhalten im Test** (Auszug): `admin` setzt `events.status` direkt → `permission denied` (Spaltenprivileg). `kitchen` liest `dishes` → 0 Zeilen; `kitchen_dishes` → Gerichte mit Allergenen, die Spalte `price_cents` existiert dort nicht. `staff` ohne Qualifikation „Bar“ bewirbt sich auf einen Bar-Slot → `missing_qualification`. Vor der Zusage liefert `my_shifts` keine Adresse, danach schon. Ein nur beworbenes Mitglied sieht Zeitplan und Sonderessen nicht, ein zugesagtes sieht sie. Ein Admin einer anderen Firma legt einen Kunden mit fremder `company_id` an → RLS-Fehler. Lesemodus: Insert → RLS-Fehler, Lesen funktioniert. Firmenlöschung entfernt alle abhängigen Zeilen.
@@ -2709,11 +2975,12 @@ grant execute on function public.create_company(text, text, boolean, public.coun
 | Bucket | öffentlich | Pfadkonvention | Grenzen | Lesen | Schreiben |
 |---|---|---|---|---|---|
 | `logos` | ja (öffentliche URL) | `{company_id}/logo-{uuid}.{png\|jpg}` | 2 MB, `image/png`, `image/jpeg` (kein SVG, US-03.2) | jeder über die öffentliche URL (nötig für E-Mails, deren Bilder eine dauerhafte URL brauchen); kein Listing | `admin` der Firma, nur im Schreibmodus; jedes Upload bekommt einen neuen Dateinamen (Cache, kein Upsert), danach wird die alte Datei gelöscht |
-| `quotes` | nein | `{company_id}/{quote_id}/r{revision}.pdf`, nach Annahme zusätzlich `r{revision}-angenommen.pdf` | 10 MB, `application/pdf` | `admin` der Firma (Historie aller Revisionen); Endkunde nur per Signed URL (5 min) über `portal-api` | nur `service_role` (`render-quote-pdf`); Dateien sind unveränderlich, der Download-Name wird per `Content-Disposition` gesetzt (`Angebot_A-2026-0042_R2.pdf`) |
-| `exports` | nein | `{company_id}/{data_export_id}.zip` | `application/zip` | `admin` der Firma, Link 24 h | nur `service_role` (Export-Job) |
+| `quotes` | nein | `{company_id}/{quote_id}/r{revision}-{send_attempt_id}.pdf` je Versandversuch; nach Annahme bzw. Bestätigung zusätzlich `{company_id}/{quote_id}/r{revision}-angenommen.pdf`. Der Bucketname ist **kein** Pfadsegment | 10 MB, `application/pdf` | `admin` der Firma (Historie aller Revisionen über `send_log`); Endkunde nur per Signed URL (5 min) über `portal-api` | nur `service_role` (`render-quote-pdf`), Upload mit `upsert: false`: zwei parallele Versuche derselben Revision schreiben verschiedene Dateien, nur der Pfad des erfolgreichen Commits steht in `quotes.pdf_path`; Dateien sind unveränderlich; nicht referenzierte Versuchsdateien löscht `render-quote-pdf` nach dem nächsten erfolgreichen Commit. Download-Name per `Content-Disposition` (`Angebot_A-2026-0042_R2.pdf`) |
 
-- Das erste Pfadsegment ist immer `company_id`. Darauf prüfen die Policies mit `storage.foldername(name)`.
-- **Löschen:** Zeilen in `storage.objects` per SQL zu löschen entfernt die Dateien nicht aus dem Objektspeicher. Firmenlöschung und Export-Bereinigung löschen deshalb über die Storage-API (Edge Function bzw. Job mit `service_role`), Präfix `{company_id}/` je Bucket.
+- Das erste Pfadsegment ist immer `company_id`. Darauf prüfen die Policies mit `storage.foldername(name)`. Ein Pfad mit Präfix (z. B. `quotes/{company_id}/…`) würde die Lese-Policy des Admins und die Löschung je Präfix aushebeln.
+- **Löschen:** Zeilen in `storage.objects` per SQL zu löschen entfernt die Dateien nicht aus dem Objektspeicher. Die Firmenlöschung löscht deshalb über die Storage-API (Edge Function mit `service_role`), Präfix `{company_id}/` je Bucket.
+- **Kein Export-Bucket:** Der Datenexport entsteht im Browser (3.7 `data_exports`, Entscheidung E-17).
+- **Test:** Ein Storage-Test prüft, dass der Admin von Firma A die PDFs von Firma A lesen kann, die von Firma B nicht, und dass `kitchen`/`staff` keine PDFs lesen.
 
 ```sql
 -- =====================================================================
@@ -2721,8 +2988,7 @@ grant execute on function public.create_company(text, text, boolean, public.coun
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
   ('logos',   'logos',   true,   2097152, array['image/png', 'image/jpeg']),
-  ('quotes',  'quotes',  false, 10485760, array['application/pdf']),
-  ('exports', 'exports', false,     null, array['application/zip']);
+  ('quotes',  'quotes',  false, 10485760, array['application/pdf']);
 
 create policy logos_admin_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'logos'
@@ -2737,11 +3003,7 @@ create policy quotes_admin_read on storage.objects for select to authenticated
   using (bucket_id = 'quotes'
          and (storage.foldername(name))[1] = (select public.auth_company_id())::text
          and (select public.auth_role()) = 'admin');
-create policy exports_admin_read on storage.objects for select to authenticated
-  using (bucket_id = 'exports'
-         and (storage.foldername(name))[1] = (select public.auth_company_id())::text
-         and (select public.auth_role()) = 'admin');
--- Schreiben in quotes/ und exports/ nur service_role (render-quote-pdf, Export-Job)
+-- Schreiben in den Bucket quotes nur service_role (render-quote-pdf)
 ```
 
 ---
@@ -2759,6 +3021,7 @@ supabase/
   functions/
     portal-api/  render-quote-pdf/  send-email/  push-dispatch/
     stripe-webhook/  create-checkout-session/  ical-feed/  accept-invitation/
+    delete-account/      # Glossar-Ergänzung (Vorschlag): Apple-Token-Widerruf bei Kontolöschung
     _shared/             # gemeinsames TS-Rechenmodul, Supabase-Client, Token-Hashing
 ```
 
@@ -2766,27 +3029,30 @@ supabase/
 
 | Datei | Inhalt |
 |---|---|
-| `20261102090000_types.sql` | Extensions, alle Enums, `set_updated_at()` |
+| `20261102090000_types.sql` | Default Privileges für Funktionen (4.1 Nr. 1), Schema `private`, Extensions, alle Enums, `set_updated_at()` |
 | `20261102090100_tenancy.sql` | `companies`, `company_members`, `subscriptions`, Hilfsfunktionen |
 | `20261102090200_master_data.sql` | `customers`, `tax_rates`, `qualifications`, `member_qualifications` |
 | `20261102090300_catalog.sql` | `dishes`, `dish_allergens`, `ingredients`, `dish_ingredients`, `menu_packages`, `menu_package_dishes` |
 | `20261102090400_events_quotes.sql` | `events`, `quotes`, `quote_items`, `event_schedule_items`, `event_dietary_requirements`, Angebotsnummer |
 | `20261102090500_shifts.sql` | `shift_slots`, `shift_applications`, `can_read_event()`, Überbuchungsschutz, `updated_at`-Trigger |
-| `20261102090550_comms_access.sql` | `invitations`, `push_tokens`, `notifications`, `portal_tokens`, FK `quotes.acceptance_portal_token_id` |
-| `20261102090560_reference.sql` | `allergens` (14 Zeilen), `plan_limits` (4 Zeilen), `intake_questions`, `event_status_changes`, `data_exports` |
+| `20261102090550_comms_access.sql` | `invitations`, `push_tokens`, `notifications`, `push_tickets`, `portal_tokens`, FK `quotes.acceptance_portal_token_id` |
+| `20261102090560_reference.sql` | `allergens` (14 Zeilen), `plan_limits` (4 Zeilen), `intake_questions`, `event_status_changes`, `data_exports`, `stripe_events`, `usage_events` |
 | `20261102090600_rls.sql` | RLS, Policies, Grants, Spaltenprivilegien |
 | `20261102090700_views.sql` | Rollen-Views |
 | `20261102090800_rpc.sql` | RPCs inklusive `portal_*`, `ical_feed_entries`, `apply_stripe_subscription` |
 | `20261102090900_storage.sql` | Buckets und Storage-Policies |
 | `20261102091000_cron.sql` | pg_cron-Jobs (Abschnitt 9.6) |
 
+**Aufteilung nach Meilensteinen (06 §1.15):** Die Tabelle oben ist die Zielstruktur. Entstehen die Migrationen je Meilenstein, gilt die Abhängigkeit von `language sql`-Funktionen: Postgres prüft deren Rumpf beim Anlegen (`check_function_bodies`). `can_read_event()` greift auf `shift_slots` und `shift_applications` zu, die erst in M7 entstehen; die Policies von `event_schedule_items` und `event_dietary_requirements` brauchen die Funktion aber schon in M3. Deshalb: In M3 entsteht `can_read_event()` **ohne** den `staff`-Zweig (`when 'staff' then false`), in M7 folgt `create or replace` mit dem Zweig über Slots und Bewerbungen. Dasselbe Muster gilt für jede SQL-Funktion, die auf spätere Tabellen zugreift.
+
 ### 9.3 Regeln
 
 1. **Nur vorwärts.** Eine angewendete Migration wird nie geändert; Korrekturen kommen als neue Migration. Entwürfe entstehen mit `supabase db diff` oder per Hand und werden immer gelesen, nie blind übernommen.
 2. **Expand/Contract bei brechenden Änderungen:** Ältere App-Versionen laufen noch auf Geräten. Neue Spalte bzw. View zuerst ergänzen, App ausliefern, alte Struktur frühestens mit der nächsten Mindestversion entfernen.
 3. **Checkliste je neuer Tabelle:** `company_id` + zusammengesetzte FKs, `unique (company_id, id)` falls referenziert, `created_at`/`updated_at` + Trigger, `enable row level security`, Policies für alle drei Rollen, Grants/Spaltenprivilegien, pgTAP-Test, `supabase gen types typescript --local`.
-4. **Referenzdaten in Migrationen** (`allergens`, `plan_limits`, Standardwerte in `seed_company_defaults()`), weil `seed.sql` in Produktion nicht läuft.
-5. **CI:** `supabase db reset` (alle Migrationen + Seed) → `supabase test db` → `supabase db lint`. Produktion: `supabase db push` nach Review, Projekt in der Region Frankfurt (`eu-central-1`).
+4. **Referenzdaten in Migrationen** (`allergens`, `plan_limits`, Standardwerte in `private.seed_company_defaults()`), weil `seed.sql` in Produktion nicht läuft.
+5. **Checkliste je neuer Funktion:** `security definer` nur mit `set search_path = ''`; `revoke execute … from public, anon, authenticated`; danach `grant execute` an genau eine Rolle; interne Funktionen in `private`.
+6. **CI:** `supabase db reset` (alle Migrationen + Seed) → `supabase test db` → `supabase db lint`. Produktion: `supabase db push` nach Review, Projekt in der Region Frankfurt (`eu-central-1`).
 
 ### 9.4 Seed (`supabase/seed.sql`, nur lokal und in Preview-Branches)
 
@@ -2796,7 +3062,7 @@ supabase/
 | Firma | „Krügers Tafelküche“ über `create_company()` (Testphase `profi`), Logo-Platzhalter, Akzentfarbe, Standardtexte, Positionsvorlagen „Servicekraft 32,00 €/h“, „Koch vor Ort 45,00 €/h“, „Anfahrt 45,00 €“ |
 | Katalog | 20 Zutaten, darunter das Beispiel aus 02 §3.3 (Rinderschulter 14,90 €/kg, Kartoffeln 1,20 €/kg, Rotwein 6,00 €/l, Wurzelgemüse 3,50 €/kg); 12 Gerichte mit Allergenen und Diätformen, darunter Rinderschmorbraten, Kartoffelgratin, Mousse au Chocolat, Gemüse-Curry (vegan); Pakete „Klassik“ (Faktoren 1,0), „Mediterran“, „Fingerfood Business“ (24,50 € p. P.) |
 | Kunden | Julia & Murat (privat), Steuerkanzlei Neumann mit Ansprechpartnerin Petra Neumann (geschäftlich) |
-| Aufträge | je einer pro `event_status`; Hochzeit (`confirmed`, 80 Gäste, Snapshot Revision 2, 10 × vegan mit Ersatz Rinderbraten → Gemüse-Curry); Firmenfeier mit dem Rechenbeispiel aus 02 §3.6 (60 Gäste, 5 % Rabatt, 3.261,68 € brutto) als Regressionsfall für das TS-Modul; Business-Lunch plus Kopie |
+| Aufträge | je einer pro `event_status`; Hochzeit (`confirmed`, 80 Gäste, Snapshot Revision 2, 10 × vegan mit Ersatz Rinderbraten → Gemüse-Curry); Firmenfeier mit dem Rechenbeispiel aus 02 §3.6 (60 Gäste, 5 % Rabatt, USt je Steuersatz, 3.261,69 € brutto) als Regressionsfall für das TS-Modul; Business-Lunch plus Kopie |
 | Personal | Slots in allen Zuständen (Entwurf, offen, besetzt, abgesagt, vergangen), Bewerbungen in allen `application_status`-Werten, eine späte Absage (`late_cancellation`) |
 | Sonstiges | Standard-Fragenkatalog; einige `notifications` gelesen/ungelesen; ein Portal-Token mit bekanntem Klartext für lokale Portal-Tests |
 
@@ -2809,26 +3075,31 @@ Feste UUIDs (z. B. `00000000-0000-4000-8000-0000000000xx`) machen Tests und Scre
   - Keine View für `kitchen`/`staff` enthält Spalten mit `price`, `cost` oder `markup` (Abfrage gegen `information_schema.columns`).
   - Grant-Listen der Spaltenprivilegien.
   - Statusübergänge von `set_event_status()` gegen die Übergangstabelle aus 02 §1.1.
-  - Lesemodus.
+  - Lesemodus, inklusive „DELETE im Lesemodus betrifft 0 Zeilen“ je Tabelle mit Schreib-Policy und je Rolle (`dishes`, `dish_allergens`, `menu_package_dishes`, `qualifications`, `member_qualifications`, `event_schedule_items`, `event_dietary_requirements`, `customers`, `quote_items`, `shift_slots`).
   - Mandantentrennung mit zwei Firmen.
-- **Nebenläufigkeit:** Skript mit zwei Verbindungen (zwei Zusagen auf den letzten Platz, eine davon mit `pg_sleep` in offener Transaktion); Erwartung: genau eine `accepted`, die andere `slot_full`.
-- **TS-Modul:** die Rechenbeispiele aus 02 §3.3 und §3.6 als Unit-Tests; dieselben Daten im Seed.
+  - **Funktionsrechte:** Keine Funktion in `public` und `private` ist für `anon` ausführbar (`has_function_privilege('anon', oid, 'execute')` = false für alle `pg_proc`-Einträge der Schemas); `authenticated` darf genau die Funktionen einer Whitelist ausführen (RPC-Katalog 4.7 mit Aufrufer ≠ „nur `service_role`“ plus Hilfsfunktionen 4.2); `seed_company_defaults` ist für `authenticated` nicht ausführbar.
+  - **Spaltenumfang:** `team_directory` liefert genau `id, company_id, display_name, role, phone, joined_at`; `kitchen` erhält aus `company_members` nur die eigene Zeile.
+  - **Storage:** Admin A liest PDFs von A, nicht von B (8).
+- **Nebenläufigkeit:** Skript mit zwei Verbindungen (zwei Zusagen auf den letzten Platz, eine davon mit `pg_sleep` in offener Transaktion), je einmal unter READ COMMITTED und unter REPEATABLE READ; Erwartung: genau eine `accepted`, die andere `slot_full` bzw. `40001`; `taken_seats` = 1. Zusätzlich: `seats` senken parallel zu einer Zusage → Check-Verletzung, keine Überbuchung.
+- **TS-Modul:** die Rechenbeispiele aus 02 §3.3, §3.6 und §8.5 sowie die ,5-Grenzfälle aus 02 §3.6 als Unit-Tests; dieselben Daten im Seed.
 
 ### 9.6 Zeitgesteuerte Jobs (pg_cron)
 
-pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Ortszeit Europe/Berlin. Das ist sicher bei der Zeitumstellung und idempotent über `notifications.bundle_key`. Jobs mit E-Mail, Push oder Storage rufen per `pg_net` eine Edge Function auf.
+pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Ortszeit Europe/Berlin. Das ist sicher bei der Zeitumstellung. **Idempotent** sind die Erinnerungs-Jobs über `notifications.dedupe_key` mit `on conflict (member_id, dedupe_key) do nothing` (3.6), nicht über `bundle_key` (der gilt nur für die Bündelung offener Pushes). Jobs mit E-Mail, Push oder Storage rufen per `pg_net` eine Edge Function auf. Diese Tabelle ist die einzige Liste der Jobs; 05 §4.12 und 06 verwenden diese Namen. Kein Job ändert `subscriptions.status` oder `events.status`.
 
-| Job | Takt | Wirkung |
-|---|---|---|
-| `events_completion` | stündlich, wirkt 04:00 bzw. 09:00 | `confirmed` → `completed` oder Erinnerung „als durchgeführt markieren?“ (offene Entscheidung, Abschnitt 10) |
-| `option_reminders` | stündlich, wirkt 08:00 | `option_expiring` 2 Tage vorher und am Ablauftag |
-| `quote_expiry` | stündlich | `quote_expired` bei abgelaufener Gültigkeit (Liste) |
-| `shift_reminders` | stündlich | 24 h vor Slot-Beginn; `slots_unfilled` 72 h vorher |
-| `push_deferred` | alle 5 min | `push-dispatch` für `deliver_after ≤ now()` (Ruhezeit) |
-| `dietary_purge` | täglich | `guest_name`, `table_label` → null, `personal_data_purged_at` 30 Tage nach Eventende |
-| `notifications_retention` | täglich | löscht Einträge älter als 90 Tage |
-| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage), Löschankündigungen, endgültige Löschungen nach 6.4 |
-| `exports_cleanup` | stündlich | abgelaufene Exporte: Datei (Storage-API) und `status = 'expired'` |
+| Job | Takt | Wirkung | `dedupe_key` |
+|---|---|---|---|
+| `events_completion` | stündlich, wirkt 09:00 | Erinnerung `completion_due` „{n} Aufträge als durchgeführt markieren?“ für `confirmed`-Aufträge mit Ende am Vortag; **kein** automatischer Statuswechsel (02 §1.1) | `completion_due:{lokales Datum}` |
+| `option_reminders` | stündlich, wirkt 08:00 | `option_expiring` 2 Tage vorher und am Ablauftag | `option_expiring:{event_id}:{lokales Datum}` |
+| `quote_expiry` | stündlich | `quote_expired` bei abgelaufener Gültigkeit (Liste) | `quote_expired:{quote_id}:{revision}` |
+| `confirmation_reminders` | stündlich, wirkt 08:00 | `revision_confirmation_pending` 48 h nach einem „Bitte bestätigen“-Versand bzw. am Änderungsschluss (01 US-36.7) | `revision_confirmation_pending:{quote_id}:{revision}:{anlass}` |
+| `shift_reminders` | stündlich | `shift_reminder` 24 h vor Slot-Beginn; `slots_unfilled` 72 h vorher | `shift_reminder:{application_id}` · `slots_unfilled:{shift_slot_id}` |
+| `push_deferred` | alle 5 min | `push-dispatch` (`mode: 'batch'`) für `deliver_after ≤ now()` (Bündelung, Ruhezeit); setzt `sending`-Zeilen mit `claimed_at` älter als 10 min auf `pending` zurück | – |
+| `push_receipts` | alle 15 min | `push-dispatch` (`mode: 'receipts'`): Receipts zu `push_tickets` abrufen, `DeviceNotRegistered` → Token löschen; Tickets älter als 7 Tage löschen | – |
+| `dietary_purge` | täglich | `guest_name`, `table_label` → null, `personal_data_purged_at` 30 Tage nach Eventende | – |
+| `notifications_retention` | täglich | löscht Einträge älter als 90 Tage | – |
+| `data_retention` | täglich | Einladungen 30 Tage nach Ablauf, Rate-Limit-Zeilen, `stripe_events` älter als 90 Tage, IP/User-Agent in Annahme- und Änderungsprotokollen 3 Jahre nach Ende des Event-Jahres (02 §10.4) | – |
+| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage vorher, Testende), Löschankündigungen (30 und 7 Tage vorher), endgültige Löschungen nach 6.4 inklusive Storage über eine Edge Function; nur E-Mails und Löschungen, kein Statuswechsel | – |
 
 ---
 
@@ -2838,30 +3109,34 @@ pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Orts
 
 | Thema | 01 / 02 | dieses Dokument | Grund |
 |---|---|---|---|
-| Snapshot-Spalte | 02: `quotes.sent_snapshot` | `quotes.snapshot` | Vorgabe der Planung für das Datenmodell; auch Portal-Änderungen erzeugen Snapshots ohne Versand |
+| Snapshot-Spalte | 02 (früher): `quotes.sent_snapshot` | `quotes.snapshot`; dazu `binding_snapshot` (verbindlicher Stand) und `portal_selection` (Menüwahl vor Annahme) | Vorgabe der Planung für das Datenmodell; 02 nutzt jetzt diese Namen |
 | Annahmefelder | 02: `accepted_name`, `accepted_email`, `accepted_ip`, `accepted_user_agent`, `accepted_revision`, `accepted_snapshot_hash`, `accepted_total_gross_cents`, `accepted_via` | `acceptance_name`, `acceptance_email`, `acceptance_ip`, `acceptance_user_agent`, `acceptance_revision`, `acceptance_snapshot_hash`, `acceptance_total_gross_cents`, `acceptance_channel`; `accepted_at` bleibt | einheitliches Präfix `acceptance_*` |
 | Slot-Kapazität | 02: `shift_slots.capacity` | `shift_slots.seats` | Vorgabe der Planung für das Datenmodell |
-| Änderungsschluss | 02: `companies.portal_change_lead_days` (3 Tage, 23:59); 01: 72 h | `companies.portal_change_lead_hours`, Standard 72 | eine Einheit, deckt beide Lesarten ab |
+| Änderungsschluss | 02 (früher): `companies.portal_change_lead_days` (3 Tage, 23:59); 01: 72 h | `companies.portal_change_lead_hours` (Event-Catering, Standard 72) und `portal_change_lead_hours_business_lunch` (Standard 24); `events.changes_until` je Auftrag änderbar | eine Einheit; Business-Lunch-Teilnehmerzahlen ändern sich oft am Vortag (01 Persona 2.5) |
+| Weitere Spaltennamen | 02 (früher): `customers.customer_type`, `ingredients.category`, `replacement_dish_id`/`replaces_dish_id`, `privacy_url` | `customers.type`, `ingredients.product_group`, `event_dietary_requirements.substitutions`, `companies.privacy_policy_url` | 02 ist angeglichen |
 | Portal-Link-Gültigkeit | 01: 60 Tage nach Event; 02: 90 Tage | `portal_token_ttl_days`, Standard 60 (**Vorschlag**: kürzer = datensparsamer) | Firmeneinstellung |
 | Portal-Token je Auftrag | 02: „Token anlegen, falls keiner aktiv“ | neuer Token je Versand bzw. Link-Kopie, alte bleiben gültig | nur der Hash ist gespeichert; ein bestehender Link lässt sich nicht erneut anzeigen (3.6) |
-| Rabatt | 01 US-23.5/US-25.5: Rabatt als negative `custom`-Position; 02 §3.6: keine negativen Positionen, Rabattfelder | `unit_price_cents ≥ 0`; `discount_bp`/`discount_cents` je Angebot, `discount_bp` je Position | folgt 02 (korrekte USt-Aufteilung bei gemischten Sätzen); 01 anpassen |
-| Slot-Qualifikation | 01: Pflicht; 02: leer = jeder | `shift_slots.qualification_id` nullable | deckt beide ab; die App kann Pflicht erzwingen |
+| Rabatt | 01 (früher) US-23.5/US-25.5: Rabatt als negative `custom`-Position; 02 §3.6: keine negativen Positionen, Rabattfelder | `unit_price_cents ≥ 0`; `discount_bp`/`discount_cents` je Angebot, `discount_bp` je Position | folgt 02 (korrekte USt-Aufteilung bei gemischten Sätzen); 01 ist angeglichen |
+| Slot-Qualifikation | 01: Pflicht; 02 (früher): leer = jeder | `shift_slots.qualification_id` **not null** | 00 §3: Slots haben eine Rolle/Qualifikation, Mitarbeiter sehen nur passende Slots; 02 ist angeglichen |
 | Statusfeld des Angebots | – | `quotes.status` (`quote_status`) zusätzlich zu `event_status` | Vorgabe; Semantik in 3.3 |
 | Zusatzpositions-Vorlagen | 02: Stundensatz-Vorlagen in den Firmeneinstellungen | `companies.quote_item_templates` (jsonb, alle Zusatztypen) | eine Struktur für Personal, Anfahrt, Getränkepauschale |
 
-### 10.2 Offene Entscheidungen (Datenmodell unterstützt beide Varianten)
+### 10.2 Entscheidungen (D-1 bis D-4 festgelegt als Vorschlag, Bestätigung durch den Gründer ausstehend)
 
-| # | Frage | Variante A | Variante B | Auswirkung im Modell |
-|---|---|---|---|---|
-| D-1 | Gästezahl/Menüwahl im Portal | 02 §4.2: direkt übernehmen, neue Revision | 01 US-34/36: Änderungswunsch, Admin übernimmt | A nutzt `change_log`; B zusätzlich `quotes.pending_change` (höchstens ein offener Wunsch) |
-| D-2 | Abschluss vergangener Aufträge | 02: automatisch `confirmed` → `completed` um 04:00 | 01 US-11.5: Erinnerung um 09:00, Admin setzt gesammelt | nur Job `events_completion` |
-| D-3 | Korrektur-Übergänge | 02: `declined` → `quoted` per neuer Revision; Wiederaufnahme per Kopie | 01: `declined`/`cancelled` → `inquiry`, `invoiced` → `completed` | nur Übergangstabelle in `set_event_status()` |
-| D-4 | `inquiry` → `declined` („Anfrage kommt nicht zustande“) | 01: erlaubt | 02: Anfrage verwerfen = löschen | beides möglich (Delete-Policy und Statusübergang) |
-| D-5 | Testphase-Ende | Tag 14 23:59 Berlin (01, umgesetzt) | exakt 14 × 24 h | `create_company()` |
+| # | Frage | Festlegung | Auswirkung im Modell |
+|---|---|---|---|
+| D-1 (E-10) | Gästezahl/Menüwahl im Portal | **01**: Gästezahl immer und Menüwahl nach Bestätigung als Änderungswunsch, Menüwahl vor der Annahme direkt ohne neue Revision, Sonderessen direkt (02 §4) | `pending_change` fest im Modell; `portal_selection`; RPCs `portal_request_change`, `portal_select_choice`, `resolve_pending_change`, `portal_confirm_revision`; Kanal `portal_change` entfällt |
+| D-2 (E-8) | Abschluss vergangener Aufträge | **01 US-11.5**: Erinnerung 09:00, Admin setzt gesammelt; kein automatischer Wechsel | Job `events_completion` nur mit Erinnerung |
+| D-3 (E-8) | Korrektur-Übergänge | `declined` → `quoted` per neuer Revision; `cancelled` ist Endzustand mit Wiederaufnahme per Kopie; Korrekturen `completed` → `confirmed` und `invoiced` → `completed`; keine Rücksprünge nach `inquiry` (02 §1.1) | Übergangstabelle in `set_event_status()` |
+| D-4 (E-8) | `inquiry` → `declined` | erlaubt („Anfrage kommt nicht zustande“, Grund Pflicht); Löschen nur für Fehleingaben ohne Versand. Zusätzlich `inquiry` → `optioned` und Direktbestätigung `inquiry`/`optioned` → `confirmed` mit Bestätigungsweg | Statusübergang und Delete-Policy |
+| D-5 | Testphase-Ende | offen: Tag 14 23:59 Berlin (01, umgesetzt) oder exakt 14 × 24 h | `create_company()` |
+| D-6 (E-16) | Datenbasis der Küche | verbindliche Revision (01 §4.2.3) | `binding_snapshot`/`binding_revision`; Views 4.6 |
+| D-7 (E-17) | Datenexport | im Browser (02 §10.2) | `data_exports` nur Protokoll; kein Bucket `exports`, kein Job `exports_cleanup` |
 
 ### 10.3 Annahmen dieses Dokuments
 
 - Supabase-Projekt auf Postgres ≥ 15 (`ON DELETE SET NULL (spalte)`, `security_invoker` für Views).
 - Ein Abo je Firma; Steuerberechnung des App-Abos über Stripe.
-- Rechenlogik ausschließlich im TS-Modul; die DB prüft beim Versand nur Konsistenz (Σ Positionen = Kopf).
+- Rechenlogik ausschließlich im TS-Modul (nur Ganzzahlen, USt je Steuersatz); die DB prüft beim Versand nur Konsistenz (Σ Positionen = Kopf je Steuersatz) und berechnet den Snapshot-Hash.
+- RPCs laufen unter READ COMMITTED (PostgREST-Standard); der Überbuchungsschutz ist auch unter REPEATABLE READ sicher (7.5).
 - Push-Texte, iCal und Offline-Cache werden ausschließlich aus den rollengerechten Views bzw. RPCs gespeist.
