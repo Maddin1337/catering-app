@@ -6,6 +6,7 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 
 - Inhalte ohne Markierung setzen das Entscheidungsprotokoll um.
 - **[Vorschlag]** markiert eine begründete Empfehlung zu einem dort offenen Punkt. Bis der Gründer sie bestätigt, gilt sie als Arbeitsannahme.
+- **entschieden (R2-x)** markiert einen Punkt, den der Gründer in Runde 2 entschieden hat (00 §9, R2-1 bis R2-14). Diese Entscheidungen haben Vorrang vor allen abweichenden Vorschlägen in 01–06.
 - Akzeptanzkriterien werden als `US-xx.n` referenziert (n = Nummer in der Kriterienliste der Story).
 - Begriffe, Rollen, Status, Tabellen- und Funktionsnamen folgen exakt dem Glossar (Abschnitt 0).
 
@@ -35,7 +36,7 @@ Stand: 17.10.2026 · Arbeitstitel: catering-app · Grundlage: `docs/00-entscheid
 | Edge Functions | `portal-api`, `render-quote-pdf`, `send-email`, `push-dispatch`, `stripe-webhook`, `create-checkout-session`, `ical-feed`, `accept-invitation` |
 | Expo-Router | `app/(auth)` Anmeldung, Registrierung, Einladung · `app/(app)` Team-App mit rollenabhängigen Tabs · `app/portal/[token]` öffentliches Kundenportal (Web) |
 | Angebots-Chat (ergänzend, 03 §3.7) | `intake_questions` Fragenkatalog der Firma (ein Katalog je Firma, Verzweigung über Bedingungen) · `events.occasion` Anlass · `events.intake_answers` Antworten des Chats am Auftrag |
-| Ergänzung Edge Functions **[Vorschlag]** | `delete-account`: Widerruf des Apple-Tokens bei der Kontolöschung (Apple-Pflicht, 05 §5.10); `purge-company`: Storage-Dateien bei der endgültigen Firmenlöschung entfernen (intern, Job `billing_lifecycle`); Aufnahme ins Glossar zur Freigabe |
+| Ergänzung Edge Functions – entschieden (R2-12, R2-13, R2-14) | `delete-account`: Konto löschen inkl. Widerruf von Sign in with Apple (App-Store-Pflicht, 05 §5.10; freigegeben R2-12); `purge-company`: löscht 30 Tage nach dem Löschantrag alle Daten und Dateien der Firma (intern, Job `billing_lifecycle`; freigegeben R2-13); `export-company`: erzeugt den Datenexport im Hintergrund, legt das ZIP im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip` ab und löst die E-Mail „Export bereit“ mit signiertem Link (7 Tage gültig) aus (intern, nach `request_data_export()`; R2-14, US-59). Aufnahme ins Glossar |
 
 Sprachregelung im Dokument: **Auftrag** = Datensatz in `events` (Event-Catering oder Business-Lunch; in der Oberfläche auch „Event“). **Mitglied** = Nutzer mit Eintrag in `company_members`. **Slot** = Datensatz in `shift_slots`. **Änderungsschluss** und **Absagefrist** sind Firmeneinstellungen (Abschnitt 4.2.6).
 
@@ -72,7 +73,7 @@ Die catering-app bündelt für kleine Cateringbetriebe (1–10 Mitarbeiter, Even
 | N-19 | In-App-Chat **[Vorschlag]** | strukturierte Felder, Push, Kommentarfeld im Portal |
 | N-20 | Öffentliches Anfrageformular, Lead-Vermittlung **[Vorschlag]** | Anfragen erfasst der Admin selbst |
 | N-21 | Auswertungen und Umsatz-Dashboards **[Vorschlag]** | Rohertrag je Angebot, Startübersicht |
-| N-22 | Kinderpreise und Kinderportionen als eigene Logik (z. B. Kinderzahl am Auftrag) **[Vorschlag]** | Paket für Erwachsene mit fester Menge (Anzahl Erwachsene), Kinder als eigene Position (z. B. Paket „Kindermenü“, feste Menge); die Gästezahl bleibt die Gesamtzahl, keine Portion wird doppelt gezählt (02 §2.2) |
+| N-22 | Kinderpreise und Kinderportionen als eigene Logik (z. B. Kinderzahl am Auftrag) – entschieden (R2-11) | Paket für Erwachsene mit fester Menge (Anzahl Erwachsene), Kinder als eigene Position (z. B. Paket „Kindermenü“, feste Menge); die Gästezahl bleibt die Gesamtzahl, keine Portion wird doppelt gezählt (02 §2.2) |
 
 ---
 
@@ -90,7 +91,7 @@ Die catering-app bündelt für kleine Cateringbetriebe (1–10 Mitarbeiter, Even
 
 - **Ziele:** wissen, was wann in welcher Menge produziert werden muss, auch über mehrere Aufträge und Tage; Allergiker und Sonderessen zuverlässig berücksichtigen; eine Einkaufsliste, die stimmt.
 - **Frust heute:** Produktionszettel am Kühlschrank; Gästezahl-Änderungen erfährt er per Zuruf am Vortag; rechnet Mengen per Hand hoch; Allergene stehen in einem Ordner, der nicht aktuell ist.
-- **Geräte & Kontext:** Android-Smartphone, gelegentlich Tablet in der Küche; nasse oder fettige Hände, wenig Zeit; Kühlraum und Kellerküche ohne zuverlässiges Netz.
+- **Geräte & Kontext:** Android-Smartphone, auch in der Küche (kein Küchen-Tablet, entschieden R2-8); nasse oder fettige Hände, wenig Zeit; Kühlraum und Kellerküche ohne zuverlässiges Netz.
 - **Folgt daraus:** Tagesansicht „Heute/Morgen“, große Touch-Ziele, Listen ohne Preise, offline lesbar; Gerichte, Zutaten und Allergene pflegt er selbst.
 
 ### 2.3 Lena Hoffmann (22) – Studentin, Service-Aushilfe → Rolle `staff`
@@ -123,7 +124,7 @@ Die catering-app bündelt für kleine Cateringbetriebe (1–10 Mitarbeiter, Even
 | Rolle | Schlüssel | Wer | Zugang | Plattform |
 |---|---|---|---|---|
 | Admin/Inhaber | `admin` | Inhaber, ggf. Büro/Stellvertretung; mehrere Admins möglich **[Vorschlag]**, mindestens einer | Registrierung (Firmengründer) oder Einladung | iOS, Android, Web-Admin (Abo und Export nur Web) |
-| Küche | `kitchen` | Koch, Küchenhilfe | nur per Einladung | iOS, Android, Web; **offline lesbar nur in der nativen App**, im Web nur online. Das Küchen-Tablet nutzt deshalb die App (iPad- bzw. Android-Tablet-Build, 06 E-18) |
+| Küche | `kitchen` | Koch, Küchenhilfe | nur per Einladung | iOS, Android, Web; **offline lesbar nur in der nativen App**, im Web nur online. Die Küche nutzt deshalb Smartphones mit der nativen App; ein Küchen-Tablet ist im MVP nicht vorgesehen (entschieden R2-8; Tablet-Optimierung nach dem MVP, P-23) |
 | Service/Aushilfe | `staff` | Service, Bar, Spüler, Fahrer, Aushilfen | nur per Einladung | iOS, Android |
 | Endkunde | – (kein Mitglied) | Brautpaar, Firmenkunde, Privatkunde | Link mit Portal-Token (`portal_tokens`) | Web (`app/portal/[token]`) |
 
@@ -195,7 +196,7 @@ Legende: **V** = voll (anlegen, ändern, löschen) · **L** = nur lesen · **E**
 ³ Nur Aufträge, in denen das Mitglied einen Slot mit Status `accepted` oder `assigned` hat; Zugriff endet sofort bei Absage, Ausplanung oder Storno.
 ⁴ Nur Annehmen, Ablehnen bzw. „Änderung bestätigen“ der aktuellen Revision.
 ⁵ Nur die zuletzt versendete Revision des eigenen Auftrags.
-⁶ Bis zum Änderungsschluss (Standard Event-Catering 72 h, Business-Lunch 24 h vor Beginn, je Auftrag änderbar) **[Vorschlag]**.
+⁶ Bis zum Änderungsschluss (Standard Event-Catering 72 h, Business-Lunch 24 h vor Beginn, je Auftrag änderbar) – entschieden (R2-6); Menüwahl vor der Annahme direkt, Gästezahl und alle Änderungen nach der Bestätigung als Änderungswunsch, Sonderessen sofort (R2-1).
 ⁷ Nur Name, Beschreibung, Allergene und Diätformen der im Angebot enthaltenen Gerichte; keine Zutaten oder Mengen.
 ⁸ Nur veröffentlichte Slots mit einer Qualifikation, die das Mitglied besitzt.
 ⁹ Vorname und Qualifikation der übrigen Eingeplanten desselben Auftrags **[Vorschlag]** (hilft bei Fahrgemeinschaften und Übergaben).
@@ -234,7 +235,7 @@ Legende: **V** = voll (anlegen, ändern, löschen) · **L** = nur lesen · **E**
 | F-02 | Firmenprofil, Branding, Einstellungen | Must | Stammdaten, Logo, Akzentfarbe, Standardtexte, Fristen und Standardwerte (4.2.6), Steuersätze (DE vorbelegt, AT/CH vorbereitet) | keine eigene Domain, kein Portal-Design über Logo und Farbe hinaus | US-03, US-04 |
 | F-03 | Team, Einladungen, Rollen | Must | Einladung per E-Mail oder Link mit Rolle und Qualifikationen (`accept-invitation`), Rollen ändern, entfernen, Konto löschen | keine individuellen Rechte pro Person, keine Personalakte | US-05 – US-08 |
 | F-04 | Kunden | Must | Privat/geschäftlich, Kontakt, Rechnungsanschrift, Notiz, Duplikatwarnung, Auftragshistorie, Anonymisierung | kein CRM (Pipeline, Aufgaben), kein Import | US-09, US-61 |
-| F-05 | Aufträge & Status-Workflow | Must | Anlage, Statusübergänge nach 02 §1.1 (Übersicht 4.2.1), Option mit Ablaufdatum, Direktbestätigung, Storno, Statushistorie | keine Serienaufträge, keine Raum-/Ressourcenplanung | US-10 – US-12 |
+| F-05 | Aufträge & Status-Workflow | Must | Anlage, Statusübergänge nach 02 §1.1 (Übersicht 4.2.1), Option mit Ablaufdatum, Direktbestätigung (R2-2), Storno, Bestätigungsdialog vor jedem Statuswechsel (R2-4), Statushistorie | keine Serienaufträge, keine Raum-/Ressourcenplanung, keine Rückwärts-Übergänge und keine Funktion „Status korrigieren“ (R2-4), kein automatisches „Durchgeführt“ (R2-3) | US-10 – US-12 |
 | F-06 | Auftrag kopieren | Must (Mehrfachkopie: Should) | Kopie mit neuem Datum inkl. Positionen und Zeitplan, optional Slots und Sonderessen | keine verknüpfte Serie | US-13 |
 | F-07 | Zeitplan je Auftrag | Must | Einträge Abfahrt, Aufbau, Ausgabe, Abbau, Sonstiges (`event_schedule_items`) | keine Fahrzeug-/Tourenplanung | US-14 |
 | F-08 | Kalender | Must | Monat, Woche, Liste; rollengefiltert; Statuskennzeichnung | kein Zwei-Wege-Sync, kein Verschieben per Drag & Drop **[Vorschlag]** | US-15 |
@@ -247,7 +248,7 @@ Legende: **V** = voll (anlegen, ändern, löschen) · **L** = nur lesen · **E**
 | F-15 | Versand, Revision, PDF | Must | Versand per E-Mail (`send-email`), Snapshot mit Revisionsnummer, PDF mit Branding (`render-quote-pdf`), Link kopieren (Should) | kein Öffnungs-Tracking, keine digitale Signatur | US-27 – US-29 |
 | F-16 | Kundenportal: ansehen, annehmen, ablehnen | Must | `app/portal/[token]` über `portal-api`; Annahme mit Name, Revision, Zeitstempel | kein Kundenkonto, keine Online-Zahlung, keine Übersicht mehrerer Aufträge | US-30 – US-32 |
 | F-17 | Kundenportal: Änderungen | Must | Menüwahl in Wahlgruppen, Gästezahl als Änderungswunsch, Sonderessen/Allergien direkt, Änderungsschluss; Übernahme durch admin per Revision | keine Gästeliste/RSVP, keine Sitzordnung, kein Chat | US-33 – US-36 |
-| F-18 | Küche: Tagesansicht & Produktionsliste | Must | Heute/Morgen, Produktionsliste über mehrere Aufträge und Tage, Sonderessen, ohne Preise | keine Stationsplanung, keine Etiketten | US-37, US-38 |
+| F-18 | Küche: Tagesansicht & Produktionsliste | Must | Heute/Morgen, Produktionsliste über mehrere Aufträge und Tage, Sonderessen, ohne Preise; für Smartphones (native App) ausgelegt (R2-8) | keine Stationsplanung, keine Etiketten, kein Küchen-Tablet und keine Tablet-Layouts (R2-8, P-23) | US-37, US-38 |
 | F-19 | Einkaufsliste | Must | Summe aus Zutaten × Portionen, Puffer (nur Einkauf, Standard 5 %), Teilen als Text, CSV im Web | keine Bestellungen, keine Lieferanten, kein Lagerbestand | US-39 |
 | F-20 | Sonderessen & Allergikerliste | Must | Erfassung intern und im Portal (`event_dietary_requirements`), Konfliktprüfung, Ersatzgericht | keine Gästeliste | US-35, US-40 |
 | F-21 | Qualifikationen | Must | Qualifikationen definieren und zuordnen (`qualifications`, `member_qualifications`) | keine Zertifikatsverwaltung mit Ablaufdatum | US-41 |
@@ -260,44 +261,45 @@ Legende: **V** = voll (anlegen, ändern, löschen) · **L** = nur lesen · **E**
 | F-28 | iCal-Abo | Should | persönlicher ICS-Link je Mitglied über `ical-feed`, nur lesend | kein Schreiben in Fremdkalender | US-53 |
 | F-29 | Offline-Lesen | Must | Cache geladener Daten, Offline-Banner, Schreibaktionen gesperrt, Vorladen eigener Einsätze **[Vorschlag]** | keine Offline-Bearbeitung | US-54 |
 | F-30 | Testphase, Abo, Lesemodus | Must | 14 Tage ohne Zahlungsdaten, Stripe Checkout (`create-checkout-session`, `stripe-webhook`), Stufengrenzen, Lesemodus | kein In-App-Kauf, keine Gutscheine | US-55 – US-58 |
-| F-31 | Datenschutz: Export, Löschung, Rechtstexte | Must | ZIP-Export im Browser, Firmenlöschung, Anonymisierung von Endkunden, AVV, Datenschutzerklärung | kein Export des Änderungsprotokolls, kein serverseitiger Export | US-59 – US-62 |
+| F-31 | Datenschutz: Export, Löschung, Rechtstexte | Must | ZIP-Export im Hintergrund mit Download-Link per E-Mail (privater Bucket `exports`, signierter Link 7 Tage gültig, danach automatische Löschung; R2-14), Konto löschen (`delete-account`, R2-12), Firmenlöschung (`purge-company`, R2-13), Anonymisierung von Endkunden, AVV, Datenschutzerklärung | kein Export des Änderungsprotokolls, kein Download direkt im Browser, keine automatischen oder geplanten Exporte | US-59 – US-62 |
 | F-32 | Angebots-Chat & Fragenkatalog | Must | geführter Chat ohne KI für die interne Anfrageerfassung (z. B. am Telefon): eine Frage nach der anderen, Antworttypen (Auswahl, Mehrfachauswahl, Zahl, Datum, Uhrzeit, Zeitspanne, Text, Ja/Nein, Kunde), Pflichtfragen, Verzweigung, Antwort ändern, Feldzuordnung zu Auftrag und Angebot, Notiz für Fragen ohne Zuordnung; Fragenkatalog je Firma pflegen, Standardkatalog, Testlauf; danach Angebots-Editor (00 §3) | keine KI, keine automatischen Positionsvorschläge, kein Chat für Endkunden, keine Kataloge je Anlass, keine Offline-Erfassung | US-63 – US-66 |
 
 ### 4.2 Fachliche Kernregeln
 
 #### 4.2.1 Auftragsstatus
 
-**Die verbindliche Übergangstabelle steht in 02 §1.1** (Auslöser, Vorbedingungen, Nebenwirkungen). Server (`set_event_status()`) und Oberfläche nutzen genau diese Tabelle; hier steht nur die Übersicht. Festgelegt als **[Vorschlag]** (06 E-8, Bestätigung des Gründers ausstehend).
+**Die verbindliche Übergangstabelle steht in 02 §1.1** (Auslöser, Vorbedingungen, Nebenwirkungen). Server (`set_event_status()`) und Oberfläche nutzen genau diese Tabelle; hier steht nur die Übersicht. Entschieden (R2-2, R2-3, R2-4; ersetzt den Vorschlag 06 E-8).
 
 ```mermaid
 stateDiagram-v2
     [*] --> inquiry: Auftrag anlegen, im Chat erfassen oder kopieren
     inquiry --> quoted: Angebot erstmals versendet
     inquiry --> optioned: Termin vormerken (optioniert bis)
-    inquiry --> confirmed: Direkt bestätigen (Bestätigungsweg)
+    inquiry --> confirmed: Direkt bestätigen ohne Angebot (Bestätigungsweg, R2-2)
     inquiry --> declined: Anfrage kommt nicht zustande
     quoted --> quoted: neue Revision versendet
     quoted --> optioned: Admin optioniert (optioniert bis)
     quoted --> confirmed: Annahme (Portal oder manuell)
     quoted --> declined: Kunde lehnt ab
-    declined --> quoted: neue Revision versendet
     optioned --> optioned: neue Revision, Option verlängert
     optioned --> confirmed: Annahme oder Direktbestätigung
     optioned --> cancelled: Ablehnung im Portal oder Storno
     confirmed --> cancelled: Storno
-    confirmed --> completed: Durchgeführt (manuell)
-    completed --> confirmed: Korrektur
+    confirmed --> completed: Durchgeführt (nur manuell, R2-3)
     completed --> invoiced: extern abgerechnet
-    invoiced --> completed: Korrektur
+    declined --> [*]
+    cancelled --> [*]
+    invoiced --> [*]
 ```
 
 Kurzfassung der Regeln aus 02 §1.1:
 
 - „Optioniert bis“ ist Pflicht, sowohl aus `inquiry` (Termin vor dem Angebot halten) als auch aus `quoted`.
-- **Direktbestätigung** (`inquiry`/`optioned` → `confirmed`) verlangt den Bestätigungsweg (Telefon, E-Mail, persönlich), z. B. für Stammkunden und Business-Lunch-Kopien.
+- **Direktbestätigung** (`inquiry`/`optioned` → `confirmed`, auch ganz ohne versendetes Angebot) ist erlaubt – entschieden (R2-2). Sie verlangt den Bestätigungsweg (Telefon, E-Mail, persönlich), z. B. für Stammkunden am Telefon und Business-Lunch-Kopien.
 - Eine Anfrage, die nicht zustande kommt, wird `declined` (Grund Pflicht). Löschen gibt es nur für Fehleingaben ohne Versand.
-- `declined` wird durch eine neue Revision wieder `quoted`; `cancelled` ist Endzustand, die Wiederaufnahme läuft über „Auftrag kopieren“.
-- „Durchgeführt“ setzt der Admin; die App erinnert am Folgetag um 09:00 (US-11.5), ein automatischer Wechsel findet nicht statt.
+- **Keine Rückwärts-Übergänge** – entschieden (R2-4): kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted`, keine Reaktivierung von `declined` oder `cancelled` und keine Funktion „Status korrigieren“. `declined`, `cancelled` und `invoiced` sind Endzustände; die Wiederaufnahme eines abgelehnten oder stornierten Auftrags läuft über „Auftrag kopieren“ (US-13).
+- **Bestätigungsdialog vor jedem Statuswechsel** (R2-4): Jeder Wechsel durch den Admin – einzeln oder als Sammelaktion – zeigt vorher alten und neuen Status, die Folgen (z. B. Benachrichtigung von Küche, Eingeplanten oder Kunde, geschlossene Slots) und den Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden“; erst „Bestätigen“ führt ihn aus (US-11.10).
+- „Durchgeführt“ (`completed`) setzt ausschließlich der Admin; es gibt keinen automatischen Wechsel, auch keinen nächtlichen Job. Die App erinnert am Tag nach dem Event um 09:00 (Job `events_completion`, US-11.5) – entschieden (R2-3).
 
 Weitere Regeln:
 
@@ -314,13 +316,13 @@ Weitere Regeln:
 - **Pro-Person-Positionen:** `package` und `beverage` standardmäßig, `dish` wahlweise. Ihre Menge folgt der Gästezahl des Auftrags.
 - **Kalkulationsart** je Angebot **[Vorschlag]**, Standard aus Firmeneinstellung:
   - *Pauschal:* Preise aus Paket bzw. Gericht.
-  - *Wareneinsatz + Aufschlag:* Einzelpreis = Wareneinsatz pro Portion × (1 + Aufschlag %), auf das Preisraster (Standard 0,10 €) **aufgerundet** **[Vorschlag]**, damit der Preis nie unter dem kalkulierten Wert liegt. Wareneinsatz pro Portion = Σ (Menge pro Person × Einkaufspreis je Basiseinheit) der Zutaten; bei Paketen zusätzlich × Portionsfaktor je Gericht. Die Menge pro Person ist die Einkaufsmenge der Rohware vor Garverlust (US-19.2).
+  - *Wareneinsatz + Aufschlag:* Einzelpreis = Wareneinsatz pro Portion × (1 + Aufschlag %), auf das Preisraster von vollen 10 Cent **aufgerundet** (26,32 € → 26,40 €) – entschieden (R2-5) –, damit der Preis nie unter dem kalkulierten Wert liegt. Wareneinsatz pro Portion = Σ (Menge pro Person × Einkaufspreis je Basiseinheit) der Zutaten; bei Paketen zusätzlich × Portionsfaktor je Gericht. Die Menge pro Person ist die Einkaufsmenge der Rohware vor dem Garen (US-19.2) – entschieden (R2-7).
   - Manuell überschriebene Einzelpreise bleiben bei einem Wechsel der Kalkulationsart erhalten und sind gekennzeichnet.
 - **Rohertrag** (nur admin) = Nettosumme der `package`-, `dish`- und `beverage`-Positionen − Wareneinsatz der Speisen. Getränke ohne Zutaten zählen mit Wareneinsatz 0 und werden als unvollständig markiert.
 - **Steuern und Rundung:** Die Rechenregeln stehen verbindlich in 02 §3 (eine Quelle für App, Portal und PDF). Kurzfassung: Jede Position trägt einen Steuersatz aus `tax_rates` (Standard je Positionstyp); Positionsbetrag = Menge × Einzelpreis, kaufmännisch auf Cent gerundet; die Umsatzsteuer wird **je Steuersatz auf die Summe der Beträge dieses Satzes** gerechnet und kaufmännisch gerundet (wie später auf Rechnungen); gerechnet wird ausschließlich mit Ganzzahlen **[Vorschlag]**.
 - **Rabatt** nur über die Rabattfelder: Gesamtrabatt in % oder €, Positionsrabatt in %. Negative Positionen gibt es nicht, weil sie bei gemischten Steuersätzen die Umsatzsteuer falsch verteilen würden.
 - **Preisanzeige:** Privatkunde brutto je Position, Geschäftskunde netto je Position, je Angebot umschaltbar **[Vorschlag]**. Gerechnet wird von der angezeigten Seite aus; weicht sie von der Eingabeart der Firma ab, wird der Einzelpreis einmal umgerechnet (02 §3.6). Summen netto, Umsatzsteuer je Satz und brutto werden immer ausgewiesen.
-- **Kinder:** keine eigene Kinderzahl und keine Kinderpreise im MVP (N-22); Kinder laufen als eigene Position mit fester Menge.
+- **Kinder:** keine eigene Kinderzahl und keine Kinderpreise im MVP (N-22) – entschieden (R2-11); Kinder laufen als eigene Angebotsposition mit fester Menge.
 - **Wahlgruppen** **[Vorschlag]**: Positionen können zu einer Gruppe „Alternativen“ zusammengefasst werden (z. B. „Menü Klassik oder Mediterran“). In den Summen zählt die gewählte, bis zur Wahl die als Standard markierte Alternative.
 
 #### 4.2.3 Kundenänderungen & Änderungsschluss
@@ -331,12 +333,12 @@ Weitere Regeln:
 | Gästezahl | Änderungswunsch an admin (Schätzung der neuen Summe sichtbar) | Änderungswunsch an admin | gesperrt, Hinweis auf Telefon |
 | Sonderessen/Allergien | direkt wirksam (kein Preiseffekt) | direkt wirksam | gesperrt, Hinweis auf Telefon |
 
-Diese Tabelle ist die verbindliche MVP-Regel (06 E-10, als **[Vorschlag]** festgelegt); 02 §4 beschreibt den Ablauf technisch.
+Diese Tabelle ist die verbindliche MVP-Regel – entschieden (R2-1; ersetzt den Vorschlag 06 E-10); 02 §4 beschreibt den Ablauf technisch.
 
-- Änderungsschluss: Firmeneinstellung **je Auftragsart**, Standard Event-Catering 72 h, Business-Lunch 24 h vor Beginn **[Vorschlag]** (Business-Lunch-Teilnehmerzahlen ändern sich oft am Vortag, Persona 2.5). Der Wert wird je Auftrag als „Änderungen bis“ vorbelegt und ist dort änderbar (US-10.8).
+- Änderungsschluss: Firmeneinstellung **je Auftragsart**, Standard Event-Catering 72 h, Business-Lunch 24 h vor Beginn – entschieden (R2-6) (Business-Lunch-Teilnehmerzahlen ändern sich oft am Vortag, Persona 2.5). Der Wert wird je Auftrag als „Änderungen bis“ vorbelegt und ist dort änderbar (US-10.8).
 - Je Auftrag gibt es höchstens einen offenen Änderungswunsch; eine erneute Änderung ersetzt den offenen Wunsch **[Vorschlag]**.
 - Gästezahl wirkt nicht sofort auf den Preis, weil der Admin Personal, Equipment oder Anfahrt anpassen muss.
-- Ändert sich die Gästezahl um 20 % oder mehr, weist das Portal auf eine telefonische Abstimmung hin und der Admin sieht den Wunsch als „wichtig“ (US-34.6) **[Vorschlag]**.
+- Ändert sich die Gästezahl um 20 % oder mehr (nach oben oder unten), weist das Portal mit „bitte anrufen“ auf eine telefonische Abstimmung hin und der Admin sieht den Wunsch als „wichtig“ (US-34.6) – entschieden (R2-1).
 - Küchenlisten basieren auf der **verbindlichen Revision** (zuletzt angenommen, im Portal bestätigt bzw. „zur Info“ versendet; gespeichert als `quotes.binding_snapshot`). Offene Änderungswünsche, versendete, aber unbestätigte Revisionen und ungesendete Entwurfsänderungen erscheinen dort als Hinweis (z. B. „Änderung offen: Gästezahl 80 → 95“).
 
 ```mermaid
@@ -372,13 +374,13 @@ stateDiagram-v2
 ```
 
 - **Veröffentlichen und Einplanen** sind erst ab Auftragsstatus `optioned` möglich; in `inquiry` und `quoted` entstehen Slots nur als Entwurf (02 §5.2).
-- **Qualifikation** ist je Slot Pflicht (US-42.1); Mitglieder sehen nur Slots, deren Qualifikation sie besitzen.
+- **Qualifikation:** Jeder Slot hat genau eine Qualifikation (Pflichtfeld, US-42.1); wer sie nicht hat, sieht den Slot nicht – entschieden (R2-9).
 
 - **Kapazität:** Anzahl `accepted` + `assigned` ≤ Anzahl des Slots. Die Prüfung erfolgt serverseitig in einer Transaktion; bei gleichzeitigen Zusagen gewinnt genau eine.
 - **Warteliste:** Ist ein Slot voll, bleiben übrige `applied`-Bewerbungen bestehen und gelten als Warteliste **[Vorschlag]**. Es gibt kein automatisches Nachrücken; der Admin entscheidet.
 - **Sichtbarkeit:** veröffentlichte, nicht begonnene Slots mit freiem Platz, deren Qualifikation das Mitglied besitzt. Slots in Aufträgen mit Status vor `confirmed` tragen das Kennzeichen „vorläufig“ **[Vorschlag]**.
-- **Absagefrist:** Firmeneinstellung, Standard 48 h vor Slot-Beginn. Nach Fristablauf ist Absage nur telefonisch möglich; der Admin trägt sie als `cancelled_by_staff` mit Vermerk „nach Frist“ ein.
-- **Zeitänderung durch Admin:** Verschiebt der Admin Beginn oder Ende eines Slots mit Eingeplanten **wesentlich** – um mehr als 60 min oder auf einen anderen Tag –, dürfen diese ab Benachrichtigung 24 h lang absagen, auch wenn die Frist bereits abgelaufen ist, längstens bis Schichtbeginn **[Vorschlag]** (Fairness, da die Änderung nicht vom Mitglied ausging; kleine Verschiebungen lösen nur die Benachrichtigung aus). Schwellwert und Prüfung: 02 §5.7, `shift_slot_times_changed()` in 03.
+- **Absagefrist:** Firmeneinstellung, Standard 48 h vor Slot-Beginn – entschieden (R2-10). Nach Fristablauf ist Absage nur telefonisch über den Admin möglich; der Admin trägt sie als `cancelled_by_staff` mit Vermerk „nach Frist“ ein.
+- **Zeitänderung durch Admin:** Verschiebt der Admin Beginn oder Ende eines Slots (oder den Auftrag), werden Eingeplante über die Zeitänderung benachrichtigt („Einsatz geändert“ mit neuer Zeit). Ein Sonderabsagerecht gibt es **nicht** – entschieden (R2-10): Es gilt immer die normale Absagefrist, gerechnet vom neuen Slot-Beginn; ist sie dadurch bereits abgelaufen, ist eine Absage nur noch über den Admin möglich (Nachtrag „nach Frist“). Benachrichtigung: `shift_slot_times_changed()` in 03.
 - **Slot schließen/Auftrag storniert:** Der Slot wird geschlossen und verschwindet aus der Schichtbörse; Bewerbungen behalten ihren Status und werden als „Einsatz entfällt“ angezeigt **[Vorschlag]** (kein zusätzlicher Status nötig).
 - **Ausplanen:** Nimmt der Admin eine Zusage oder Einplanung zurück, wird der Status `rejected` mit Vermerk „ausgeplant“ **[Vorschlag]**.
 - Überschneidende Einsätze eines Mitglieds werden beim Zusagen und Einplanen gewarnt, aber nicht blockiert (z. B. Aufbau und Service direkt nacheinander).
@@ -394,7 +396,7 @@ Kanäle: **Push** (Expo Notifications über `push-dispatch`) und **Liste** (`not
 | Direkt eingeplant | betroffenes Mitglied | Push | nein |
 | Absage durch Mitglied (inkl. Nachtrag) | admin | Push | nein |
 | Neue passende Slots veröffentlicht | qualifizierte Mitglieder | Push, gebündelt **[Vorschlag]** | ja |
-| Einsatz geändert (Zeit, Adresse, Treffpunkt, Ablauf) | eingeplante Mitglieder | Push | nein |
+| Einsatz geändert (Zeit, Adresse, Treffpunkt, Ablauf); bei Zeitänderung mit neuer Zeit und der Absagefrist, kein Sonderabsagerecht (R2-10) | eingeplante Mitglieder | Push | nein |
 | Einsatz entfällt (Slot geschlossen, Auftrag storniert) | Bewerber und Eingeplante | Push | nein |
 | Erinnerung 24 h vor Einsatz (Should) | eingeplante Mitglieder | Push | ja |
 | Angebot angenommen/abgelehnt, Änderung bestätigt | admin | Push + E-Mail | nein |
@@ -403,13 +405,15 @@ Kanäle: **Push** (Expo Notifications über `push-dispatch`) und **Liste** (`not
 | Neuer bestätigter Auftrag, Storno, verbindliche Gästezahländerung | `kitchen` | Push | ja (Storno und kurzfristige Änderung: nein) |
 | Option läuft ab (2 Tage vorher, am Ablauftag) | admin | Push | ja |
 | Angebotsgültigkeit abgelaufen | admin | Liste | ja |
-| Aufträge als durchgeführt markieren (Folgetag 09:00) | admin | Push | ja |
+| Aufträge als durchgeführt markieren (Folgetag 09:00, Job `events_completion`; kein automatischer Statuswechsel, R2-3) | admin | Push | ja |
 | Unbesetzte Slots 72 h vor Beginn (Should) | admin | Push | ja |
 | Mitglied ist beigetreten | admin | Push | ja |
 | Angebot nicht zugestellt (Should, US-27.6) | admin | Push | nein |
 | Bestätigung einer Revision offen (US-36.7) | admin | Push | ja |
 | Testphase endet (7, 3, 1 Tage vorher) | admin | E-Mail + Banner im Web-Admin | nein |
 | Zahlung fehlgeschlagen | admin | E-Mail + Banner im Web-Admin | nein |
+| Datenexport bereit („Export bereit“, signierter Download-Link 7 Tage gültig, R2-14) | anfordernder admin | E-Mail | nein |
+| Datenexport fehlgeschlagen (US-59.6) | anfordernder admin | E-Mail | nein |
 | Angebot versendet / neue Revision | Endkunde | E-Mail mit Portal-Link + PDF | – |
 | Annahme bzw. Änderung bestätigt | Endkunde | E-Mail mit PDF | – |
 | Änderungswunsch übernommen/abgelehnt | Endkunde | E-Mail | – |
@@ -423,17 +427,18 @@ Abo-Hinweise (Testphase, Zahlung, Kündigung) erscheinen nie als Push und in der
 
 | Einstellung | Standard | Herkunft |
 |---|---|---|
-| Absagefrist Schichtbörse | 48 h vor Slot-Beginn, pro Firma einstellbar | **[Vorschlag]** aus den offenen Punkten in 00 übernommen |
-| Änderungsschluss Kundenportal | Event-Catering 72 h, Business-Lunch 24 h vor Beginn; je Auftrag änderbar | **[Vorschlag]** |
+| Absagefrist Schichtbörse | 48 h vor Slot-Beginn, pro Firma einstellbar; kein Sonderabsagerecht bei Verschiebung | entschieden (R2-10) |
+| Änderungsschluss Kundenportal | Event-Catering 72 h, Business-Lunch 24 h vor Beginn; je Auftrag änderbar | entschieden (R2-6) |
 | Angebotsgültigkeit | 14 Tage ab Versand | **[Vorschlag]** |
 | Kalkulationsart | Pauschal | **[Vorschlag]** |
 | Aufschlag auf Wareneinsatz | 200 % (Preis = Wareneinsatz × 3, Wareneinsatzquote ≈ 33 %) | **[Vorschlag]** |
-| Preisraster für den Preisvorschlag | 0,10 €, aufgerundet | **[Vorschlag]** |
-| Puffer Einkaufsliste | 5 %, nur auf die Einkaufsliste (die Produktionsliste hat keinen Puffer) | **[Vorschlag]** |
+| Preisraster für den Preisvorschlag | 0,10 €, aufgerundet | entschieden (R2-5) |
+| Puffer Einkaufsliste | 5 %, nur auf die Einkaufsliste (die Produktionsliste hat keinen Puffer); Mengen p. P. = Rohware vor dem Garen | entschieden (R2-7) |
 | Gültigkeit Portal-Link | bis 60 Tage nach Eventdatum | **[Vorschlag]** |
 | Gültigkeit Einladung | 7 Tage | **[Vorschlag]** |
 | Option-Erinnerung | 2 Tage vor Ablauf und am Ablauftag | **[Vorschlag]** |
-| Erinnerung „Durchgeführt“ | Folgetag nach Eventende, 09:00 | **[Vorschlag]** |
+| Erinnerung „Durchgeführt“ | Folgetag nach Eventende, 09:00; `completed` wird nie automatisch gesetzt | entschieden (R2-3) |
+| Gültigkeit Export-Link | 7 Tage (signierter Link), danach wird die Exportdatei automatisch gelöscht | entschieden (R2-14) |
 | Aufbewahrung Benachrichtigungsliste | 90 Tage | **[Vorschlag]** |
 | Löschen von Gastnamen in Sonderessen | 30 Tage nach Eventende | **[Vorschlag]** (Gesundheitsdaten, Datensparsamkeit) |
 | Steuersätze DE (vorbelegt) | Speisen 7 %, Getränke 19 %, Personal 19 %, Equipment 19 %, Anfahrt 19 % | **[Vorschlag]**, vom Steuerberater des Pilotbetriebs zu prüfen |
@@ -467,6 +472,7 @@ Abo-Hinweise (Testphase, Zahlung, Kündigung) erscheinen nie als Push und in der
 | P-20 | Sicherheit | 2FA/Passkeys, SSO | **[Vorschlag]** |
 | P-21 | Import | CSV-Import für Kunden und Gerichte (erleichtert Onboarding) | **[Vorschlag]** |
 | P-22 | Mehrsprachigkeit | Englisch für Portal und App | **[Vorschlag]** |
+| P-23 | Tablet-Optimierung | eigene Tablet-Layouts (z. B. Küche quer mit 2 Spalten), iPad- bzw. Android-Tablet-Unterstützung im Build, Tablet-Testgeräte und Store-Screenshots; im MVP nutzt die Küche Smartphones (native App) | 00 R2-8 |
 
 ---
 
@@ -567,7 +573,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 
 > Als **Mitglied** möchte ich mein Konto in der App löschen oder die Firma verlassen können, damit meine Daten nicht länger als nötig gespeichert bleiben.
 
-1. **Gegeben** „Profil → Konto löschen“ (in der App, App-Store-Pflicht), **wenn** das Mitglied bestätigt, **dann** zeigt der Dialog zuvor alle künftigen Zusagen; danach werden diese `cancelled_by_staff` (nach Fristablauf mit Vermerk „nach Frist“), der Admin wird benachrichtigt, Konto, Profil, Qualifikationszuordnungen und Push-Tokens werden gelöscht und vergangene Einsätze als „ehemaliges Mitglied“ anonymisiert.
+1. **Gegeben** „Profil → Konto löschen“ (in der App, App-Store-Pflicht; Edge Function `delete-account` inkl. Widerruf von Sign in with Apple, freigegeben R2-12), **wenn** das Mitglied bestätigt, **dann** zeigt der Dialog zuvor alle künftigen Zusagen; danach werden diese `cancelled_by_staff` (nach Fristablauf mit Vermerk „nach Frist“), der Admin wird benachrichtigt, Konto, Profil, Qualifikationszuordnungen und Push-Tokens werden gelöscht und vergangene Einsätze als „ehemaliges Mitglied“ anonymisiert.
 2. **Gegeben** „Firma verlassen“ **[Vorschlag]**, **dann** gelten dieselben Folgen für die Firma; das Konto bleibt ohne Firma bestehen (für eine neue Einladung oder eine eigene Firma).
 3. *Randfall:* **Gegeben** der letzte `admin`, **dann** sind beide Aktionen gesperrt mit Hinweis „Admin-Rolle übertragen oder Firma löschen (US-60)“.
 4. **Gegeben** Lesemodus, **dann** sind beide Aktionen trotzdem möglich.
@@ -598,7 +604,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 5. *Randfall:* **Gegeben** ein Datum in der Vergangenheit, **dann** erscheint eine Warnung; Speichern bleibt möglich (Nacherfassung).
 6. **Gegeben** die Gästezahl, **dann** ist nur eine ganze Zahl ≥ 1 zulässig; ohne Gästezahl ist der Versand eines Angebots mit pro-Person-Positionen gesperrt (US-27.3).
 7. **Gegeben** das Titelfeld, **dann** weist ein Hinweis darauf hin, dass eingeplantes Personal den Titel sieht.
-8. **Gegeben** das Feld „Änderungen bis“, **dann** ist es aus der Firmeneinstellung der Auftragsart vorbelegt (Event-Catering 72 h, Business-Lunch 24 h vor Beginn) und je Auftrag änderbar; leer bedeutet „kein Änderungsschluss“ **[Vorschlag]**.
+8. **Gegeben** das Feld „Änderungen bis“, **dann** ist es aus der Firmeneinstellung der Auftragsart vorbelegt (Event-Catering 72 h, Business-Lunch 24 h vor Beginn; entschieden R2-6) und je Auftrag änderbar; leer bedeutet „kein Änderungsschluss“ **[Vorschlag]**.
 
 #### US-11 · Status führen
 `F-05` · **Must**
@@ -609,18 +615,20 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 2. **Gegeben** „Optionieren“ aus `quoted` bzw. „Termin vormerken“ aus `inquiry`, **wenn** der Admin „optioniert bis“ (Pflicht, ≥ heute) speichert, **dann** wird der Status `optioned` und das Portal zeigt – sobald ein Angebot versendet ist – „Termin für Sie reserviert bis {Datum}“.
 3. *Randfall Option läuft ab:* **Gegeben** ein Auftrag `optioned` bis 20.10., **dann** erhält der Admin am 18.10. und am 20.10. eine Push-Nachricht; ab 21.10. ist der Auftrag als „Option abgelaufen“ markiert, der Status bleibt `optioned`, bis der Admin verlängert, bestätigt oder storniert.
 4. **Gegeben** „Annahme manuell erfassen“ (z. B. telefonische Zusage), **wenn** der Admin bestätigt, **dann** wird der Status `confirmed` mit Vermerk „manuell bestätigt von {Name}“ und es folgen dieselben Benachrichtigungen wie bei einer Portal-Annahme; die Bestätigungs-E-Mail an den Kunden ist abwählbar.
-5. **Gegeben** Aufträge `confirmed`, deren Ende gestern lag, **dann** erhält der Admin um 09:00 „{n} Aufträge als durchgeführt markieren?“ und kann sie gesammelt auf `completed` setzen.
+5. **Gegeben** Aufträge `confirmed`, deren Ende gestern lag, **dann** erhält der Admin um 09:00 „{n} Aufträge als durchgeführt markieren?“ (Job `events_completion`) und kann sie nach dem Bestätigungsdialog (US-11.10) gesammelt auf `completed` setzen. Der Status wechselt nie automatisch, auch nicht über Nacht; ohne Aktion des Admins bleibt der Auftrag `confirmed` – entschieden (R2-3).
 6. **Gegeben** ein Auftrag `completed`, **wenn** der Admin „Abgerechnet“ wählt, **dann** wird der Status `invoiced`, optional mit externer Rechnungsnummer.
 7. **Gegeben** ein Statuswechsel, **dann** zeigt die Auftragshistorie Zeitpunkt, alten und neuen Status, Auslöser und Grund.
-8. **Gegeben** „Direkt bestätigen“ an einem Auftrag `inquiry` oder `optioned` (z. B. Stammkunde, Business-Lunch), **wenn** der Admin den Bestätigungsweg (Telefon, E-Mail, persönlich) angibt, **dann** wird der Status `confirmed` ohne Portal-Annahme; die Bestätigungs-E-Mail an den Kunden ist abwählbar. Ohne versendetes Angebot gilt für die Küche der aktuelle Stand des Auftrags.
+8. **Gegeben** „Direkt bestätigen“ an einem Auftrag `inquiry` oder `optioned` (z. B. Stammkunde am Telefon, Business-Lunch), auch ohne versendetes Angebot, **wenn** der Admin den Bestätigungsweg (Telefon, E-Mail, persönlich) angibt, **dann** wird der Status `confirmed` ohne Portal-Annahme – entschieden (R2-2); die Bestätigungs-E-Mail an den Kunden ist abwählbar. Ohne versendetes Angebot gilt für die Küche der aktuelle Stand des Auftrags.
 9. **Gegeben** eine Anfrage, die nicht zustande kommt, **wenn** der Admin „Anfrage kommt nicht zustande“ mit Grund wählt, **dann** wird der Status `declined` und der Auftrag verschwindet aus den Standardansichten; „Löschen“ gibt es nur für Fehleingaben ohne versendetes Angebot.
+10. **Gegeben** ein beliebiger Statuswechsel durch den Admin (einzeln oder als Sammelaktion), **wenn** er die Aktion wählt, **dann** erscheint zuerst ein Bestätigungsdialog mit altem und neuem Status, den Folgen (z. B. „Küche und 4 Eingeplante werden benachrichtigt“, „3 Slots werden geschlossen“, „E-Mail an den Kunden“) und dem Hinweis „Dieser Schritt kann nicht rückgängig gemacht werden“; erst „Bestätigen“ führt den Wechsel aus, „Abbrechen“ ändert nichts – entschieden (R2-4).
+11. *Randfall:* **Gegeben** ein Auftrag `completed`, `invoiced`, `declined` oder `cancelled`, **dann** bietet die Oberfläche keinen Wechsel zurück an (kein „Korrektur“, kein „Status korrigieren“, kein „Reaktivieren“) und `set_event_status()` lehnt Rückwärts-Übergänge ab (R2-4). Einen abgelehnten oder stornierten Auftrag nimmt der Admin über „Kopieren“ wieder auf (US-13).
 
 #### US-12 · Auftrag stornieren
 `F-05` · **Must**
 
 > Als **Inhaberin** möchte ich einen optionierten oder bestätigten Auftrag stornieren, damit Küche und Personal sofort Bescheid wissen.
 
-1. **Gegeben** ein Auftrag `optioned` oder `confirmed`, **wenn** der Admin „Stornieren“ mit optionalem Grund bestätigt, **dann** wird der Status `cancelled`.
+1. **Gegeben** ein Auftrag `optioned` oder `confirmed`, **wenn** der Admin „Stornieren“ mit optionalem Grund im Bestätigungsdialog (US-11.10) bestätigt, **dann** wird der Status `cancelled`. Die Stornierung ist endgültig; eine Reaktivierung gibt es nicht, die Wiederaufnahme läuft über „Kopieren“ (US-13) – entschieden (R2-4).
 2. **Gegeben** die Stornierung, **dann** werden alle Slots geschlossen; Bewerber und Eingeplante erhalten „Einsatz entfällt: {Titel}, {Datum}“ und verlieren den Zugriff auf die Einsatzinfos.
 3. **Gegeben** die Stornierung, **dann** erhält `kitchen` eine Push-Nachricht und der Auftrag verschwindet aus Produktions- und Einkaufslisten.
 4. **Gegeben** die Stornierung, **dann** zeigt das Portal „Auftrag storniert“; die E-Mail an den Kunden ist vorausgewählt und abwählbar.
@@ -632,7 +640,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 
 > Als **Inhaberin** möchte ich einen Auftrag mit neuem Datum kopieren, damit wiederkehrende Business-Lunches in Sekunden angeboten sind.
 
-1. **Gegeben** „Kopieren“ an einem beliebigen Auftrag, **wenn** der Admin ein neues Datum wählt, **dann** entsteht ein neuer Auftrag mit Kunde, Art, Ort, Zeiten, Gästezahl, Hinweisen und allen Angebotspositionen als neuer Entwurf (eigene Angebotsnummer, Revision 0, ohne Portal-Token). Startstatus ist `inquiry` (Standard) oder `confirmed` als Direktbestätigung mit Bestätigungsweg (US-11.8), z. B. für den wiederkehrenden Business-Lunch eines Stammkunden.
+1. **Gegeben** „Kopieren“ an einem beliebigen Auftrag, **wenn** der Admin ein neues Datum wählt, **dann** entsteht ein neuer Auftrag mit Kunde, Art, Ort, Zeiten, Gästezahl, Hinweisen und allen Angebotspositionen als neuer Entwurf (eigene Angebotsnummer, Revision 0, ohne Portal-Token). Startstatus ist `inquiry` (Standard) oder `confirmed` als Direktbestätigung mit Bestätigungsweg (US-11.8, R2-2), z. B. für den wiederkehrenden Business-Lunch eines Stammkunden. Kopieren ist auch der einzige Weg, einen Auftrag `declined` oder `cancelled` wieder aufzunehmen; das Original behält seinen Status (R2-4).
 2. **Gegeben** die Kopie, **dann** werden Zeitplaneinträge relativ zum neuen Datum verschoben; Slots (ohne Bewerbungen) und Sonderessen werden nur übernommen, wenn die jeweilige Option angehakt ist (Standard: Slots an, Sonderessen aus).
 3. **Gegeben** Positionen mit inzwischen geänderten Katalogpreisen, **dann** werden die Preise 1:1 übernommen und „{n} Katalogpreise haben sich geändert – aktualisieren?“ angeboten.
 4. *Randfall:* **Gegeben** ein inzwischen archiviertes Gericht oder Paket im Original, **dann** wird die Position übernommen und als „archiviert“ markiert.
@@ -703,7 +711,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 > Als **Koch** möchte ich je Gericht Zutaten mit Menge pro Person hinterlegen, damit Einkaufsliste und Wareneinsatz automatisch berechnet werden.
 
 1. **Gegeben** der Zutatenstamm (`ingredients`), **dann** hat jede Zutat Name, Basiseinheit (g, ml oder Stück), optional Warengruppe **[Vorschlag]** und – nur für `admin` sichtbar und pflegbar – Einkaufspreis je kg, l bzw. Stück.
-2. **Gegeben** ein Gericht, **wenn** der Koch eine Zutat mit Menge pro Person in der Basiseinheit hinzufügt (`dish_ingredients`), **dann** wird sie gespeichert; eine neue Zutat ist direkt aus dem Gericht heraus anlegbar. Die Menge pro Person ist die **Einkaufsmenge der Rohware vor Garverlust** (z. B. 180 g rohe Rinderschulter je Portion Schmorbraten); das Formular weist darauf hin, weil Wareneinsatz und Einkaufsliste sonst zu niedrig wären.
+2. **Gegeben** ein Gericht, **wenn** der Koch eine Zutat mit Menge pro Person in der Basiseinheit hinzufügt (`dish_ingredients`), **dann** wird sie gespeichert; eine neue Zutat ist direkt aus dem Gericht heraus anlegbar. Die Menge pro Person ist die **Einkaufsmenge der Rohware vor dem Garen** (z. B. 180 g rohe Rinderschulter je Portion Schmorbraten) – entschieden (R2-7); das Formular weist darauf hin, weil Wareneinsatz und Einkaufsliste sonst zu niedrig wären.
 3. **Gegeben** ein Gericht ohne Zutaten, **dann** ist es in Angeboten voll nutzbar; Einkaufsliste und Wareneinsatz weisen es als „ohne Zutaten“ aus.
 4. **Gegeben** Rolle `admin`, **dann** zeigt das Gericht den Wareneinsatz pro Portion live; fehlt bei einer Zutat der Einkaufspreis, steht dort „unvollständig“.
 5. *Randfall:* **Gegeben** eine neue Zutat mit ähnlichem Namen wie eine bestehende („Zwiebel“/„Zwiebeln“), **dann** schlägt die App die bestehende vor.
@@ -763,7 +771,7 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 > Als **Inhaberin** möchte ich zwischen Pauschalpreis pro Person und Wareneinsatz-Kalkulation wählen und meinen Rohertrag sehen, damit meine Preise stimmen.
 
 1. **Gegeben** ein Angebot, **dann** wählt der Admin die Kalkulationsart „Pauschal“ oder „Wareneinsatz + Aufschlag“ (Standard aus Einstellungen), je Angebot **[Vorschlag]**.
-2. **Gegeben** „Wareneinsatz + Aufschlag“ mit Aufschlag 200 % und ein Paket mit Wareneinsatz 9,40 € p. P., **dann** ist der Einzelpreis 28,20 € p. P.; **wenn** der Aufschlag auf 180 % sinkt, **dann** wird er 26,40 € (9,40 × 2,8 = 26,32, aufgerundet auf das Preisraster 0,10 €, 02 §3.3).
+2. **Gegeben** „Wareneinsatz + Aufschlag“ mit Aufschlag 200 % und ein Paket mit Wareneinsatz 9,40 € p. P., **dann** ist der Einzelpreis 28,20 € p. P.; **wenn** der Aufschlag auf 180 % sinkt, **dann** wird er 26,40 € (9,40 × 2,8 = 26,32, aufgerundet auf das Preisraster 0,10 €, 02 §3.3; entschieden R2-5).
 3. **Gegeben** eine manuell überschriebene Position, **dann** ist sie als „manuell“ markiert und ändert sich bei Moduswechsel oder Aufschlagänderung nicht.
 4. **Gegeben** die Kalkulationsleiste (nur `admin`), **dann** zeigt sie Wareneinsatz gesamt, Netto Speisen und Getränke, Rohertrag absolut und in % sowie die Wareneinsatzquote.
 5. *Randfall:* **Gegeben** im Modus Wareneinsatz ein Gericht ohne Zutaten oder eine Zutat ohne Einkaufspreis, **dann** wird für diese Position der Katalogpreis verwendet, sie ist als „Wareneinsatz unvollständig“ markiert und die Kennzahlen tragen einen Hinweis.
@@ -797,12 +805,13 @@ Aufbau je Story: ID · Titel · Feature · Priorität, dann die Story und nummer
 > Als **Inhaberin** möchte ich das Angebot per E-Mail mit Portal-Link und PDF versenden, damit der Kunde es bequem ansehen und annehmen kann.
 
 1. **Gegeben** „Versenden“, **dann** sieht der Admin zuerst eine Vorschau von Portal-Ansicht, PDF und E-Mail-Text (änderbar).
-2. **Gegeben** die Bestätigung, **dann** erzeugt `render-quote-pdf` Snapshot und PDF und legt das PDF ab; erst danach werden in einer Transaktion die Revision um 1 erhöht, der Snapshot gespeichert und ein **neuer** Portal-Token in `portal_tokens` erzeugt (je Versand bzw. Link-Kopie ein neuer Token; ältere Links bleiben gültig, bis sie ablaufen oder widerrufen werden, weil nur der Hash gespeichert ist). Anschließend versendet `send-email` die E-Mail mit Link und PDF-Anhang (Absendername = Firma, Reply-To = Kontakt-E-Mail); der Status wechselt von `inquiry` bzw. `declined` auf `quoted` (02 §2.4).
+2. **Gegeben** die Bestätigung, **dann** erzeugt `render-quote-pdf` Snapshot und PDF und legt das PDF ab; erst danach werden in einer Transaktion die Revision um 1 erhöht, der Snapshot gespeichert und ein **neuer** Portal-Token in `portal_tokens` erzeugt (je Versand bzw. Link-Kopie ein neuer Token; ältere Links bleiben gültig, bis sie ablaufen oder widerrufen werden, weil nur der Hash gespeichert ist). Anschließend versendet `send-email` die E-Mail mit Link und PDF-Anhang (Absendername = Firma, Reply-To = Kontakt-E-Mail); der Status wechselt von `inquiry` auf `quoted` (02 §2.4).
 3. **Gegeben** die Prüfung vor dem Versand, **dann** blockieren: keine Position, fehlende Gästezahl bei pro-Person-Positionen, negative Summe, Kunde ohne E-Mail (außer bei „Link kopieren“), unbestätigte Login-E-Mail des Admins. Warnungen mit Bestätigung: Gerichte mit ungeprüften Allergenen, Wareneinsatz unvollständig, Eventdatum in der Vergangenheit.
 4. **Gegeben** „Link kopieren statt E-Mail“ (Should) **[Vorschlag]**, **dann** wirken Revision, Snapshot, PDF und Statuswechsel gleich, nur ohne E-Mail; der Link kann z. B. per WhatsApp geteilt werden.
 5. *Randfall:* **Gegeben** ein Doppelklick oder eine wiederholte Anfrage, **dann** entstehen genau ein Versand und genau eine Revision.
 6. *Randfall:* **Gegeben** die E-Mail ist unzustellbar (Bounce, Should), **dann** erhält der Admin „Angebot an {E-Mail} nicht zugestellt“ mit Aktion „Link kopieren“.
 7. *Randfall:* **Gegeben** die PDF-Erzeugung scheitert, **dann** wird nichts versendet, die Revision nicht erhöht und der Admin erhält eine Fehlermeldung mit „Erneut versuchen“.
+8. *Randfall:* **Gegeben** ein Auftrag `declined` oder `cancelled`, **dann** ist „Versenden“ gesperrt mit „Abgelehnte oder stornierte Aufträge lassen sich nicht wieder öffnen – bitte Auftrag kopieren“; eine neue Revision setzt den Auftrag nicht zurück auf `quoted` (R2-4, US-13).
 
 #### US-28 · Angebot nach Versand ändern
 `F-15` · **Must**
@@ -885,10 +894,11 @@ sequenceDiagram
 
 > Als **Endkunde** möchte ich ein Angebot ablehnen können, damit der Caterer schnell Klarheit hat.
 
-1. **Gegeben** Status `quoted` oder `optioned`, **wenn** der Kunde „Ablehnen“ wählt, **dann** kann er optional einen Grund (zu teuer, anderer Anbieter, Event findet nicht statt, Sonstiges) und einen Kommentar angeben **[Vorschlag]**.
+1. **Gegeben** Status `quoted` oder `optioned`, **wenn** der Kunde „Ablehnen“ wählt, **dann** kann er optional einen Grund (zu teuer, anderer Anbieter, Event findet nicht statt, Sonstiges) und einen Kommentar angeben **[Vorschlag]** und muss die Ablehnung in einem Dialog mit dem Hinweis „Die Ablehnung ist endgültig“ bestätigen (R2-4).
 2. **Gegeben** die Ablehnung aus `quoted`, **dann** wird der Status `declined`; aus `optioned` wird er `cancelled` (Option freigegeben).
 3. **Gegeben** die Ablehnung, **dann** erhält der Admin eine Push-Nachricht und E-Mail mit Grund; das Portal zeigt „Abgelehnt am {Datum}“ ohne weitere Aktionen.
 4. **Gegeben** Status `confirmed`, **dann** gibt es im Portal kein „Ablehnen“, sondern den Hinweis „Für eine Stornierung kontaktieren Sie bitte {Firma}“.
+5. **Gegeben** der Kunde meldet sich nach der Ablehnung erneut, **dann** kopiert der Admin den Auftrag (US-13) und versendet daraus ein neues Angebot; der abgelehnte Auftrag bleibt `declined` (keine Reaktivierung, R2-4).
 
 #### US-33 · Menüwahl
 `F-17` · **Must** (Kriterium 4: Should)
@@ -896,7 +906,7 @@ sequenceDiagram
 > Als **Brautpaar** möchten wir zwischen den vom Caterer angebotenen Alternativen wählen, damit das Menü zu unseren Gästen passt.
 
 1. **Gegeben** der Admin fasst im Angebot Positionen zu einer Wahlgruppe zusammen und markiert eine als Standard **[Vorschlag]**, **dann** zeigt das Portal die Gruppe als Auswahl („Bitte wählen: Menü Klassik oder Menü Mediterran“).
-2. **Gegeben** Status `quoted` oder `optioned`, **wenn** der Kunde eine Alternative wählt, **dann** wird die Wahl sofort gespeichert (`quotes.portal_selection`) und die Summen aktualisieren sich; es entsteht keine neue Revision, der Snapshot und das PDF der Revision bleiben unverändert. Mit der Annahme wird die Wahl Teil des verbindlichen Stands und des PDFs „angenommen“.
+2. **Gegeben** Status `quoted` oder `optioned`, **wenn** der Kunde eine Alternative wählt, **dann** wird die Wahl sofort gespeichert (`quotes.portal_selection`) und die Summen aktualisieren sich; es entsteht keine neue Revision, der Snapshot und das PDF der Revision bleiben unverändert. Mit der Annahme wird die Wahl Teil des verbindlichen Stands und des PDFs „angenommen“ (Menüwahl vor der Annahme wirkt direkt, entschieden R2-1).
 3. **Gegeben** Status `confirmed` und vor Änderungsschluss, **wenn** der Kunde die Wahl ändert, **dann** entsteht ein Änderungswunsch (US-36) und die bisherige Wahl bleibt verbindlich.
 4. **Gegeben** Positionen, die der Admin als „Menge durch Kunden änderbar“ markiert (z. B. Business-Lunch: 12 × Bowl, 8 × Wrap) **[Vorschlag]**, **dann** kann der Kunde die Mengen anpassen; vor Annahme direkt, nach Bestätigung als Änderungswunsch.
 5. *Randfall:* **Gegeben** der Änderungsschluss ist erreicht, **dann** ist die Wahl gesperrt mit „Kurzfristige Änderungen bitte telefonisch: {Telefon}“.
@@ -912,14 +922,14 @@ sequenceDiagram
 3. **Gegeben** ein neuer Änderungswunsch, **dann** erhält der Admin sofort eine Push-Nachricht und Küchenlisten zeigen „Änderung offen: Gästezahl {alt} → {neu}“.
 4. *Randfall Kunde ändert Gästezahl nach Bestätigung:* **Gegeben** ein Auftrag `confirmed` mit 80 Gästen, Beginn 24.10., 18:00, Änderungsschluss 72 h, **wenn** der Kunde am 20.10. auf 95 ändert, **dann** entsteht ein Änderungswunsch, der Status bleibt `confirmed` und verbindlich bleiben 80 Gäste, bis der Admin übernimmt und der Kunde die Revision bestätigt (US-36).
 5. *Randfall nach Änderungsschluss:* **Gegeben** derselbe Auftrag, **wenn** der Kunde am 22.10. ändern will, **dann** ist das Feld gesperrt mit „Kurzfristige Änderungen bitte telefonisch: {Telefon}“; der Admin kann die Gästezahl selbst ändern und die Revision „Zur Info“ versenden.
-6. **Gegeben** eine Änderung der Gästezahl um 20 % oder mehr (nach oben oder unten), **dann** erscheint im Portal „Bitte stimmen Sie größere Änderungen kurz telefonisch ab“ (Senden bleibt möglich), und der Admin erhält den Wunsch als „wichtig“ mit dem Hinweis „Personalbedarf und Equipment prüfen“ **[Vorschlag]**; dieselbe Schwelle gilt in 02 §4.2.
+6. **Gegeben** eine Änderung der Gästezahl um 20 % oder mehr (nach oben oder unten), **dann** erscheint im Portal „Bitte stimmen Sie größere Änderungen kurz telefonisch ab“ (Senden bleibt möglich), und der Admin erhält den Wunsch als „wichtig“ mit dem Hinweis „Personalbedarf und Equipment prüfen“ – entschieden (R2-1, Schwelle ± 20 %); dieselbe Schwelle gilt in 02 §4.2.
 
 #### US-35 · Allergien und Sonderessen im Portal erfassen
 `F-17`, `F-20` · **Must**
 
 > Als **Brautpaar** möchten wir Allergien und Sonderessen unserer Gäste angeben, damit niemand gefährdet wird und jeder passend isst.
 
-1. **Gegeben** Status `quoted`, `optioned` oder `confirmed` und vor Änderungsschluss, **wenn** der Kunde einen Eintrag mit Anzahl (≥ 1), Diätform und/oder Allergenen aus der 14er-Liste, optional Gastname/Tisch und Freitext speichert, **dann** wird er sofort in `event_dietary_requirements` mit Quelle „Kunde“ gespeichert.
+1. **Gegeben** Status `quoted`, `optioned` oder `confirmed` und vor Änderungsschluss, **wenn** der Kunde einen Eintrag mit Anzahl (≥ 1), Diätform und/oder Allergenen aus der 14er-Liste, optional Gastname/Tisch und Freitext speichert, **dann** wird er sofort in `event_dietary_requirements` mit Quelle „Kunde“ gespeichert und gilt ohne Änderungswunsch (R2-1).
 2. **Gegeben** neue oder geänderte Einträge, **dann** erhalten der Admin und – ab Status `optioned` – `kitchen` eine gebündelte Push-Nachricht „Sonderessen aktualisiert: {Titel}“.
 3. *Randfall:* **Gegeben** die Summe der Anzahlen aller Einträge übersteigt die Gästezahl, **dann** wird das Speichern mit Hinweis abgelehnt.
 4. *Randfall:* **Gegeben** ein Eintrag mit einem Allergen, das ein Gericht des Angebots enthält, **dann** zeigt das Portal „{Gericht} enthält {Allergen} – Ihr Caterer plant eine Alternative“ und der Eintrag erscheint in der Küche als Konflikt (US-38.4).
@@ -959,7 +969,7 @@ sequenceDiagram
 > Als **Koch** möchte ich für einen oder mehrere Tage sehen, welche Gerichte in welcher Menge für welchen Auftrag zu produzieren sind, damit ich effizient vorbereite.
 
 1. **Gegeben** die Produktionsliste, **wenn** der Koch einen Zeitraum wählt (Heute, Morgen, Diese Woche, frei), **dann** umfasst sie alle Aufträge `confirmed` im Zeitraum; `optioned` lässt sich per Schalter einbeziehen (gekennzeichnet „vorläufig“), einzelne Aufträge lassen sich abwählen.
-2. **Gegeben** die gewählten Aufträge, **dann** wird je Gericht aggregiert: Portionen = Σ (Gästezahl × Portionsfaktor) für Paketgerichte bzw. Menge der `dish`-Position; Grundlage ist die verbindliche Revision inkl. Menüwahl (4.2.3); je Gericht aufklappbar nach Auftrag, gruppiert nach Kategorie, mit Allergen-Kurzcodes.
+2. **Gegeben** die gewählten Aufträge, **dann** wird je Gericht aggregiert: Portionen = Σ (Gästezahl × Portionsfaktor) für Paketgerichte bzw. Menge der `dish`-Position; Grundlage ist die verbindliche Revision inkl. Menüwahl (4.2.3); die Produktionsliste rechnet **keinen** Puffer auf (R2-7); je Gericht aufklappbar nach Auftrag, gruppiert nach Kategorie, mit Allergen-Kurzcodes.
 3. **Gegeben** ein Sonderessen-Eintrag mit Ersatz („ersetzt Gericht X durch Gericht Y“, mehrere Paare je Eintrag möglich **[Vorschlag]**), **dann** wird Y um die Anzahl erhöht und X um die Anzahl reduziert.
 4. **Gegeben** ein Sonderessen, dessen Allergen ein Gericht des Auftrags enthält oder dessen Diätform ein Gericht nicht erfüllt, und für dieses Gericht ist kein Ersatz hinterlegt, **dann** ist die Kombination als Konflikt rot markiert („10 × vegan: kein Ersatz für Kartoffelgratin“).
 5. **Gegeben** Auftrag A mit 80 Gästen und Auftrag B mit 40 Gästen, beide Paket „Klassik“ (Rinderbraten, Kartoffelgratin, Mousse au Chocolat, je Faktor 1,0), und in B 10 × vegan mit Ersatz Rinderbraten → Gemüse-Curry, **dann** zeigt die Liste: Rinderbraten 110, Gemüse-Curry 10, Kartoffelgratin 120, Mousse au Chocolat 120, sowie in B die Konflikte „10 × vegan: kein Ersatz für Kartoffelgratin, Mousse au Chocolat“.
@@ -972,7 +982,7 @@ sequenceDiagram
 
 > Als **Koch** möchte ich eine aus den Zutaten summierte Einkaufsliste über mehrere Aufträge, damit ich genau so viel einkaufe wie nötig.
 
-1. **Gegeben** Zeitraum und Auftragsauswahl wie in US-38.1, **dann** summiert die Liste je Zutat Σ (Portionen des Gerichts × Menge pro Person) über alle Gerichte inkl. Sonderessen-Ersatz, zuzüglich Puffer (Standard 5 %, in der Liste änderbar).
+1. **Gegeben** Zeitraum und Auftragsauswahl wie in US-38.1, **dann** summiert die Liste je Zutat Σ (Portionen des Gerichts × Menge pro Person) über alle Gerichte inkl. Sonderessen-Ersatz, zuzüglich Puffer (Standard 5 %, in der Liste änderbar; entschieden R2-7). Die Mengen p. P. sind Rohware vor dem Garen (US-19.2).
 2. **Gegeben** die Anzeige, **dann** erscheinen Mengen ab 1.000 g in kg und ab 1.000 ml in l, auf eine Nachkommastelle aufgerundet; Stück werden auf ganze Zahlen aufgerundet.
 3. **Gegeben** Rinderbraten mit 180 g p. P. und 110 Portionen, **dann** ergibt sich 19.800 g + 5 % = 20.790 g, angezeigt als „20,8 kg“.
 4. **Gegeben** Gerichte ohne Zutaten, **dann** stehen sie am Ende unter „Nicht berücksichtigt: {Gericht} ({n} Portionen)“.
@@ -1010,12 +1020,12 @@ sequenceDiagram
 
 > Als **Inhaberin** möchte ich je Auftrag Slots mit Qualifikation, Zeit und Anzahl anlegen, damit sich passende Mitarbeiter bewerben können.
 
-1. **Gegeben** Tab „Personal“ eines Auftrags, **wenn** der Admin einen Slot mit Qualifikation (Pflicht), Beginn und Ende (Pflicht, vorbelegt aus Auftrag bzw. Ablauf), Anzahl (≥ 1) und optional Bezeichnung und Treffpunkt-Hinweis speichert, **dann** entsteht ein Slot (`shift_slots`) als unveröffentlichter Entwurf.
+1. **Gegeben** Tab „Personal“ eines Auftrags, **wenn** der Admin einen Slot mit genau einer Qualifikation (Pflicht, entschieden R2-9), Beginn und Ende (Pflicht, vorbelegt aus Auftrag bzw. Ablauf), Anzahl (≥ 1) und optional Bezeichnung und Treffpunkt-Hinweis speichert, **dann** entsteht ein Slot (`shift_slots`) als unveröffentlichter Entwurf.
 2. **Gegeben** „Veröffentlichen“ (einzeln oder alle Slots des Auftrags) und ein Auftrag mindestens `optioned`, **dann** erscheinen die Slots in der Schichtbörse für qualifizierte Mitglieder und diese erhalten eine gebündelte Push-Nachricht; in `inquiry` und `quoted` ist „Veröffentlichen“ gesperrt mit „Erst optionieren oder bestätigen“.
 3. **Gegeben** ein Auftrag vor `confirmed`, **dann** tragen seine Slots „vorläufig“; in Aufträgen `declined` oder `cancelled` lassen sich keine Slots anlegen.
 4. **Gegeben** „Duplizieren“, **dann** entsteht eine Kopie des Slots ohne Bewerbungen.
 5. *Randfall:* **Gegeben** ein Slot mit 3 Zusagen, **wenn** der Admin die Anzahl auf 2 senkt, **dann** wird das abgelehnt mit „Erst 1 Person ausplanen“.
-6. *Randfall:* **Gegeben** ein Slot mit Eingeplanten, **wenn** der Admin Beginn oder Ende ändert, **dann** erhalten diese „Einsatz geändert“; bei einer wesentlichen Änderung (mehr als 60 min oder anderer Tag) zusätzlich ein Sonderabsagerecht von 24 h, längstens bis Schichtbeginn (4.2.4).
+6. *Randfall:* **Gegeben** ein Slot mit Eingeplanten, **wenn** der Admin Beginn oder Ende ändert, **dann** erhalten diese „Einsatz geändert“ mit der neuen Zeit und der Absagefrist, die sich nach dem neuen Beginn richtet; ein Sonderabsagerecht gibt es nicht (entschieden R2-10, 4.2.4).
 7. *Randfall:* **Gegeben** „Slot entfernen“, **dann** wird ein Slot ohne Bewerbungen gelöscht; ein Slot mit Bewerbungen wird nach Bestätigung („{n} Personen betroffen“) geschlossen und die Betroffenen erhalten „Einsatz entfällt“.
 8. **Gegeben** die Stufe „Start“, **dann** ist „Veröffentlichen“ nicht verfügbar, Direkt einplanen (US-46) schon **[Vorschlag, 6.1]**; in der Testphase ist alles verfügbar.
 9. **Gegeben** offline oder Lesemodus, **dann** sind Anlegen und Ändern gesperrt.
@@ -1078,11 +1088,11 @@ sequenceDiagram
 
 > Als **Aushilfe** möchte ich eine Zusage bis zur Frist absagen können, damit ich bei Verhinderung fair Bescheid gebe und der Platz neu besetzt wird.
 
-1. **Gegeben** ein Einsatz `accepted` oder `assigned`, **dann** zeigt das Detail „Absage möglich bis {Wochentag, Datum, Uhrzeit}“ (Slot-Beginn minus Absagefrist).
+1. **Gegeben** ein Einsatz `accepted` oder `assigned`, **dann** zeigt das Detail „Absage möglich bis {Wochentag, Datum, Uhrzeit}“ (Slot-Beginn minus Absagefrist; Standard 48 h, pro Firma einstellbar, entschieden R2-10).
 2. **Gegeben** die Frist läuft noch, **wenn** das Mitglied „Absagen“ mit optionalem Grund bestätigt, **dann** wird der Eintrag `cancelled_by_staff`, der Platz wird frei, der Slot erscheint (falls veröffentlicht) wieder in der Schichtbörse und der Admin erhält „Absage: {Name}, {Slot} – {n} auf der Warteliste“.
 3. **Gegeben** ein Slot am Samstag, 24.10., 16:00 und Absagefrist 48 h, **dann** ist die Absage bis Donnerstag, 22.10., 16:00 möglich und ab 16:01 gesperrt.
 4. *Randfall Mitarbeiter sagt nach Frist ab:* **Gegeben** die Frist ist abgelaufen, **dann** ist „Absagen“ deaktiviert und es erscheint „Absage nur noch telefonisch: {Admin}, {Telefon}“ mit Anruf-Button; der Admin trägt die Absage ein, der Eintrag wird `cancelled_by_staff` mit Vermerk „nach Frist“ und zählt in Kennzahl K-09.
-5. *Randfall:* **Gegeben** der Admin hat Beginn oder Ende des Slots wesentlich geändert (mehr als 60 min oder anderer Tag), **dann** kann das Mitglied 24 h ab Benachrichtigung absagen, auch wenn die Frist bereits abgelaufen ist, längstens bis Schichtbeginn.
+5. *Randfall Zeitänderung:* **Gegeben** der Admin hat Beginn oder Ende des Slots bzw. den Auftrag verschoben, **dann** erhält das Mitglied „Einsatz geändert“ mit der neuen Zeit; die Absage ist weiterhin nur bis neuer Slot-Beginn minus Absagefrist möglich, danach nur über den Admin wie in US-47.4. Ein Sonderabsagerecht wegen der Verschiebung gibt es nicht – entschieden (R2-10).
 6. **Gegeben** eine Absage, **dann** rückt niemand automatisch nach; Wartende bleiben `applied` und der Admin entscheidet.
 7. **Gegeben** offline oder Lesemodus, **dann** ist die Absage in der App gesperrt und es erscheint der Hinweis auf telefonische Absage.
 
@@ -1233,19 +1243,22 @@ sequenceDiagram
 > Als **Inhaberin** möchte ich alle Daten meiner Firma exportieren, damit ich sie archivieren oder in ein anderes System übernehmen kann.
 
 1. **Gegeben** Web-Admin „Daten exportieren“, **dann** entsteht ein ZIP mit CSV-Dateien (UTF-8, Semikolon) je Bereich – Firma, Team, Kunden, Aufträge, Ablauf, Angebote mit Positionen und Revisionen, Gerichte mit Allergenen und Zutaten, Pakete, Steuersätze, Slots und Bewerbungen, Sonderessen – sowie allen Angebots-PDFs.
-2. **Gegeben** die Anforderung, **dann** läuft der Export im Browser des Web-Admins mit Fortschrittsanzeige und endet mit dem Download der ZIP-Datei; es gibt keinen E-Mail-Link und keine Datei auf dem Server (02 §10.2, 06 E-17) **[Vorschlag]**. Bricht der Browser ab, startet der Admin den Export neu.
+2. **Gegeben** die Anforderung, **dann** legt `request_data_export()` einen Eintrag in `data_exports` mit Status `queued` an und der Web-Admin zeigt „Export wird erstellt – Sie erhalten eine E-Mail, sobald er bereit ist“. Der Export entsteht **im Hintergrund** (Edge Function `export-company`), auch wenn der Admin den Browser schließt; das ZIP liegt im privaten Bucket `exports` unter `{company_id}/{data_export_id}.zip`. Ist es fertig, erhält der anfordernde Admin die E-Mail „Export bereit“ mit einem signierten Download-Link, der 7 Tage gültig ist. Der Download läuft nur über diesen Link, nicht als Erzeugung im Browser – entschieden (R2-14; ersetzt den Browser-Export aus 06 E-17).
 3. **Gegeben** Lesemodus oder Kündigung, **dann** bleibt der Export bis zur endgültigen Löschung möglich.
-4. **Gegeben** jeder Export, **dann** wird protokolliert, wer ihn wann angefordert hat; nur `admin` darf exportieren.
+4. **Gegeben** jeder Export, **dann** wird in `data_exports` protokolliert, wer ihn wann angefordert hat, mit Status (`queued`, `running`, `ready`, `failed`, `expired`), Dateipfad und Ablaufzeitpunkt; der Web-Admin listet die Exporte mit Status und „Link gültig bis {Datum}“. Nur `admin` darf exportieren.
 5. *Randfall:* **Gegeben** 1.000 Aufträge, **dann** ist der Export vollständig und in unter 10 Minuten bereit **[Vorschlag]**.
+6. *Randfall:* **Gegeben** die Erzeugung scheitert, **dann** erhält der Eintrag Status `failed`, der anfordernde Admin erhält die E-Mail „Export fehlgeschlagen“ und der Web-Admin bietet „Erneut anfordern“ an.
+7. **Gegeben** 7 Tage nach Bereitstellung, **dann** löscht der Job `exports_cleanup` die Datei automatisch (Storage-API), der Eintrag erhält Status `expired` und der Link ist ungültig; der Web-Admin zeigt „Abgelaufen – neuen Export anfordern“ (R2-14).
+8. *Randfall:* **Gegeben** für die Firma läuft bereits ein Export (`queued` oder `running`), **wenn** ein Admin erneut exportiert, **dann** entsteht kein zweiter Export und der Web-Admin zeigt den laufenden.
 
 #### US-60 · Firma löschen
 `F-31` · **Must**
 
 > Als **Inhaberin** möchte ich meine Firma mit allen Daten löschen, damit nach Ende der Nutzung nichts zurückbleibt.
 
-1. **Gegeben** Web-Admin „Firma löschen“, **dann** bietet die App zuerst den Export an und verlangt die Eingabe des Firmennamens und eine erneute Anmeldung.
+1. **Gegeben** Web-Admin „Firma löschen“, **dann** bietet die App zuerst den Export an (US-59; der Link aus der E-Mail „Export bereit“ bleibt auch nach dem Löschantrag bis zu seinem Ablauf nach 7 Tagen gültig) und verlangt die Eingabe des Firmennamens und eine erneute Anmeldung.
 2. **Gegeben** die Bestätigung, **dann** sind sofort alle Mitglieder ohne Zugriff, Portal- und iCal-Links ungültig, das Stripe-Abo ist gekündigt (ohne anteilige Erstattung **[Vorschlag]**) und alle Mitglieder werden per E-Mail informiert.
-3. **Gegeben** 30 Tage nach Bestätigung **[Vorschlag]**, **dann** werden alle Firmendaten inkl. Dateien endgültig gelöscht und der Admin erhält eine Löschbestätigung; bis dahin ist eine Wiederherstellung über den Support möglich.
+3. **Gegeben** 30 Tage nach Bestätigung, **dann** löscht `purge-company` (aufgerufen vom Job `billing_lifecycle`) alle Firmendaten inkl. aller Dateien der Firma (auch Exporte im Bucket `exports`) endgültig und der Admin erhält eine Löschbestätigung; bis dahin ist eine Wiederherstellung über den Support möglich – freigegeben (R2-13).
 4. **Gegeben** die Konten der Mitglieder, **dann** bleiben sie ohne Firma bestehen.
 5. **Gegeben** Abrechnungsdaten des App-Abos, **dann** bleiben sie gemäß gesetzlicher Aufbewahrungspflicht beim Betreiber bzw. bei Stripe erhalten.
 
@@ -1254,7 +1267,7 @@ sequenceDiagram
 
 > Als **Inhaberin** möchte ich Auskunfts- und Löschanfragen meiner Kunden erfüllen, damit ich als Verantwortliche DSGVO-konform handle.
 
-1. **Gegeben** ein Kundendetail (Should), **wenn** der Admin „Kundendaten exportieren“ wählt, **dann** erhält er eine Datei mit Kundendaten, Aufträgen und Sonderessen dieses Kunden.
+1. **Gegeben** ein Kundendetail (Should), **wenn** der Admin „Kundendaten exportieren“ wählt, **dann** entsteht wie in US-59 im Hintergrund eine Datei mit Kundendaten, Aufträgen und Sonderessen dieses Kunden (`request_data_export()` mit Umfang „Kunde“), und der Admin erhält den Download-Link per E-Mail (7 Tage gültig, R2-14).
 2. **Gegeben** „Anonymisieren“ mit Bestätigung, **dann** werden Name („Anonymisierter Kunde“), Kontaktdaten, Rechnungsanschrift, Notiz und Gastnamen entfernt und alle Portal-Tokens des Kunden widerrufen; Aufträge und Beträge bleiben erhalten. Der Vorgang ist nicht umkehrbar.
 3. *Randfall:* **Gegeben** der Kunde hat einen künftigen Auftrag `confirmed`, **dann** warnt die App „Auftrag am {Datum} betroffen – Portal und E-Mail-Versand nicht mehr möglich“.
 4. **Gegeben** 30 Tage nach Eventende, **dann** werden Gastnamen in Sonderessen automatisch entfernt (US-40.5).
@@ -1393,7 +1406,7 @@ stateDiagram-v2
     Lesemodus --> Geloescht: 6 Monate ohne Abo, angekündigt
     Aktiv --> Loeschung_beantragt: Firma löschen
     Lesemodus --> Loeschung_beantragt: Firma löschen
-    Loeschung_beantragt --> Geloescht: nach 30 Tagen
+    Loeschung_beantragt --> Geloescht: nach 30 Tagen (purge-company, R2-13)
 ```
 
 ### 6.4 Verhalten im Lesemodus

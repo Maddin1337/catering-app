@@ -5,10 +5,12 @@ Stand: 17.10.2026 · Grundlage: [00-entscheidungen.md](00-entscheidungen.md) (ve
 **Lesehilfe**
 
 - **Vorschlag** markiert eine begründete Empfehlung zu einem Punkt, den das Entscheidungsprotokoll offen lässt. Bis zur Bestätigung durch den Gründer gilt sie als Arbeitsannahme.
-- Tabellen-, Enum-, Rollen- und Funktionsnamen folgen exakt dem Glossar. Tabellen außerhalb des Glossars stehen gesammelt in Abschnitt 3.7 und sind Vorschläge.
+- **entschieden (R2-x)** markiert einen Punkt, den der Gründer in Runde 2 entschieden hat (00 §9, R2-1 bis R2-14). Diese Entscheidungen haben Vorrang vor allen abweichenden Vorschlägen; die Auswirkungen im Modell fasst 10.2 zusammen.
+- Tabellen-, Enum-, Rollen- und Funktionsnamen folgen exakt dem Glossar. Tabellen außerhalb des Glossars stehen gesammelt in Abschnitt 3.7 und sind Vorschläge, soweit sie nicht als entschieden markiert sind (`data_exports`, R2-14).
 - Spaltennamen, die in 01/02 als Vorschlag genannt wurden, werden hier festgelegt. Abweichungen davon listet Abschnitt 10.
 - Der SQL-Entwurf (Abschnitte 7 und 8) wurde lokal gegen PostgreSQL 16 mit nachgebildeten Supabase-Schemas (`auth.uid()`, `storage`, Rollen `anon`/`authenticated`/`service_role`) geladen und geprüft. Getestet wurden: Küche sieht keine Preise, Mandantentrennung, Spaltenschutz für Systemfelder, Lesemodus, Sichtbarkeit für `staff`, Überbuchung bei zwei parallelen Zusagen und Firmenlöschung per Kaskade.
 - **Stand nach der Prüfrunde:** Eingearbeitet sind die Befunde zu Funktionsrechten (`EXECUTE` für `PUBLIC`/`anon`), DELETE im Lesemodus, Überbuchung unter REPEATABLE READ (`taken_seats`), verbindlichem Stand der Küche (`binding_snapshot`), Menüwahl ohne Revision (`portal_selection`), Versand über Prepare/Commit, Push-Tickets, Idempotenz der Jobs und Teamliste der Küche. Diese geänderten SQL-Blöcke sind **noch nicht erneut** gegen PostgreSQL 16 geladen; das ist der erste Schritt beim Anlegen der Migrationen (pgTAP aus 9.5).
+- **Stand nach Runde 2 (00 §9):** Eingearbeitet sind keine Rückwärts-Übergänge im Auftragsstatus (R2-4, Übergangsprüfung `private.is_allowed_event_transition()` in 7.8), kein automatisches „Durchgeführt“ (R2-3), Direktbestätigung (R2-2), kein Sonderabsagerecht der Schichtbörse (R2-10, Spalte `shift_slots.special_cancel_until` entfällt), Hintergrund-Export mit Download-Link per E-Mail (R2-14: `data_exports` mit Status, Pfad und Ablauf, Bucket `exports`, Edge Function `export-company`, Job `exports_cleanup`) sowie die freigegebenen Edge Functions `delete-account` (R2-12) und `purge-company` (R2-13). Auch diese Blöcke sind noch nicht erneut geladen.
 
 **Inhalt**
 
@@ -91,7 +93,7 @@ erDiagram
     dishes ||--o{ menu_package_dishes : "Teil von"
     company_members ||--o{ member_qualifications : "besitzt"
     qualifications ||--o{ member_qualifications : "vergeben an"
-    qualifications |o--o{ shift_slots : "erfordert"
+    qualifications ||--o{ shift_slots : "erfordert (Pflicht, R2-9)"
     shift_slots ||--o{ shift_applications : "Bewerbungen"
     company_members ||--o{ shift_applications : "bewirbt sich"
     company_members ||--o{ push_tokens : "Geräte"
@@ -255,13 +257,14 @@ erDiagram
     }
 ```
 
-Ergänzende Tabellen (Vorschlag, Abschnitt 3.7):
+Ergänzende Tabellen (Abschnitt 3.7; Vorschläge, `data_exports` entschieden R2-14):
 
 ```mermaid
 erDiagram
     companies ||--o{ intake_questions : "Fragenkatalog"
     events ||--o{ event_status_changes : "Statushistorie"
-    companies ||--o{ data_exports : "Exportprotokoll"
+    companies ||--o{ data_exports : "Exportaufträge (Bucket exports)"
+    company_members |o--o{ data_exports : "angefordert von"
     notifications ||--o{ push_tickets : "Expo-Tickets"
     push_tokens |o--o{ push_tickets : "Gerät"
     companies ||--o{ usage_events : "Nutzungszähler"
@@ -278,7 +281,7 @@ erDiagram
 | Enum | Werte → Bedeutung | verwendet in |
 |---|---|---|
 | `member_role` | `admin` Admin/Inhaber · `kitchen` Küche · `staff` Service/Aushilfe | `company_members.role`, `invitations.role` |
-| `event_status` | `inquiry` Anfrage · `quoted` Angebot versendet · `optioned` Optioniert · `confirmed` Bestätigt · `completed` Durchgeführt · `invoiced` Abgerechnet · `declined` Abgelehnt (Kunde lehnt Angebot ab) · `cancelled` Abgesagt (nach Option/Bestätigung storniert) | `events.status`, `event_status_changes` |
+| `event_status` | `inquiry` Anfrage · `quoted` Angebot versendet · `optioned` Optioniert · `confirmed` Bestätigt · `completed` Durchgeführt (nur manuell durch den Admin, R2-3) · `invoiced` Abgerechnet · `declined` Abgelehnt (Kunde lehnt Angebot ab) · `cancelled` Abgesagt (nach Option/Bestätigung storniert). Übergänge nur vorwärts (R2-4); `declined`, `cancelled` und `invoiced` sind Endzustände | `events.status`, `event_status_changes` |
 | `event_kind` | `event_catering` Event-Catering · `business_lunch` Business-/Office-Lunch | `events.kind` |
 | `quote_status` | `draft` nie versendet (`revision = 0`) · `sent` aktuelle Revision versendet, noch nicht angenommen · `accepted` aktuelle Revision angenommen · `declined` abgelehnt | `quotes.status` |
 | `quote_item_type` | `package` Menüpaket p. P. · `dish` Einzelgericht · `service` Personal · `equipment` Equipment-Miete · `travel` Anfahrt/Pauschale · `beverage` Getränkepauschale · `custom` frei | `quote_items.type` |
@@ -354,14 +357,14 @@ Mandant: Stammdaten, Branding und Firmeneinstellungen. Die Tabelle ist selbst de
 | `price_entry_mode` | price_basis | not null, `'net'` | Eingabeart der Preise (02 §3.6) |
 | `default_pricing_mode` | pricing_mode | not null, `'flat'` | Vorbelegung `quotes.pricing_mode` |
 | `default_markup_bp` | integer | not null, `20000` | Aufschlag auf den Wareneinsatz (200 % = Faktor 3,0) |
-| `price_rounding_cents` | integer | not null, `10`, ∈ {1, 10, 50, 100} | Preisraster für den Preisvorschlag, immer aufgerundet (02 §3.3); `1` = kein Raster |
+| `price_rounding_cents` | integer | not null, `10`, ∈ {1, 10, 50, 100} | Preisraster für den Preisvorschlag, immer aufgerundet (02 §3.3; entschieden R2-5: Standard volle 10 Cent, 26,32 € → 26,40 €); `1` = kein Raster |
 | `is_small_business` | boolean | not null, `false` | Kleinunternehmer: keine USt, Hinweistext (**Vorschlag** aus 02 §3.5) |
 | `quote_validity_days` | integer | not null, `14` | Vorbelegung `quotes.valid_until` |
-| `portal_change_lead_hours` | integer | `72`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Event-Catering |
-| `portal_change_lead_hours_business_lunch` | integer | `24`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Business-Lunch (**Vorschlag**, 01 §4.2.6) |
+| `portal_change_lead_hours` | integer | `72`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Event-Catering (entschieden R2-6) |
+| `portal_change_lead_hours_business_lunch` | integer | `24`; null = kein Änderungsschluss | Vorbelegung `events.changes_until` für Business-Lunch (entschieden R2-6, 01 §4.2.6) |
 | `portal_token_ttl_days` | integer | not null, `60` | Portal-Link gültig bis Eventende + n Tage |
-| `shift_cancel_deadline_hours` | integer | not null, `48`, 0–168 | Absagefrist der Schichtbörse |
-| `shopping_buffer_bp` | integer | not null, `500` | Puffer nur der Einkaufsliste (5 %); die Produktionsliste hat keinen Puffer (02 §8) |
+| `shift_cancel_deadline_hours` | integer | not null, `48`, 0–168 | Absagefrist der Schichtbörse, pro Firma einstellbar; gilt immer, auch nach einer Verschiebung des Events oder Slots (kein Sonderabsagerecht, entschieden R2-10) |
+| `shopping_buffer_bp` | integer | not null, `500` | Puffer nur der Einkaufsliste (5 %); die Produktionsliste hat keinen Puffer (02 §8; entschieden R2-7) |
 | `quote_intro_text`, `quote_terms_text`, `quote_closing_text` | text | null | Standardtexte für neue Angebote |
 | `quote_item_templates` | jsonb | not null, `'[]'` | Vorlagen für Zusatzpositionen: `[{type, name, unit_label, unit_price_cents, quantity_mode, hours}]` („Servicekraft 32,00 €/h“, „Anfahrt“, „Getränkepauschale“) |
 | `quote_number_year`, `quote_number_seq` | integer | null / `0` | Zähler für die Angebotsnummer `A-JJJJ-NNNN` (Trigger) |
@@ -476,7 +479,7 @@ Auftrag (Event-Catering oder Business-Lunch) mit Status, Termin, Ort und Hinweis
 | `kind` | event_kind | not null, `'event_catering'` | |
 | `title` | text | not null, 1–120 Zeichen | **Vorschlag:** Pflicht in der DB, die App belegt vor („Hochzeit 12.06.2027“). Eingeplantes Personal sieht den Titel; so entsteht nie ein Fallback mit Kundennamen |
 | `occasion` | text | null | Anlass (Fragenkatalog), z. B. „Hochzeit“ |
-| `status` | event_status | not null, `'inquiry'` | nur über `set_event_status()` änderbar (Spaltenprivileg) |
+| `status` | event_status | not null, `'inquiry'` | nur über `set_event_status()` und die Versand-/Portal-RPCs änderbar (Spaltenprivileg); nur Vorwärts-Übergänge nach 02 §1.1 (R2-4) |
 | `starts_at` | timestamptz | not null | Beginn |
 | `ends_at` | timestamptz | null, `> starts_at` | Ende; „18:00–02:00“ wird als Folgetag gespeichert |
 | `event_date` | date | generiert: `(starts_at at time zone 'Europe/Berlin')::date` | Kalender, „am selben Tag“-Hinweis, Tagesansicht |
@@ -489,7 +492,7 @@ Auftrag (Event-Catering oder Business-Lunch) mit Status, Termin, Ort und Hinweis
 | `kitchen_notes` | text | null | Hinweise für die Küche |
 | `internal_notes` | text | null | nur `admin`; nimmt auch Antworten des Fragenkatalogs ohne Feldzuordnung auf |
 | `option_expires_at` | timestamptz | null | „optioniert bis“ (Ende des gewählten Tages in Europe/Berlin); in `optioned` Pflicht, sonst null (Check) |
-| `changes_until` | timestamptz | null | Änderungsschluss im Portal; vorbelegt aus `companies.portal_change_lead_hours` (Event-Catering) bzw. `portal_change_lead_hours_business_lunch` (Business-Lunch), je Auftrag änderbar; null = kein Änderungsschluss |
+| `changes_until` | timestamptz | null | Änderungsschluss im Portal; vorbelegt aus `companies.portal_change_lead_hours` (Event-Catering, 72 h) bzw. `portal_change_lead_hours_business_lunch` (Business-Lunch, 24 h), je Auftrag änderbar (entschieden R2-6); null = kein Änderungsschluss |
 | `portal_locked` | boolean | not null, `false` | Portal-Änderungen gesperrt |
 | `cancellation_agreement` | text | null | Freitext „Stornovereinbarung“ (02 §1.1) |
 | `invoice_reference`, `invoiced_on` | text / date | null | externe Rechnungsnummer und -datum bis zum Rechnungsmodul |
@@ -502,6 +505,7 @@ Auftrag (Event-Catering oder Business-Lunch) mit Status, Termin, Ort und Hinweis
 - **Indizes:** `(company_id, starts_at)` Kalender; `(company_id, status, event_date)` Listen und Tagesansicht; `(customer_id)`; GIN-Trigramm auf `title`.
 - **Trigger (Vorschlag):** Ändert sich `starts_at`/`ends_at`, werden `portal_tokens.expires_at` der aktiven Tokens neu berechnet.
 - **Löschen** („Fehleingabe löschen“, 02 §1.1) nur im Status `inquiry` und ohne versendete Revision (Policy). Eine Anfrage, die nicht zustande kommt, wird `declined`.
+- **Statusübergänge** (02 §1.1, entschieden R2-2, R2-3, R2-4): nur vorwärts, geprüft in `private.is_allowed_event_transition()` (7.8). Direktbestätigung `inquiry`/`optioned` → `confirmed` ohne versendetes Angebot ist erlaubt (Bestätigungsweg Pflicht, R2-2). `completed` setzt nur der Admin, nie ein Job (R2-3). Es gibt keine Rückwärts-Übergänge (`completed` → `confirmed`, `invoiced` → `completed`, `declined` → `quoted`), keine Reaktivierung von `declined`/`cancelled` und keine Funktion „Status korrigieren“ (R2-4); ein neuer Anlauf läuft über `copy_event()`. Fehlbedienungen verhindert der Bestätigungsdialog vor jedem Statuswechsel in der App (02 §1.1.1); die Datenbank prüft unabhängig davon die Übergangstabelle.
 
 #### `event_schedule_items`
 
@@ -544,7 +548,7 @@ Sonderessen und Allergien je Auftrag. Gesundheitsdaten im Sinne von Art. 9 DSGVO
 - **Check:** `diet is not null or cardinality(avoid_allergens) > 0 or note is not null`.
 - **Trigger (Vorschlag):** Summe `person_count` je Auftrag ≤ `events.guest_count` (US-35.3, US-40.4); `is_short_notice` automatisch, wenn `now() > events.changes_until`.
 - **Index:** `(event_id)`.
-- **Schreiben:** `admin`, `kitchen` (ab `optioned`), Portal über `portal-api`.
+- **Schreiben:** `admin`, `kitchen` (ab `optioned`), Portal über `portal-api`. Einträge aus dem Portal gelten sofort, ohne Änderungswunsch (entschieden R2-1).
 
 ### 3.3 Angebote und Steuern
 
@@ -578,7 +582,7 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `send_log` | jsonb | not null, `'[]'` | Versandprotokoll, nur anhängen: `{revision, sent_at, via, send_mode, pdf_path, snapshot_hash, member_id}`; Grundlage der PDF-Historie (US-28.2) |
 | `binding_snapshot` | jsonb | null | **verbindlicher Stand** für Küche und Portal (01 §4.2.3): Snapshot der zuletzt angenommenen, im Portal bestätigten oder „Zur Info“ versendeten Revision, mit eingearbeiteter Menüwahl und Mengen aus `portal_selection` |
 | `binding_revision` | integer | null, ≤ `revision` | Revision von `binding_snapshot`; `< revision` = neuere Revision noch nicht verbindlich |
-| `portal_selection` | jsonb | null | Menüwahl und Mengen, die der Kunde **vor** der Annahme direkt setzt (02 §4.1): `{"choices": {choice_group: item_id}, "quantities": {item_id: quantity}}`; ändert weder Snapshot noch Hash |
+| `portal_selection` | jsonb | null | Menüwahl und Mengen, die der Kunde **vor** der Annahme direkt setzt (02 §4.1; entschieden R2-1): `{"choices": {choice_group: item_id}, "quantities": {item_id: quantity}}`; ändert weder Snapshot noch Hash |
 | `selection_updated_at` | timestamptz | null | letzte Änderung von `portal_selection` |
 | `sent_at` | timestamptz | null | letzter Versand |
 | `sent_via` | text | null, `email`/`link` | `link` = „Link kopieren“ |
@@ -599,7 +603,7 @@ Genau ein aktuelles Angebot je Auftrag. Es besteht aus dem bearbeitbaren Live-St
 | `acceptance_log` | jsonb | not null, `'[]'` | alle Annahmen aller Revisionen, nur anhängen |
 | `declined_at`, `decline_reason`, `decline_comment` | timestamptz / text / text | null | Ablehnung mit Grund aus der Auswahlliste |
 | `change_log` | jsonb | not null, `'[]'` | Änderungsprotokoll, nur anhängen |
-| `pending_change` | jsonb | null | höchstens ein offener Änderungswunsch des Kunden (02 §4.2): `{requested_at, revision, name, comment, ip, user_agent, changes: {guest_count, choices, quantities}}`; gesetzt von `portal_request_change()`, geschlossen von `resolve_pending_change()` |
+| `pending_change` | jsonb | null | höchstens ein offener Änderungswunsch des Kunden (02 §4.2; entschieden R2-1: Gästezahl immer, Menüwahl und Mengen nach der Bestätigung): `{requested_at, revision, name, comment, ip, user_agent, changes: {guest_count, choices, quantities}}`; gesetzt von `portal_request_change()`, geschlossen von `resolve_pending_change()` (bestätigen oder ablehnen). Die Markierung „wichtig“ ab ± 20 % Gästezahl wird gegen die verbindliche Gästezahl berechnet, keine eigene Spalte |
 | `editor_active_seconds` | integer | not null, `0` | aktive Editorzeit für Kennzahl K-01 |
 
 - **Unique:** `event_id`; `(company_id, number)`; `(company_id, id)`.
@@ -755,7 +759,7 @@ Die 14 Pflichtallergene je Gericht. Eine Zeile = „enthält“; keine Zeile = �
 | [S ohne id] | | | |
 | `dish_id` | uuid | not null | (c, …) → `dishes` CASCADE |
 | `ingredient_id` | uuid | not null | (c, …) → `ingredients` NO ACTION (Zutat in Verwendung nur archivierbar) |
-| `quantity_per_person` | numeric(10,1) | not null, > 0 | Menge pro Person in der Basiseinheit = **Einkaufsmenge der Rohware vor Garverlust** (02 §3.3); Grundlage von Wareneinsatz und Einkaufsliste |
+| `quantity_per_person` | numeric(10,1) | not null, > 0 | Menge pro Person in der Basiseinheit = **Einkaufsmenge der Rohware vor dem Garen** (02 §3.3; entschieden R2-7); Grundlage von Wareneinsatz und Einkaufsliste (Einkaufsliste mit Puffer `shopping_buffer_bp`, Produktionsliste ohne) |
 | `sort_order` | integer | not null, `0` | |
 
 - **PK:** `(dish_id, ingredient_id)`. **Index:** `(ingredient_id)`.
@@ -815,7 +819,7 @@ Die 14 Pflichtallergene je Gericht. Eine Zeile = „enthält“; keine Zeile = �
 |---|---|---|---|
 | [S] | | | |
 | `event_id` | uuid | not null | (c, …) → `events` CASCADE |
-| `qualification_id` | uuid | **not null** | (c, …) → `qualifications` NO ACTION; Pflicht (00 §3, 01 US-42.1) |
+| `qualification_id` | uuid | **not null** | (c, …) → `qualifications` NO ACTION; genau eine Qualifikation je Slot, Pflicht (entschieden R2-9; 00 §3, 01 US-42.1). Wer sie nicht hat, sieht den Slot nicht (`shift_board`) |
 | `title` | text | not null | „Service“, „Bar“, „Spüle“ |
 | `starts_at`, `ends_at` | timestamptz | not null, `ends_at > starts_at` | Schichtzeit (darf von der Eventzeit abweichen) |
 | `seats` | integer | not null, 1–100 | Anzahl Plätze |
@@ -823,9 +827,9 @@ Die 14 Pflichtallergene je Gericht. Eine Zeile = „enthält“; keine Zeile = �
 | `meeting_point`, `dress_code`, `notes` | text | null | überschreiben die Angaben des Auftrags |
 | `published_at` | timestamptz | null = Entwurf | Veröffentlichung erst ab `optioned` (`publish_slots()`) |
 | `cancelled_at`, `cancel_reason` | timestamptz / text | null | Slot abgesagt bzw. geschlossen |
-| `special_cancel_until` | timestamptz | null | Sonderabsagerecht: Benachrichtigung + 24 h nach einer **wesentlichen** Zeitänderung (Beginn oder Ende > 60 min verschoben oder anderer Kalendertag, 02 §5.7); wirkt höchstens bis `starts_at` |
 
 - **Zustand** wird berechnet (02 §5.2): Entwurf, offen, besetzt, abgesagt, vergangen. Belegt = `taken_seats` (= Bewerbungen mit `status in ('accepted', 'assigned')`).
+- **Absagefrist** (entschieden R2-10): immer `starts_at − companies.shift_cancel_deadline_hours`, berechnet aus der **aktuellen** Schichtzeit (`my_shifts.cancel_deadline_at`, `cancel_my_application()`). Ein Sonderabsagerecht bei Verschiebung gibt es nicht; die frühere Spalte `special_cancel_until` und die Regel „wesentliche Zeitänderung“ entfallen. Ändert der Admin `starts_at`/`ends_at`, benachrichtigt `shift_slot_times_changed()` Bewerber und Eingeplante mit neuer Zeit und Frist (Kategorie `shift_changed`, 02 S12); ist die Frist dadurch schon abgelaufen, ist eine Absage nur noch über den Admin möglich (`record_late_cancellation()`).
 - **Indizes:** `(company_id, starts_at) where published_at is not null and cancelled_at is null` (Börse); `(event_id)`; `(qualification_id)`.
 - **Kapazität:** Die Check-Constraint `taken_seats between 0 and seats` verhindert auch, dass `seats` unter die Zahl der Belegten sinkt (Fehler `23514`, Constraint `shift_slots_taken_le_seats` → App-Code `seats_below_taken`).
 - **Lesen** `kitchen`/`staff`: nur über `shift_board`, `my_shifts`; `kitchen` zusätzlich `event_staffing` (Besetzung je Auftrag, 01 §3.2), `staff` zusätzlich `event_colleagues` (4.6).
@@ -917,7 +921,7 @@ Zugang des Endkunden zum Portal eines Auftrags.
 
 ### 3.7 Ergänzende Tabellen (Vorschlag)
 
-Diese Tabellen stehen nicht im Glossar, sind aber für verbindliche Entscheidungen bzw. Stories nötig.
+Diese Tabellen stehen nicht im Glossar, sind aber für verbindliche Entscheidungen bzw. Stories nötig. `data_exports` ist durch R2-14 entschieden; die übrigen sind Vorschläge.
 
 #### `allergens` (global, ohne `company_id`)
 
@@ -1022,12 +1026,13 @@ Verbindlich aus 00 §3; Tabellenname und Struktur sind ein Vorschlag. Ein Katalo
 | `event_id` | uuid | not null | (c, …) → `events` CASCADE |
 | `from_status` | event_status | null | null bei Anlage |
 | `to_status` | event_status | not null | |
-| `actor_kind` | text | not null, `member`/`portal`/`system` | |
+| `actor_kind` | text | not null, `member`/`portal`/`system` | `system` nur für serverseitige Folgeübergänge ohne handelndes Mitglied; kein Job setzt einen Auftragsstatus (R2-3) |
 | `actor_member_id` | uuid | null | (c, …) → `company_members` SET NULL (Spalte) |
 | `reason` | text | null | Ablehnungs-/Absagegrund |
-| `confirmation_channel` | text | null, `phone`/`email`/`in_person` | bei manueller Bestätigung |
+| `confirmation_channel` | text | null, `phone`/`email`/`in_person` | bei manueller Bestätigung, auch Direktbestätigung ohne Angebot (R2-2) |
 
-- **Index:** `(event_id, created_at)`. Lesen `admin`; geschrieben nur von `set_event_status()` und den `portal_*`-RPCs.
+- **Index:** `(event_id, created_at)`. Lesen `admin`; geschrieben nur von `set_event_status()`, `commit_quote_send()`, `record_acceptance()`, `record_decline()` und den `portal_*`-RPCs.
+- Jede Zeile ist ein Vorwärts-Übergang nach 02 §1.1 (`private.is_allowed_event_transition(from_status, to_status)`, R2-4); Korrektur-Zeilen (Rückwärts-Übergänge) gibt es nicht. Die Historie ist nur anhängend (kein Update/Delete für `authenticated`).
 
 #### `plan_limits` (global)
 
@@ -1042,18 +1047,27 @@ Grenzen je Stufe als Konfiguration statt im Code (01 §6.1). Werte = Vorschlag a
 
 Lesen: alle `authenticated`. In der Testphase gilt `profi` (`effective_plan`).
 
-#### `data_exports` – Exportprotokoll (US-59.4)
+#### `data_exports` – Exportaufträge und -protokoll (US-59, entschieden R2-14)
 
-Der Export läuft im Browser des Web-Admins (01 US-59.2, 02 §10.2, Entscheidung E-17); die Datenbank erzeugt keine Datei. Die Tabelle protokolliert nur, wer wann was exportiert hat.
+Der Export entsteht **im Hintergrund**, nicht im Browser (entschieden R2-14; ersetzt den Browser-Export aus 06 E-17). `request_data_export()` legt die Zeile an, die Edge Function `export-company` erzeugt das ZIP im privaten Bucket `exports` (8) und verschickt über `send-email` die E-Mail „Export bereit“ (02 D1) mit einem signierten Link, der 7 Tage gültig ist. Danach löscht der Job `exports_cleanup` die Datei automatisch (9.6). Ablauf: 02 §10.2. Die Zeile ist Auftrag und Protokoll zugleich und bleibt nach dem Ablauf erhalten (01 US-59.4).
 
 | Spalte | Typ | Null / Default | Beschreibung |
 |---|---|---|---|
-| [S] | | | |
-| `requested_by_member_id` | uuid | null | (c, …) → `company_members` SET NULL (Spalte) |
-| `scope` | text | not null, `company`/`customer` | Firma komplett oder ein Endkunde (US-61.1) |
-| `customer_id` | uuid | null | bei `scope = 'customer'`; (c, …) → `customers` SET NULL (Spalte) |
+| [S] | | | `created_at` = Zeitpunkt der Anforderung |
+| `requested_by_member_id` | uuid | null | anfordernde Person, Empfänger der E-Mail (Login-E-Mail); (c, …) → `company_members` SET NULL (Spalte) |
+| `scope` | text | not null, `company`/`customer`/`member` | Firma komplett, ein Endkunde (US-61.1) oder eigene Daten eines Mitglieds (02 §10.2) |
+| `customer_id` | uuid | null; Pflicht genau bei `customer` | (c, …) → `customers` SET NULL (Spalte) |
+| `status` | text | not null, `'queued'`; `queued`/`running`/`ready`/`failed`/`expired` | `queued` → `running` → `ready` → `expired`; bei Fehler `failed` |
+| `file_path` | text | null | Objektpfad `{company_id}/{data_export_id}.zip` im Bucket `exports` (`data_export_id` = `id`); gesetzt genau bei `ready`, nach Ablauf null |
+| `ready_at` | timestamptz | null | Bereitstellung (Status `ready`) |
+| `expires_at` | timestamptz | null | Ablauf von signiertem Link und Datei = `ready_at + interval '7 days'` |
+| `error` | text | null | technischer Fehlertext bei `failed`, ohne personenbezogene Daten |
 
-Anlegen nur über `request_data_export(scope, customer_id)`, das der Web-Admin vor dem Abruf aufruft; Lesen `admin`, beides auch im Lesemodus.
+- **Checks:** Constraint `(status = 'ready') = (file_path is not null)` und `(status in ('ready', 'expired')) = (expires_at is not null)`. `customer_id` ist bei `scope = 'customer'` Pflicht; das prüft `request_data_export()`, weil SET NULL die Spalte später leeren kann.
+- **Unique:** `(company_id, scope, (case when scope = 'member' then requested_by_member_id end)) nulls not distinct where status in ('queued', 'running')`: je Firma und Umfang (bei `member` je Mitglied) höchstens ein laufender Export; ein weiterer Antrag liefert den laufenden zurück (01 US-59.8).
+- **Indizes:** `(company_id, created_at desc)` (Exportliste SC-67); `(expires_at) where status = 'ready'` (Job `exports_cleanup`); `(updated_at) where status in ('queued', 'running')` (abgebrochene Läufe nach 30 min → `failed`).
+- **Der signierte Link** wird nicht gespeichert; er steht nur in der E-Mail an die anfordernde Person.
+- **Anlegen** nur über `request_data_export(scope, customer_id)`: `company`/`customer` nur `admin`, `member` jedes Mitglied für sich selbst; auch im Lesemodus. **Status, Pfad und Ablauf** schreibt nur `service_role` (`export-company`, `exports_cleanup`). **Lesen:** `admin` alle Zeilen der Firma, jedes Mitglied die eigenen `member`-Exporte.
 
 ---
 
@@ -1106,12 +1120,12 @@ RLS filtert Zeilen, nicht Spalten. Die Küche braucht Gerichte, Zutaten, Pakete 
 
 | Tabelle | nicht direkt schreibbar | Weg |
 |---|---|---|
-| `events` | `status`, `company_id`, `created_by_member_id` | `set_event_status()` |
+| `events` | `status`, `company_id`, `created_by_member_id` | `set_event_status()` (nur Vorwärts-Übergänge, R2-4) |
 | `quotes` | `number`, `status`, `revision`, `snapshot`, `snapshot_hash`, `binding_snapshot`, `binding_revision`, `portal_selection`, `selection_updated_at`, `pdf_path`, `send_log`, `sent_*`, `send_mode`, `email_status`, `*_viewed_at`, `accepted_at`, `acceptance_*`, `declined_*`, `change_log`, `acceptance_log`, `pending_change` | `prepare_quote_send()`/`commit_quote_send()` (nur `service_role`), `discard_quote_changes()`, `record_acceptance()`, `record_decline()`, `resolve_pending_change()`, `portal_*` |
-| `shift_slots` | `taken_seats`, `published_at`, `cancelled_at`, `cancel_reason`, `special_cancel_until` | Trigger `track_slot_occupancy`; `publish_slots()`, `cancel_slot()`, `shift_slot_times_changed()` |
+| `shift_slots` | `taken_seats`, `published_at`, `cancelled_at`, `cancel_reason` | Trigger `track_slot_occupancy`; `publish_slots()`, `cancel_slot()` |
 | `companies` | `quote_number_*`, `avv_*`, `created_by`, `deletion_requested_at`, `country` | Trigger, `create_company()`, `request_company_deletion()` |
 | `company_members` | alles außer `display_name`, `phone`, `notification_prefs` an der eigenen Zeile | `set_member_role()`, `remove_member()`, `accept-invitation` |
-| `shift_applications`, `subscriptions`, `notifications` (außer `read_at`), `portal_tokens` | vollständig | RPCs bzw. `service_role` |
+| `shift_applications`, `subscriptions`, `notifications` (außer `read_at`), `portal_tokens`, `data_exports`, `event_status_changes` | vollständig | RPCs bzw. `service_role` (`data_exports`: `request_data_export()`, Status/Pfad/Ablauf nur `export-company`) |
 
 **Wartungsregel:** Eine neue Spalte in einer dieser Tabellen ist erst schreibbar, wenn der Grant ergänzt ist. Ein pgTAP-Test prüft die Grant-Listen.
 
@@ -1148,7 +1162,7 @@ Legende: **L** lesen · **S** schreiben (insert/update/delete laut Policy) · **
 | `allergens`, `plan_limits` | L | L | L | |
 | `intake_questions` | L, S | – | – | |
 | `event_status_changes` | L | – | – | |
-| `data_exports` | L; Insert über R ¹ | – | – | `request_data_export()` |
+| `data_exports` | L; Insert über R ¹ | L eigene `member`-Exporte; Insert über R ¹ | L eigene `member`-Exporte; Insert über R ¹ | `request_data_export()`; Status, `file_path`, `expires_at` nur `service_role` (`export-company`, R2-14) |
 | `push_tickets`, `stripe_events` | – | – | – | nur `service_role` |
 | `usage_events` | Insert über R ¹ | Insert über R ¹ | Insert über R ¹ | `log_usage_event()`; Lesen nur Schema `analytics` |
 
@@ -1169,7 +1183,7 @@ Alle Views: `with (security_invoker = false, security_barrier = true)`, `revoke 
 | `kitchen_ingredients` | `admin`, `kitchen` | eigene Firma | Name, Einheit, Warengruppe, Archiv | `price_cents` |
 | `kitchen_menu_packages` | `admin`, `kitchen` | eigene Firma | Name, Beschreibung, Archiv, abgeleitete Allergene/Diätformen | Preis, Steuersatz, Aufschlag |
 | `shift_board` | `kitchen`, `staff` | veröffentlicht, nicht abgesagt, nicht begonnen, nicht voll, Auftrag `optioned`/`confirmed`, Qualifikation vorhanden | Slot-Titel, Zeiten, Qualifikation, freie Plätze, Dresscode, Art, Gästezahl, PLZ/Ort, „vorläufig“, eigener Bewerbungsstatus | Adresse, Auftragstitel, Kunde, Ansprechpartner, Slot-Hinweis, Preise |
-| `my_shifts` | alle (eigene Bewerbungen) | `member_id = auth_member_id()` | Status, Zeiten, Absagefrist (`cancel_deadline_at`, höchstens Schichtbeginn), „Einsatz entfällt“; Einsatzinfos (Adresse, Treffpunkt, Dresscode, Ansprechpartner, Hinweise) **nur bei** `accepted`/`assigned` | Kunde, Preise |
+| `my_shifts` | alle (eigene Bewerbungen) | `member_id = auth_member_id()` | Status, Zeiten, Absagefrist (`cancel_deadline_at` = `starts_at` − `shift_cancel_deadline_hours` aus der aktuellen Schichtzeit, kein Sonderabsagerecht, R2-10), „Einsatz entfällt“; Einsatzinfos (Adresse, Treffpunkt, Dresscode, Ansprechpartner, Hinweise) **nur bei** `accepted`/`assigned` | Kunde, Preise |
 | `event_colleagues` | `staff`, `kitchen` | Aufträge, in denen das Mitglied selbst `accepted`/`assigned` ist (Slot nicht abgesagt) | Vorname und Slot-Qualifikation der übrigen Eingeplanten (01 Fußnote ⁹) | Telefon, Nachname, Bewerber |
 
 **Küche liest den verbindlichen Stand** (01 §4.2.3, 02 §8): `kitchen_production_lines` und `kitchen_events` nehmen Positionen und Gästezahl aus der ersten vorhandenen Quelle:
@@ -1178,7 +1192,7 @@ Alle Views: `with (security_invoker = false, security_barrier = true)`, `revoke 
 2. sonst `quotes.snapshot` mit der Menüwahl aus `portal_selection` (`basis = 'snapshot'`, z. B. `optioned` vor der Annahme);
 3. sonst bei `revision = 0` der Live-Stand (`basis = 'live'`, z. B. Direktbestätigung ohne Angebot).
 
-Ein „Bitte bestätigen“-Versand ändert die Küchendaten also erst nach der Bestätigung; übernimmt der Admin einen Wunsch 80 → 95 in den Entwurf, zeigt die Küche weiter 80 Gäste und den Hinweis „Änderung offen“ (`has_open_change`: offener `pending_change`, `binding_revision < revision` oder Live-Gästezahl ≠ verbindliche Gästezahl). Unversendete Admin-Entwürfe landen so nie in Produktions- und Einkaufslisten. Aggregation über Tage, Ersatzgerichte, Konflikte, Puffer und Einkaufsliste berechnet das TS-Modul (`_shared/domain/kitchen`) aus diesen Views, `kitchen_ingredients`, `dish_ingredients` und `event_dietary_requirements`; eine eigene RPC für die Einkaufsliste gibt es nicht (05 §4.4). Abrufe der Einkaufsliste zählt die App über `log_usage_event()` (K-10).
+Ein „Bitte bestätigen“-Versand ändert die Küchendaten also erst nach der Bestätigung; übernimmt der Admin einen Wunsch 80 → 95 in den Entwurf, zeigt die Küche weiter 80 Gäste und den Hinweis „Änderung offen“ (`has_open_change`: offener `pending_change`, `binding_revision < revision` oder Live-Gästezahl ≠ verbindliche Gästezahl). Unversendete Admin-Entwürfe landen so nie in Produktions- und Einkaufslisten. Aggregation über Tage, Ersatzgerichte, Konflikte, Puffer (nur Einkaufsliste, R2-7) und Einkaufsliste berechnet das TS-Modul (`_shared/domain/kitchen`) aus diesen Views, `kitchen_ingredients`, `dish_ingredients` und `event_dietary_requirements`; eine eigene RPC für die Einkaufsliste gibt es nicht (05 §4.4). Abrufe der Einkaufsliste zählt die App über `log_usage_event()` (K-10).
 
 ### 4.7 RPC-Katalog
 
@@ -1187,35 +1201,36 @@ Alle Funktionen: `security definer`, `set search_path = ''`, eigene Prüfung von
 | Funktion | Aufrufer | Zweck | Lesemodus |
 |---|---|---|---|
 | `create_company(name, contact_email, accept_avv, country)` | Nutzer ohne Firma | Firma, `admin`, Testphase, AVV-Version, `private.seed_company_defaults()` | – |
-| `set_event_status(event_id, new_status, reason, confirmation_channel)` | `admin` | Übergangstabelle 02 §1.1 (einzige Quelle), `event_status_changes`, Nebenwirkungen (Slots absagen, Benachrichtigungen, `option_expires_at` setzen bzw. leeren); bei `confirmed` per Annahme setzt sie den verbindlichen Stand | gesperrt |
-| `copy_event(event_id, new_starts_at[], copy_slots, copy_dietary, start_status, confirmation_channel)` | `admin` | Kopie inkl. Angebot (Revision 0, neue Nummer), Zeitplan relativ verschoben (US-13); `start_status` ∈ {`inquiry`, `confirmed`}, bei `confirmed` ist `confirmation_channel` Pflicht (Direktbestätigung, 02 §9); höchstens 10 Termine | gesperrt |
+| `set_event_status(event_id, new_status, reason, confirmation_channel)` | `admin` | Übergangstabelle 02 §1.1 (einzige Quelle) über `private.is_allowed_event_transition()` (7.8): nur Vorwärts-Übergänge, jeder Rückwärts-Übergang und jede Reaktivierung → `invalid_transition` (entschieden R2-4); Direktbestätigung `inquiry`/`optioned` → `confirmed` ohne Angebot mit Pflicht-`confirmation_channel` (R2-2); `confirmed` → `completed` nur hier, also nur manuell (R2-3); `event_status_changes`, Nebenwirkungen (Slots absagen, Benachrichtigungen, `option_expires_at` setzen bzw. leeren); bei `confirmed` per Annahme setzt sie den verbindlichen Stand. Den Bestätigungsdialog vor jedem Wechsel zeigt die App (02 §1.1.1); die RPC ist dieselbe für Einzel- und Sammelaktionen | gesperrt |
+| `copy_event(event_id, new_starts_at[], copy_slots, copy_dietary, start_status, confirmation_channel)` | `admin` | Kopie inkl. Angebot (Revision 0, neue Nummer), Zeitplan relativ verschoben (US-13); aus jedem Status, auch `declined`/`cancelled`/`invoiced` (einziger Weg für einen neuen Anlauf, R2-4); `start_status` ∈ {`inquiry`, `confirmed`}, bei `confirmed` ist `confirmation_channel` Pflicht (Direktbestätigung, R2-2, 02 §9); höchstens 10 Termine | gesperrt |
 | `create_event_from_intake(payload jsonb)` | `admin` | Abschluss des Angebots-Chats (02 §11.3): Kunde (falls neu), Auftrag `inquiry` (bzw. Update des Auftrags aus `payload.event_id`, nur `inquiry` mit Revision 0), Angebotsentwurf Revision 0, Sonderessen, Notizen und `intake_answers` in einer Transaktion | gesperrt |
-| `prepare_quote_send(quote_id, expected_updated_at, idempotency_key)` | nur `service_role` (`render-quote-pdf`) | Rolle `admin` und bestätigte Login-E-Mail des aufrufenden Mitglieds (übergeben aus dem geprüften JWT), Schreibbarkeit, Prüfregeln 02 §2.3; liefert Live-Stand, Firma, Kunde, Auftrag und eine `send_attempt_id`; dieselbe `idempotency_key` liefert dasselbe Ergebnis | gesperrt |
-| `commit_quote_send(quote_id, send_attempt_id, expected_revision, snapshot jsonb, pdf_path, via, send_mode)` | nur `service_role` (`render-quote-pdf`) | eine Transaktion: Zeilensperre, `revision = expected_revision` prüfen (sonst `revision_outdated`), Konsistenz des Snapshots (3.3), Hash in SQL, `revision++`, `pdf_path`, `send_log`, Status (`inquiry`/`declined` → `quoted`), bei `info_only` verbindlicher Stand, neuer Portal-Token (Klartext einmalig zurück) | gesperrt |
+| `prepare_quote_send(quote_id, expected_updated_at, idempotency_key)` | nur `service_role` (`render-quote-pdf`) | Rolle `admin` und bestätigte Login-E-Mail des aufrufenden Mitglieds (übergeben aus dem geprüften JWT), Schreibbarkeit, Prüfregeln 02 §2.3, Auftragsstatus `inquiry`/`quoted`/`optioned`/`confirmed` (sonst `invalid_transition`, R2-4); liefert Live-Stand, Firma, Kunde, Auftrag und eine `send_attempt_id`; dieselbe `idempotency_key` liefert dasselbe Ergebnis | gesperrt |
+| `commit_quote_send(quote_id, send_attempt_id, expected_revision, snapshot jsonb, pdf_path, via, send_mode)` | nur `service_role` (`render-quote-pdf`) | eine Transaktion: Zeilensperre, `revision = expected_revision` prüfen (sonst `revision_outdated`), Konsistenz des Snapshots (3.3), Hash in SQL, `revision++`, `pdf_path`, `send_log`, Status `inquiry` → `quoted` (aus `declined` nie, R2-4), bei `info_only` verbindlicher Stand, neuer Portal-Token (Klartext einmalig zurück) | gesperrt |
 | `discard_quote_changes(quote_id)` | `admin` | Live-Stand aus dem Snapshot wiederherstellen | gesperrt |
-| `record_acceptance(quote_id, note)`, `record_decline(quote_id, reason)` | `admin` | telefonische Annahme bzw. Ablehnung erfassen; die Annahme setzt `binding_snapshot` | gesperrt |
-| `resolve_pending_change(quote_id, accept boolean, reason)` | `admin` | offenen Änderungswunsch übernehmen (Werte in den Live-Stand, `has_unsent_changes`) oder ablehnen (Begründung Pflicht, E-Mail A10 über `send-email`); `change_log` (02 §4.2) | gesperrt |
+| `record_acceptance(quote_id, note)`, `record_decline(quote_id, reason)` | `admin` | telefonische Annahme bzw. Ablehnung erfassen (`quoted`/`optioned` → `confirmed` bzw. `quoted` → `declined`; `declined` ist Endzustand, R2-4); die Annahme setzt `binding_snapshot` | gesperrt |
+| `resolve_pending_change(quote_id, accept boolean, reason)` | `admin` | offenen Änderungswunsch (R2-1) übernehmen (Werte in den Live-Stand, `has_unsent_changes`) oder ablehnen (Begründung Pflicht, E-Mail A10 über `send-email`); `change_log` (02 §4.2) | gesperrt |
 | `issue_portal_token(event_id, channel)` / `revoke_portal_tokens(event_id)` | `admin` | Link erzeugen (Klartext einmalig) / alle widerrufen | gesperrt / erlaubt |
 | `save_dish(payload jsonb)`, `save_ingredient(payload jsonb)` | `admin`, `kitchen` | atomar speichern; Preisfelder nur `admin` | gesperrt |
 | `anonymize_customer(customer_id)` | `admin` | US-61.2 | gesperrt |
 | `create_invitation(...)`, `resend_invitation(id)`, `revoke_invitation(id)` | `admin` | Planlimit, Token (Klartext einmalig) | gesperrt |
 | `set_member_role(member_id, role)`, `set_member_qualifications(member_id, uuid[])` | `admin` | letzter Admin, Admin-Limit | gesperrt |
 | `remove_member(member_id)` | `admin` | Folgen nach US-07.3 | erlaubt |
-| `leave_company()`, `delete_my_account()` | jedes Mitglied | US-08: künftige Zusagen → `cancelled_by_staff` (nach Fristablauf mit `late_cancellation`), letzter Admin gesperrt; bei Apple-Konten ruft die App die Function `delete-account` auf, die zuerst das Apple-Token widerruft (05 §6.7) | erlaubt |
+| `leave_company()`, `delete_my_account()` | jedes Mitglied | US-08: künftige Zusagen → `cancelled_by_staff` (nach Fristablauf mit `late_cancellation`), letzter Admin gesperrt; das Löschen des Kontos läuft über die Edge Function `delete-account` (freigegeben R2-12), die `delete_my_account()` aufruft und bei Sign in with Apple zuvor das Apple-Token widerruft (05 §6.7) | erlaubt |
 | `publish_slots(slot_ids uuid[])`, `cancel_slot(slot_id, reason)` | `admin` | Auftrag mindestens `optioned`; Planprüfung `shift_board`; gebündelter Push | gesperrt |
-| `shift_slot_times_changed(slot_id, old_starts_at, old_ends_at)` | `admin` (aus dem Slot-Speichern) | Push „Einsatz geändert“; bei **wesentlicher** Änderung (Beginn oder Ende um mehr als 60 min verschoben oder Beginn an anderem Kalendertag in Europe/Berlin) `special_cancel_until = now() + 24 h` | gesperrt |
+| `shift_slot_times_changed(slot_id, old_starts_at, old_ends_at)` | `admin` (aus dem Slot-Speichern bzw. „Schichten verschieben“ nach einer Zeitänderung des Auftrags) | bei **jeder** Zeitänderung Push + In-App „Einsatz geändert“ (Kategorie `shift_changed`, 02 S12) an `applied`/`accepted`/`assigned` mit neuer Zeit und der Absagefrist aus dem neuen Beginn bzw. „Absage nur noch über {admin}“, wenn sie schon abgelaufen ist. Kein Sonderabsagerecht und keine Schwelle „wesentliche Änderung“ (entschieden R2-10); die Funktion schreibt keine Slot-Spalte | gesperrt |
 | `apply_for_slot(slot_id, comment)` | `kitchen`, `staff` | Bewerbung bzw. Neubewerbung | gesperrt |
-| `cancel_my_application(application_id, reason)` | jedes Mitglied (eigene) | `applied` → `withdrawn`; `accepted`/`assigned` → `cancelled_by_staff` bis zur Frist bzw. innerhalb des Sonderabsagerechts, nie nach Schichtbeginn | gesperrt (US-47.7) |
+| `cancel_my_application(application_id, reason)` | jedes Mitglied (eigene) | `applied` → `withdrawn`; `accepted`/`assigned` → `cancelled_by_staff` bis zur Frist `starts_at − shift_cancel_deadline_hours` (aktuelle Schichtzeit, kein Sonderabsagerecht, R2-10), nie nach Schichtbeginn; danach `deadline_passed` | gesperrt (US-47.7) |
 | `decide_application(application_id, accept, note)` | `admin` | Zusage (auch `rejected` → `accepted`) / Absage / Ausplanen | gesperrt |
 | `assign_member(slot_id, member_id, ignore_qualification)` | `admin` | Direkt einplanen, Auftrag mindestens `optioned` | gesperrt |
 | `record_late_cancellation(application_id, reason)` | `admin` | Absage nach Frist, `late_cancellation = true` | gesperrt |
 | `register_push_token(token, platform)`, `mark_notifications_read(ids uuid[])`, `reset_ical_token()` | jedes Mitglied | | erlaubt |
 | `log_usage_event(kind)` | jedes Mitglied | Nutzungszähler (`usage_events`, K-10), höchstens ein Eintrag je Mitglied, Art und Tag | erlaubt |
-| `request_data_export(scope, customer_id)`, `request_company_deletion(confirm_name)` | `admin` | US-59 (nur Protokoll, der Export läuft im Browser); US-60 (sofortiger Zugriffsentzug über `deletion_requested_at`; stößt per `pg_net` die sofortige Kündigung eines laufenden Stripe-Abos an, interne Aktion `cancel_subscription` von `create-checkout-session`; endgültige Löschung nach 30 Tagen, 6.4) | erlaubt |
+| `request_data_export(scope, customer_id)` | `admin` (`company`, `customer`); jedes Mitglied (`member`, nur eigene Daten) | US-59, US-61.1, entschieden R2-14: legt `data_exports` mit `status = 'queued'` an (läuft für Firma und Umfang schon ein Export, liefert sie diesen zurück) und stößt per `pg_net` die Edge Function `export-company` an (intern, `x-internal-secret`); Rückgabe `data_export_id` und Status. Der Download kommt nur per E-Mail-Link (7 Tage), nie im Browser | erlaubt |
+| `request_company_deletion(confirm_name)` | `admin` | US-60 (sofortiger Zugriffsentzug über `deletion_requested_at`; stößt per `pg_net` die sofortige Kündigung eines laufenden Stripe-Abos an, interne Aktion `cancel_subscription` von `create-checkout-session`; endgültige Löschung nach 30 Tagen über die Edge Function `purge-company`, freigegeben R2-13, 6.4) | erlaubt |
 | `portal_get(token_hash)` | nur `service_role` (`portal-api`) | Ansicht nach 5.3 | erlaubt |
-| `portal_accept_quote(token_hash, revision, name, email, ip, user_agent, comment)`, `portal_decline_quote(token_hash, revision, reason, comment, ip, user_agent)` | nur `service_role` | Annahme bzw. Ablehnung in `quoted`/`optioned`; Annahme setzt `binding_snapshot` mit Menüwahl | eigene Regel (6.4) |
-| `portal_select_choice(token_hash, revision, choice_group, item_id, quantities jsonb)` | nur `service_role` | Menüwahl und Mengen **vor** der Annahme direkt in `portal_selection` (02 §4.1), keine neue Revision; nur `quoted`/`optioned`, vor dem Änderungsschluss | eigene Regel (6.4) |
-| `portal_request_change(token_hash, revision, payload jsonb, name, ip, user_agent)` | nur `service_role` | Änderungswunsch (Gästezahl; Menüwahl und Mengen nach Bestätigung) in `pending_change`; ersetzt einen offenen Wunsch (US-34.2); Benachrichtigung A8 | eigene Regel (6.4) |
+| `portal_accept_quote(token_hash, revision, name, email, ip, user_agent, comment)`, `portal_decline_quote(token_hash, revision, reason, comment, ip, user_agent)` | nur `service_role` | Annahme bzw. Ablehnung in `quoted`/`optioned` (Ablehnung: `quoted` → `declined`, `optioned` → `cancelled`, beides endgültig, R2-4); Annahme setzt `binding_snapshot` mit Menüwahl | eigene Regel (6.4) |
+| `portal_select_choice(token_hash, revision, choice_group, item_id, quantities jsonb)` | nur `service_role` | Menüwahl und Mengen **vor** der Annahme direkt in `portal_selection` (02 §4.1, entschieden R2-1), keine neue Revision; nur `quoted`/`optioned`, vor dem Änderungsschluss | eigene Regel (6.4) |
+| `portal_request_change(token_hash, revision, payload jsonb, name, ip, user_agent)` | nur `service_role` | Änderungswunsch (Gästezahl immer; Menüwahl und Mengen nach Bestätigung; entschieden R2-1) in `pending_change`; ersetzt einen offenen Wunsch (US-34.2); Benachrichtigung A8, ab ± 20 % Gästezahl als „wichtig“ (Hinweis „bitte anrufen“ zeigt das Portal vor dem Senden) | eigene Regel (6.4) |
 | `portal_confirm_revision(token_hash, revision, name, email, ip, user_agent)` | nur `service_role` | „Änderung bestätigen“: nur bei `confirmed`, `send_mode = 'confirm_required'` und `acceptance_revision < revision`; Protokoll wie eine Annahme (Kanal `portal_confirmation`), verbindlicher Stand = neue Revision | eigene Regel (6.4) |
 | `portal_save_dietary(token_hash, payload jsonb, name)`, `portal_delete_dietary(token_hash, dietary_id)`, `portal_mark_viewed(token_hash, revision)` | nur `service_role` | Sonderessen direkt (Quelle `customer`); Aufruf protokollieren | eigene Regel (6.4) / erlaubt |
 | `claim_notifications(p_limit int)` | nur `service_role` (`push-dispatch`) | `update notifications set push_status = 'sending', claimed_at = now() where id in (select id … where push_status = 'pending' and deliver_after <= now() order by deliver_after for update skip locked limit p_limit) returning *`; verhindert doppelten Versand durch Webhook und Job | – |
@@ -1232,7 +1247,9 @@ Alle Funktionen: `security definer`, `set search_path = ''`, eigene Prüfung von
 | `push-dispatch` | Database Webhook auf `notifications` + Cron | `service_role` → `claim_notifications()`, `push_tickets` | Expo Push, Receipts, `push_status`, ungültige Tokens löschen |
 | `stripe-webhook` | Stripe-Signatur | `service_role` → `apply_stripe_subscription()` | Abo-Zustand |
 | `create-checkout-session` | JWT `admin`, nur Web; intern (`cancel_subscription` bei Firmenlöschung) | liest `subscriptions`, `plan_limits` | Stripe Checkout mit Limitprüfung (US-56.6), Customer Portal, Kündigung bei Firmenlöschung |
-| `delete-account` (**Glossar-Ergänzung, Vorschlag**, 05 §5.10) | JWT des Mitglieds + frischer Apple-`authorizationCode` | `service_role` → `delete_my_account()` | Apple-Token widerrufen, dann Konto löschen (Apple-Pflicht) |
+| `delete-account` (Glossar-Ergänzung, **freigegeben R2-12**, 05 §5.10) | JWT des Mitglieds + frischer Apple-`authorizationCode` | `service_role` → `delete_my_account()` | Apple-Token widerrufen, dann Konto löschen (App-Store-Pflicht) |
+| `purge-company` (Glossar-Ergänzung, **freigegeben R2-13**) | nur intern: Job `billing_lifecycle` per `pg_net` mit `x-internal-secret` | `service_role`: `delete from companies` (CASCADE), über die Storage-API die Ordner `{company_id}/` in `logos`, `quotes` und `exports` | endgültige Löschung 30 Tage nach `deletion_requested_at` bzw. 6 Monate nach `writable_until` (6.4); Löschbestätigung per `send-email` |
+| `export-company` (Glossar-Ergänzung, **entschieden R2-14**) | nur intern: `request_data_export()` per `pg_net` bzw. Job `exports_cleanup` (`action: 'cleanup'`), jeweils mit `x-internal-secret` | `service_role`: liest die Daten streng gefiltert auf `company_id` des Exports (bei `customer` zusätzlich `customer_id`, bei `member` `requested_by_member_id`), kopiert PDFs aus `quotes`, schreibt `{company_id}/{data_export_id}.zip` in `exports` (`upsert: false`) und `data_exports` (`status`, `file_path`, `ready_at`, `expires_at`, `error`) | Hintergrund-Export, signierter Link 7 Tage, E-Mail „Export bereit“ (02 D1) bzw. „Export fehlgeschlagen“ (D2) über `send-email`; bei `cleanup` Dateien abgelaufener Exporte löschen |
 | `ical-feed` | iCal-Token im Pfad | `service_role` → `ical_feed_entries()` | ICS-Feed |
 | `accept-invitation` | JWT des neuen Nutzers + Einladungstoken | `service_role` | Mitglied anlegen; `unique (user_id)` verhindert eine zweite Firma |
 
@@ -1329,7 +1346,7 @@ Schreibende Aktionen (Regeln 02 §4): annehmen (`portal_accept_quote`), ablehnen
 | Edge Functions | `portal-api`, `send-email`, `render-quote-pdf` prüfen den Zustand über die RPCs |
 | App | liest `company_profile.is_writable` für Banner und deaktivierte Buttons (nur UX, keine Sicherheit) |
 
-**Ausnahmen (im Lesemodus erlaubt, 01 §6.4):** Lesen aller rollengerechten Daten; `remove_member()`, `leave_company()`, `delete_my_account()`; `register_push_token()`, `mark_notifications_read()`, `reset_ical_token()`, `log_usage_event()`; `request_data_export()`, `request_company_deletion()`; `revoke_portal_tokens()`; eigenes Profil (`display_name`, `phone`, `notification_prefs`); Abo-Abschluss (`create-checkout-session`); iCal-Feeds; Benachrichtigungen zu Abo und Portal-Ereignissen.
+**Ausnahmen (im Lesemodus erlaubt, 01 §6.4):** Lesen aller rollengerechten Daten; `remove_member()`, `leave_company()`, `delete_my_account()`; `register_push_token()`, `mark_notifications_read()`, `reset_ical_token()`, `log_usage_event()`; `request_data_export()` (ein vor dem Löschantrag angeforderter Hintergrund-Export wird noch fertiggestellt und zugestellt, R2-14), `request_company_deletion()`; `revoke_portal_tokens()`; eigenes Profil (`display_name`, `phone`, `notification_prefs`); Abo-Abschluss (`create-checkout-session`); iCal-Feeds; Benachrichtigungen zu Abo und Portal-Ereignissen.
 
 ### 6.3 Planlimits
 
@@ -1351,8 +1368,8 @@ Prüfung serverseitig gegen `plan_limits` des `effective_plan` (in der Testphase
 | `writable_until` + 30 Tage | Portalaktionen (annehmen, ablehnen, Sonderessen, Änderungen) für bereits versendete Angebote enden; danach nur ansehen + PDF. Regel in jeder `portal_*`-Schreib-RPC: `now() < writable_until + interval '30 days'` |
 | `writable_until` + 5 Monate | erste Löschankündigung per E-Mail an alle Admins |
 | `writable_until` + 6 Monate − 7 Tage | zweite Ankündigung |
-| `writable_until` + 6 Monate | endgültige Löschung (Job über Edge Function, damit auch Storage-Dateien gelöscht werden) |
-| `deletion_requested_at` + 30 Tage | endgültige Löschung nach Löschantrag (US-60.3) |
+| `writable_until` + 6 Monate | endgültige Löschung: Job `billing_lifecycle` ruft die Edge Function `purge-company` auf, damit auch Storage-Dateien gelöscht werden (freigegeben R2-13) |
+| `deletion_requested_at` + 30 Tage | endgültige Löschung nach Löschantrag über `purge-company` (US-60.3, freigegeben R2-13), inklusive der Exporte im Bucket `exports` |
 
 ---
 
@@ -2013,7 +2030,7 @@ create table public.shift_slots (
   id                   uuid primary key default gen_random_uuid(),
   company_id           uuid not null references public.companies (id) on delete cascade,
   event_id             uuid not null,
-  qualification_id     uuid not null,        -- Pflicht (00 §3, 01 US-42.1)
+  qualification_id     uuid not null,        -- genau eine, Pflicht (R2-9; 00 §3, 01 US-42.1)
   title                text not null,
   starts_at            timestamptz not null,
   ends_at              timestamptz not null,
@@ -2025,7 +2042,7 @@ create table public.shift_slots (
   published_at         timestamptz,
   cancelled_at         timestamptz,
   cancel_reason        text,
-  special_cancel_until timestamptz,          -- Sonderabsagerecht nach Zeitänderung
+  -- kein Sonderabsagerecht bei Verschiebung (R2-10): Absagefrist = starts_at - shift_cancel_deadline_hours
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now(),
   unique (company_id, id),
@@ -2313,8 +2330,9 @@ grant update (pricing_mode, markup_bp, price_display, discount_bp, discount_cent
               cost_total_cents, cost_incomplete, has_unsent_changes, editor_active_seconds)
   on public.quotes to authenticated;          -- revision, snapshot, binding_*, acceptance_* nur per RPC
 
--- shift_slots: Belegung (taken_seats) nur per Trigger; Veröffentlichen, Absagen und
--- Sonderabsagerecht nur per RPC (publish_slots, cancel_slot, shift_slot_times_changed)
+-- shift_slots: Belegung (taken_seats) nur per Trigger; Veröffentlichen und Absagen nur per RPC
+-- (publish_slots, cancel_slot). Zeitänderungen über diesen Grant, danach Push per
+-- shift_slot_times_changed (kein Sonderabsagerecht, R2-10)
 revoke insert, update on public.shift_slots from authenticated;
 grant insert (company_id, event_id, qualification_id, title, starts_at, ends_at, seats,
               meeting_point, dress_code, notes)
@@ -2618,10 +2636,9 @@ select a.id as application_id, a.company_id, a.status, a.applied_at, a.decided_a
        s.id as shift_slot_id, s.title, q.name as qualification_name, s.starts_at, s.ends_at,
        (s.cancelled_at is not null or e.status in ('cancelled', 'declined')) as is_called_off,
        (e.status = 'optioned') as is_tentative,
-       -- Sonderabsagerecht verlängert die Frist, aber nie über den Schichtbeginn hinaus
-       least(greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
-                      coalesce(s.special_cancel_until, '-infinity'::timestamptz)),
-             s.starts_at) as cancel_deadline_at,
+       -- Absagefrist immer aus der aktuellen Schichtzeit; kein Sonderabsagerecht (R2-10).
+       -- shift_cancel_deadline_hours >= 0, die Frist liegt also nie nach Schichtbeginn
+       s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours) as cancel_deadline_at,
        e.postal_code, e.city,
        case when ok.active then e.id                                  end as event_id,
        case when ok.active then e.title                               end as event_title,
@@ -2736,6 +2753,43 @@ as $$
   -- analog: Standard-Fragenkatalog (16 Fragen aus 3.7), Standardtexte, Positionsvorlagen
 $$;
 revoke execute on function private.seed_company_defaults(uuid) from public, anon, authenticated;
+
+-- Auftragsstatus: Übergangstabelle aus 02 §1.1 als einzige Quelle in der Datenbank.
+-- Nur Vorwärts-Übergänge (entschieden R2-4). Jede Funktion, die events.status ändert
+-- (set_event_status, commit_quote_send, record_acceptance, record_decline,
+-- portal_accept_quote, portal_decline_quote), prüft vorher diese Funktion und bricht sonst
+-- mit hint = 'invalid_transition' ab. confirmed -> completed erlaubt nur set_event_status()
+-- mit auth_role() = 'admin', also nie ein Job (R2-3). Neubeginn nach Endzustand: copy_event().
+create or replace function private.is_allowed_event_transition(
+  p_from public.event_status, p_to public.event_status)
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+      from (values
+              ('inquiry',   'quoted'),      -- erster Versand (commit_quote_send)
+              ('inquiry',   'optioned'),    -- Termin vormerken
+              ('inquiry',   'confirmed'),   -- Direktbestätigung ohne Angebot (R2-2)
+              ('inquiry',   'declined'),    -- Anfrage kommt nicht zustande
+              ('quoted',    'optioned'),
+              ('quoted',    'confirmed'),   -- Annahme im Portal oder erfasst
+              ('quoted',    'declined'),
+              ('optioned',  'confirmed'),   -- Annahme oder Direktbestätigung (R2-2)
+              ('optioned',  'cancelled'),
+              ('confirmed', 'completed'),   -- nur manuell durch den Admin (R2-3)
+              ('confirmed', 'cancelled'),
+              ('completed', 'invoiced')
+           ) as t(from_status, to_status)
+     where t.from_status::public.event_status = p_from
+       and t.to_status::public.event_status   = p_to)
+  -- bewusst nicht enthalten (R2-4): completed -> confirmed, invoiced -> completed,
+  -- declined -> quoted, jede Reaktivierung von declined/cancelled, Rücksprünge nach inquiry
+$$;
+revoke execute on function private.is_allowed_event_transition(public.event_status, public.event_status)
+  from public, anon, authenticated;
 
 -- Mitarbeiter bewirbt sich (staff/kitchen)
 create or replace function public.apply_for_slot(p_slot_id uuid, p_comment text default null)
@@ -2864,10 +2918,8 @@ begin
     raise exception 'Einsatz nicht gefunden' using errcode = 'P0002';
   end if;
   select s.starts_at,
-         -- Sonderabsagerecht verlängert die Frist höchstens bis Schichtbeginn (wie my_shifts)
-         least(greatest(s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours),
-                        coalesce(s.special_cancel_until, '-infinity'::timestamptz)),
-               s.starts_at)
+         -- Absagefrist wie my_shifts: immer aus der aktuellen Schichtzeit, kein Sonderabsagerecht (R2-10)
+         s.starts_at - make_interval(hours => c.shift_cancel_deadline_hours)
     into v_starts, v_deadline
     from public.shift_slots s
     join public.companies c on c.id = s.company_id
@@ -2966,7 +3018,7 @@ grant execute on function public.create_company(text, text, boolean, public.coun
 -- ebenso prepare_quote_send, commit_quote_send, claim_notifications, ical_feed_entries, alle portal_*
 ```
 
-**Verhalten im Test** (Auszug): `admin` setzt `events.status` direkt → `permission denied` (Spaltenprivileg). `kitchen` liest `dishes` → 0 Zeilen; `kitchen_dishes` → Gerichte mit Allergenen, die Spalte `price_cents` existiert dort nicht. `staff` ohne Qualifikation „Bar“ bewirbt sich auf einen Bar-Slot → `missing_qualification`. Vor der Zusage liefert `my_shifts` keine Adresse, danach schon. Ein nur beworbenes Mitglied sieht Zeitplan und Sonderessen nicht, ein zugesagtes sieht sie. Ein Admin einer anderen Firma legt einen Kunden mit fremder `company_id` an → RLS-Fehler. Lesemodus: Insert → RLS-Fehler, Lesen funktioniert. Firmenlöschung entfernt alle abhängigen Zeilen.
+**Verhalten im Test** (Auszug): `admin` setzt `events.status` direkt → `permission denied` (Spaltenprivileg). `set_event_status()` von `completed` nach `confirmed`, von `invoiced` nach `completed` oder von `declined`/`cancelled` in einen anderen Status → `invalid_transition` (R2-4); `inquiry` → `confirmed` mit Bestätigungsweg ohne versendetes Angebot → erlaubt (R2-2). `kitchen` liest `dishes` → 0 Zeilen; `kitchen_dishes` → Gerichte mit Allergenen, die Spalte `price_cents` existiert dort nicht. `staff` ohne Qualifikation „Bar“ bewirbt sich auf einen Bar-Slot → `missing_qualification`. Vor der Zusage liefert `my_shifts` keine Adresse, danach schon. Ein nur beworbenes Mitglied sieht Zeitplan und Sonderessen nicht, ein zugesagtes sieht sie. Ein Admin einer anderen Firma legt einen Kunden mit fremder `company_id` an → RLS-Fehler. Lesemodus: Insert → RLS-Fehler, Lesen funktioniert. Firmenlöschung entfernt alle abhängigen Zeilen.
 
 ---
 
@@ -2976,11 +3028,12 @@ grant execute on function public.create_company(text, text, boolean, public.coun
 |---|---|---|---|---|---|
 | `logos` | ja (öffentliche URL) | `{company_id}/logo-{uuid}.{png\|jpg}` | 2 MB, `image/png`, `image/jpeg` (kein SVG, US-03.2) | jeder über die öffentliche URL (nötig für E-Mails, deren Bilder eine dauerhafte URL brauchen); kein Listing | `admin` der Firma, nur im Schreibmodus; jedes Upload bekommt einen neuen Dateinamen (Cache, kein Upsert), danach wird die alte Datei gelöscht |
 | `quotes` | nein | `{company_id}/{quote_id}/r{revision}-{send_attempt_id}.pdf` je Versandversuch; nach Annahme bzw. Bestätigung zusätzlich `{company_id}/{quote_id}/r{revision}-angenommen.pdf`. Der Bucketname ist **kein** Pfadsegment | 10 MB, `application/pdf` | `admin` der Firma (Historie aller Revisionen über `send_log`); Endkunde nur per Signed URL (5 min) über `portal-api` | nur `service_role` (`render-quote-pdf`), Upload mit `upsert: false`: zwei parallele Versuche derselben Revision schreiben verschiedene Dateien, nur der Pfad des erfolgreichen Commits steht in `quotes.pdf_path`; Dateien sind unveränderlich; nicht referenzierte Versuchsdateien löscht `render-quote-pdf` nach dem nächsten erfolgreichen Commit. Download-Name per `Content-Disposition` (`Angebot_A-2026-0042_R2.pdf`) |
+| `exports` (entschieden R2-14) | nein | `{company_id}/{data_export_id}.zip` (`data_exports.file_path`). Der Bucketname ist **kein** Pfadsegment | `application/zip`; keine eigene Größengrenze im Bucket (projektweite Upload-Grenze, Größe im Pilot messen, 02 §10.2 Nr. 8) | **keine** Lese-Policy für `authenticated`; Download nur über den signierten Link (7 Tage gültig), den `export-company` erzeugt und per E-Mail „Export bereit“ an die anfordernde Person schickt | nur `service_role` (`export-company`), Upload mit `upsert: false`; Löschung nach 7 Tagen durch den Job `exports_cleanup` (über `export-company`, `action: 'cleanup'`) und mit der Firma durch `purge-company`. Download-Name `Export_{Firma}_{TT-MM-JJJJ}.zip` |
 
 - Das erste Pfadsegment ist immer `company_id`. Darauf prüfen die Policies mit `storage.foldername(name)`. Ein Pfad mit Präfix (z. B. `quotes/{company_id}/…`) würde die Lese-Policy des Admins und die Löschung je Präfix aushebeln.
-- **Löschen:** Zeilen in `storage.objects` per SQL zu löschen entfernt die Dateien nicht aus dem Objektspeicher. Die Firmenlöschung löscht deshalb über die Storage-API (Edge Function mit `service_role`), Präfix `{company_id}/` je Bucket.
-- **Kein Export-Bucket:** Der Datenexport entsteht im Browser (3.7 `data_exports`, Entscheidung E-17).
-- **Test:** Ein Storage-Test prüft, dass der Admin von Firma A die PDFs von Firma A lesen kann, die von Firma B nicht, und dass `kitchen`/`staff` keine PDFs lesen.
+- **Löschen:** Zeilen in `storage.objects` per SQL zu löschen entfernt die Dateien nicht aus dem Objektspeicher. Die Firmenlöschung löscht deshalb über die Storage-API (Edge Function `purge-company` mit `service_role`, freigegeben R2-13), Präfix `{company_id}/` in `logos`, `quotes` und `exports`; ebenso löscht `export-company` abgelaufene Exporte über die Storage-API.
+- **Export-Bucket** (entschieden R2-14; ersetzt den Browser-Export aus E-17): Der Export entsteht im Hintergrund, die Datei liegt höchstens 7 Tage ab `ready_at` im Bucket (`data_exports.expires_at`), danach löscht der Job `exports_cleanup` sie automatisch (9.6). Ein signierter Link funktioniert ohne Anmeldung; deshalb geht er nur an die Login-E-Mail der anfordernden Person und wird nicht gespeichert.
+- **Test:** Ein Storage-Test prüft, dass der Admin von Firma A die PDFs von Firma A lesen kann, die von Firma B nicht, und dass `kitchen`/`staff` keine PDFs lesen. Für `exports`: Kein `authenticated`-Nutzer (auch nicht der Admin derselben Firma) liest oder listet Objekte direkt; die Datei liegt unter `{company_id}/…`; nach `expires_at` ist sie gelöscht und `data_exports.status = 'expired'`.
 
 ```sql
 -- =====================================================================
@@ -2988,7 +3041,8 @@ grant execute on function public.create_company(text, text, boolean, public.coun
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
   ('logos',   'logos',   true,   2097152, array['image/png', 'image/jpeg']),
-  ('quotes',  'quotes',  false, 10485760, array['application/pdf']);
+  ('quotes',  'quotes',  false, 10485760, array['application/pdf']),
+  ('exports', 'exports', false,     null, array['application/zip']);   -- R2-14, Hintergrund-Export
 
 create policy logos_admin_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'logos'
@@ -3004,6 +3058,9 @@ create policy quotes_admin_read on storage.objects for select to authenticated
          and (storage.foldername(name))[1] = (select public.auth_company_id())::text
          and (select public.auth_role()) = 'admin');
 -- Schreiben in den Bucket quotes nur service_role (render-quote-pdf)
+-- Bucket exports: bewusst keine Policy für authenticated (kein Lesen, Listen, Schreiben).
+-- Schreiben, Löschen und signierte Links (createSignedUrl, 7 Tage) nur service_role (export-company);
+-- purge-company löscht {company_id}/ mit der Firma
 ```
 
 ---
@@ -3021,7 +3078,9 @@ supabase/
   functions/
     portal-api/  render-quote-pdf/  send-email/  push-dispatch/
     stripe-webhook/  create-checkout-session/  ical-feed/  accept-invitation/
-    delete-account/      # Glossar-Ergänzung (Vorschlag): Apple-Token-Widerruf bei Kontolöschung
+    delete-account/      # Glossar-Ergänzung, freigegeben (R2-12): Kontolöschung inkl. Apple-Token-Widerruf
+    purge-company/       # Glossar-Ergänzung, freigegeben (R2-13): endgültige Firmenlöschung inkl. Storage
+    export-company/      # Glossar-Ergänzung, entschieden (R2-14): Hintergrund-Export, Bucket exports, Cleanup
     _shared/             # gemeinsames TS-Rechenmodul, Supabase-Client, Token-Hashing
 ```
 
@@ -3036,11 +3095,11 @@ supabase/
 | `20261102090400_events_quotes.sql` | `events`, `quotes`, `quote_items`, `event_schedule_items`, `event_dietary_requirements`, Angebotsnummer |
 | `20261102090500_shifts.sql` | `shift_slots`, `shift_applications`, `can_read_event()`, Überbuchungsschutz, `updated_at`-Trigger |
 | `20261102090550_comms_access.sql` | `invitations`, `push_tokens`, `notifications`, `push_tickets`, `portal_tokens`, FK `quotes.acceptance_portal_token_id` |
-| `20261102090560_reference.sql` | `allergens` (14 Zeilen), `plan_limits` (4 Zeilen), `intake_questions`, `event_status_changes`, `data_exports`, `stripe_events`, `usage_events` |
+| `20261102090560_reference.sql` | `allergens` (14 Zeilen), `plan_limits` (4 Zeilen), `intake_questions`, `event_status_changes`, `data_exports` (mit `status`, `file_path`, `ready_at`, `expires_at`, `error`; R2-14), `stripe_events`, `usage_events` |
 | `20261102090600_rls.sql` | RLS, Policies, Grants, Spaltenprivilegien |
 | `20261102090700_views.sql` | Rollen-Views |
-| `20261102090800_rpc.sql` | RPCs inklusive `portal_*`, `ical_feed_entries`, `apply_stripe_subscription` |
-| `20261102090900_storage.sql` | Buckets und Storage-Policies |
+| `20261102090800_rpc.sql` | RPCs inklusive `portal_*`, `ical_feed_entries`, `apply_stripe_subscription`; `private.is_allowed_event_transition()` (R2-4) |
+| `20261102090900_storage.sql` | Buckets `logos`, `quotes`, `exports` (R2-14) und Storage-Policies |
 | `20261102091000_cron.sql` | pg_cron-Jobs (Abschnitt 9.6) |
 
 **Aufteilung nach Meilensteinen (06 §1.15):** Die Tabelle oben ist die Zielstruktur. Entstehen die Migrationen je Meilenstein, gilt die Abhängigkeit von `language sql`-Funktionen: Postgres prüft deren Rumpf beim Anlegen (`check_function_bodies`). `can_read_event()` greift auf `shift_slots` und `shift_applications` zu, die erst in M7 entstehen; die Policies von `event_schedule_items` und `event_dietary_requirements` brauchen die Funktion aber schon in M3. Deshalb: In M3 entsteht `can_read_event()` **ohne** den `staff`-Zweig (`when 'staff' then false`), in M7 folgt `create or replace` mit dem Zweig über Slots und Bewerbungen. Dasselbe Muster gilt für jede SQL-Funktion, die auf spätere Tabellen zugreift.
@@ -3074,22 +3133,25 @@ Feste UUIDs (z. B. `00000000-0000-4000-8000-0000000000xx`) machen Tests und Scre
   - Policy-Matrix (Abschnitt 4.5) als Tabelle von Erwartungen.
   - Keine View für `kitchen`/`staff` enthält Spalten mit `price`, `cost` oder `markup` (Abfrage gegen `information_schema.columns`).
   - Grant-Listen der Spaltenprivilegien.
-  - Statusübergänge von `set_event_status()` gegen die Übergangstabelle aus 02 §1.1.
+  - Statusübergänge von `set_event_status()` gegen die Übergangstabelle aus 02 §1.1: alle 64 Statuspaare gegen `private.is_allowed_event_transition()`; jeder Rückwärts-Übergang (insbesondere die früheren Korrekturen `completed` → `confirmed`, `invoiced` → `completed`, `declined` → `quoted`) und jede Reaktivierung von `declined`/`cancelled` → `invalid_transition` (R2-4); `inquiry`/`optioned` → `confirmed` ohne versendetes Angebot nur mit `confirmation_channel` (R2-2); `prepare_quote_send()` lehnt Aufträge in `declined`, `cancelled`, `completed`, `invoiced` ab.
+  - Kein Job ändert `events.status` (R2-3): Nach einem Lauf von `events_completion` sind alle `confirmed`-Aufträge weiterhin `confirmed`, es gibt nur `completion_due`-Benachrichtigungen; `set_event_status()` ohne `auth.uid()` (Kontext pg_cron) → Fehler.
+  - Absagefrist (R2-10): Verschiebt der Admin einen Slot so, dass `starts_at − shift_cancel_deadline_hours` bereits vorbei ist, lehnt `cancel_my_application()` mit `deadline_passed` ab; `my_shifts.cancel_deadline_at` = neue Frist; `shift_slots` hat keine Spalte `special_cancel_until`.
+  - Datenexport (R2-14): `request_data_export()` legt `queued` an und liefert bei laufendem Export desselben Umfangs den vorhandenen zurück; `member`-Umfang nur für sich selbst, `company`/`customer` nur `admin`; Admin von Firma B liest keine Zeile von Firma A; `authenticated` kann `status`, `file_path`, `expires_at` nicht schreiben.
   - Lesemodus, inklusive „DELETE im Lesemodus betrifft 0 Zeilen“ je Tabelle mit Schreib-Policy und je Rolle (`dishes`, `dish_allergens`, `menu_package_dishes`, `qualifications`, `member_qualifications`, `event_schedule_items`, `event_dietary_requirements`, `customers`, `quote_items`, `shift_slots`).
   - Mandantentrennung mit zwei Firmen.
   - **Funktionsrechte:** Keine Funktion in `public` und `private` ist für `anon` ausführbar (`has_function_privilege('anon', oid, 'execute')` = false für alle `pg_proc`-Einträge der Schemas); `authenticated` darf genau die Funktionen einer Whitelist ausführen (RPC-Katalog 4.7 mit Aufrufer ≠ „nur `service_role`“ plus Hilfsfunktionen 4.2); `seed_company_defaults` ist für `authenticated` nicht ausführbar.
   - **Spaltenumfang:** `team_directory` liefert genau `id, company_id, display_name, role, phone, joined_at`; `kitchen` erhält aus `company_members` nur die eigene Zeile.
-  - **Storage:** Admin A liest PDFs von A, nicht von B (8).
+  - **Storage:** Admin A liest PDFs von A, nicht von B (8); Bucket `exports` ist für `authenticated` weder les- noch listbar.
 - **Nebenläufigkeit:** Skript mit zwei Verbindungen (zwei Zusagen auf den letzten Platz, eine davon mit `pg_sleep` in offener Transaktion), je einmal unter READ COMMITTED und unter REPEATABLE READ; Erwartung: genau eine `accepted`, die andere `slot_full` bzw. `40001`; `taken_seats` = 1. Zusätzlich: `seats` senken parallel zu einer Zusage → Check-Verletzung, keine Überbuchung.
 - **TS-Modul:** die Rechenbeispiele aus 02 §3.3, §3.6 und §8.5 sowie die ,5-Grenzfälle aus 02 §3.6 als Unit-Tests; dieselben Daten im Seed.
 
 ### 9.6 Zeitgesteuerte Jobs (pg_cron)
 
-pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Ortszeit Europe/Berlin. Das ist sicher bei der Zeitumstellung. **Idempotent** sind die Erinnerungs-Jobs über `notifications.dedupe_key` mit `on conflict (member_id, dedupe_key) do nothing` (3.6), nicht über `bundle_key` (der gilt nur für die Bündelung offener Pushes). Jobs mit E-Mail, Push oder Storage rufen per `pg_net` eine Edge Function auf. Diese Tabelle ist die einzige Liste der Jobs; 05 §4.12 und 06 verwenden diese Namen. Kein Job ändert `subscriptions.status` oder `events.status`.
+pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Ortszeit Europe/Berlin. Das ist sicher bei der Zeitumstellung. **Idempotent** sind die Erinnerungs-Jobs über `notifications.dedupe_key` mit `on conflict (member_id, dedupe_key) do nothing` (3.6), nicht über `bundle_key` (der gilt nur für die Bündelung offener Pushes). Jobs mit E-Mail, Push oder Storage rufen per `pg_net` eine Edge Function auf. Diese Tabelle ist die einzige Liste der Jobs; 05 §4.12 und 06 verwenden diese Namen. Kein Job ändert `subscriptions.status` oder `events.status`; insbesondere setzt kein Job `completed` (kein nächtlicher Abschluss, entschieden R2-3).
 
 | Job | Takt | Wirkung | `dedupe_key` |
 |---|---|---|---|
-| `events_completion` | stündlich, wirkt 09:00 | Erinnerung `completion_due` „{n} Aufträge als durchgeführt markieren?“ für `confirmed`-Aufträge mit Ende am Vortag; **kein** automatischer Statuswechsel (02 §1.1) | `completion_due:{lokales Datum}` |
+| `events_completion` | stündlich, wirkt 09:00 | Erinnerung `completion_due` „{n} Aufträge als durchgeführt markieren?“ an alle `admin` am Tag nach dem Event für `confirmed`-Aufträge mit Ende (ohne Ende: Beginn) am Vortag in Europe/Berlin; **kein** automatischer Statuswechsel, den Status setzt der Admin selbst nach dem Bestätigungsdialog (entschieden R2-3, 02 §1.1) | `completion_due:{lokales Datum}` |
 | `option_reminders` | stündlich, wirkt 08:00 | `option_expiring` 2 Tage vorher und am Ablauftag | `option_expiring:{event_id}:{lokales Datum}` |
 | `quote_expiry` | stündlich | `quote_expired` bei abgelaufener Gültigkeit (Liste) | `quote_expired:{quote_id}:{revision}` |
 | `confirmation_reminders` | stündlich, wirkt 08:00 | `revision_confirmation_pending` 48 h nach einem „Bitte bestätigen“-Versand bzw. am Änderungsschluss (01 US-36.7) | `revision_confirmation_pending:{quote_id}:{revision}:{anlass}` |
@@ -3099,7 +3161,8 @@ pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Orts
 | `dietary_purge` | täglich | `guest_name`, `table_label` → null, `personal_data_purged_at` 30 Tage nach Eventende | – |
 | `notifications_retention` | täglich | löscht Einträge älter als 90 Tage | – |
 | `data_retention` | täglich | Einladungen 30 Tage nach Ablauf, Rate-Limit-Zeilen, `stripe_events` älter als 90 Tage, IP/User-Agent in Annahme- und Änderungsprotokollen 3 Jahre nach Ende des Event-Jahres (02 §10.4) | – |
-| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage vorher, Testende), Löschankündigungen (30 und 7 Tage vorher), endgültige Löschungen nach 6.4 inklusive Storage über eine Edge Function; nur E-Mails und Löschungen, kein Statuswechsel | – |
+| `billing_lifecycle` | täglich | Testphase-Mails (7/3/1 Tage vorher, Testende), Löschankündigungen (30 und 7 Tage vorher), endgültige Löschungen nach 6.4 inklusive Storage über die Edge Function `purge-company` (freigegeben R2-13); nur E-Mails und Löschungen, kein Statuswechsel | – |
+| `exports_cleanup` | stündlich | ruft `export-company` (`action: 'cleanup'`) auf: Dateien von `data_exports` mit `status = 'ready'` und `expires_at ≤ now()` über die Storage-API löschen, danach `status = 'expired'`, `file_path = null` (7 Tage nach Bereitstellung, entschieden R2-14); Exporte, die länger als 30 min in `queued`/`running` stehen (`updated_at`), → `failed` mit E-Mail „Export fehlgeschlagen“ (02 D2) | – |
 
 ---
 
@@ -3112,26 +3175,47 @@ pg_cron plant in UTC. Die Jobs laufen stündlich und entscheiden anhand der Orts
 | Snapshot-Spalte | 02 (früher): `quotes.sent_snapshot` | `quotes.snapshot`; dazu `binding_snapshot` (verbindlicher Stand) und `portal_selection` (Menüwahl vor Annahme) | Vorgabe der Planung für das Datenmodell; 02 nutzt jetzt diese Namen |
 | Annahmefelder | 02: `accepted_name`, `accepted_email`, `accepted_ip`, `accepted_user_agent`, `accepted_revision`, `accepted_snapshot_hash`, `accepted_total_gross_cents`, `accepted_via` | `acceptance_name`, `acceptance_email`, `acceptance_ip`, `acceptance_user_agent`, `acceptance_revision`, `acceptance_snapshot_hash`, `acceptance_total_gross_cents`, `acceptance_channel`; `accepted_at` bleibt | einheitliches Präfix `acceptance_*` |
 | Slot-Kapazität | 02: `shift_slots.capacity` | `shift_slots.seats` | Vorgabe der Planung für das Datenmodell |
-| Änderungsschluss | 02 (früher): `companies.portal_change_lead_days` (3 Tage, 23:59); 01: 72 h | `companies.portal_change_lead_hours` (Event-Catering, Standard 72) und `portal_change_lead_hours_business_lunch` (Standard 24); `events.changes_until` je Auftrag änderbar | eine Einheit; Business-Lunch-Teilnehmerzahlen ändern sich oft am Vortag (01 Persona 2.5) |
+| Änderungsschluss | 02 (früher): `companies.portal_change_lead_days` (3 Tage, 23:59); 01: 72 h | `companies.portal_change_lead_hours` (Event-Catering, Standard 72) und `portal_change_lead_hours_business_lunch` (Standard 24); `events.changes_until` je Auftrag änderbar | entschieden R2-6; eine Einheit; Business-Lunch-Teilnehmerzahlen ändern sich oft am Vortag (01 Persona 2.5) |
 | Weitere Spaltennamen | 02 (früher): `customers.customer_type`, `ingredients.category`, `replacement_dish_id`/`replaces_dish_id`, `privacy_url` | `customers.type`, `ingredients.product_group`, `event_dietary_requirements.substitutions`, `companies.privacy_policy_url` | 02 ist angeglichen |
 | Portal-Link-Gültigkeit | 01: 60 Tage nach Event; 02: 90 Tage | `portal_token_ttl_days`, Standard 60 (**Vorschlag**: kürzer = datensparsamer) | Firmeneinstellung |
 | Portal-Token je Auftrag | 02: „Token anlegen, falls keiner aktiv“ | neuer Token je Versand bzw. Link-Kopie, alte bleiben gültig | nur der Hash ist gespeichert; ein bestehender Link lässt sich nicht erneut anzeigen (3.6) |
 | Rabatt | 01 (früher) US-23.5/US-25.5: Rabatt als negative `custom`-Position; 02 §3.6: keine negativen Positionen, Rabattfelder | `unit_price_cents ≥ 0`; `discount_bp`/`discount_cents` je Angebot, `discount_bp` je Position | folgt 02 (korrekte USt-Aufteilung bei gemischten Sätzen); 01 ist angeglichen |
-| Slot-Qualifikation | 01: Pflicht; 02 (früher): leer = jeder | `shift_slots.qualification_id` **not null** | 00 §3: Slots haben eine Rolle/Qualifikation, Mitarbeiter sehen nur passende Slots; 02 ist angeglichen |
+| Slot-Qualifikation | 01: Pflicht; 02 (früher): leer = jeder | `shift_slots.qualification_id` **not null** | entschieden R2-9: genau eine Qualifikation je Slot, wer sie nicht hat, sieht den Slot nicht (00 §3); 02 ist angeglichen |
+| Sonderabsagerecht | 02 §5.7 (früher): `shift_slots.special_cancel_until` nach „wesentlicher Zeitänderung“ | entfällt; Absagefrist immer `starts_at − shift_cancel_deadline_hours` | entschieden R2-10; Eingeplante werden über jede Zeitänderung benachrichtigt (`shift_slot_times_changed()`) |
+| Datenexport | 01/02 (früher): Export im Browser, `data_exports` nur Protokoll (E-17) | `data_exports` mit `status`, `file_path`, `ready_at`, `expires_at`, `error`, Umfang `member` zusätzlich; Bucket `exports`; Edge Function `export-company`; Job `exports_cleanup` | entschieden R2-14; 01 US-59 und 02 §10.2 sind angeglichen |
 | Statusfeld des Angebots | – | `quotes.status` (`quote_status`) zusätzlich zu `event_status` | Vorgabe; Semantik in 3.3 |
 | Zusatzpositions-Vorlagen | 02: Stundensatz-Vorlagen in den Firmeneinstellungen | `companies.quote_item_templates` (jsonb, alle Zusatztypen) | eine Struktur für Personal, Anfahrt, Getränkepauschale |
 
-### 10.2 Entscheidungen (D-1 bis D-4 festgelegt als Vorschlag, Bestätigung durch den Gründer ausstehend)
+### 10.2 Entscheidungen (Stand Runde 2: D-1 bis D-4 und D-7 entschieden, D-5 offen, D-6 Vorschlag)
 
-| # | Frage | Festlegung | Auswirkung im Modell |
-|---|---|---|---|
-| D-1 (E-10) | Gästezahl/Menüwahl im Portal | **01**: Gästezahl immer und Menüwahl nach Bestätigung als Änderungswunsch, Menüwahl vor der Annahme direkt ohne neue Revision, Sonderessen direkt (02 §4) | `pending_change` fest im Modell; `portal_selection`; RPCs `portal_request_change`, `portal_select_choice`, `resolve_pending_change`, `portal_confirm_revision`; Kanal `portal_change` entfällt |
-| D-2 (E-8) | Abschluss vergangener Aufträge | **01 US-11.5**: Erinnerung 09:00, Admin setzt gesammelt; kein automatischer Wechsel | Job `events_completion` nur mit Erinnerung |
-| D-3 (E-8) | Korrektur-Übergänge | `declined` → `quoted` per neuer Revision; `cancelled` ist Endzustand mit Wiederaufnahme per Kopie; Korrekturen `completed` → `confirmed` und `invoiced` → `completed`; keine Rücksprünge nach `inquiry` (02 §1.1) | Übergangstabelle in `set_event_status()` |
-| D-4 (E-8) | `inquiry` → `declined` | erlaubt („Anfrage kommt nicht zustande“, Grund Pflicht); Löschen nur für Fehleingaben ohne Versand. Zusätzlich `inquiry` → `optioned` und Direktbestätigung `inquiry`/`optioned` → `confirmed` mit Bestätigungsweg | Statusübergang und Delete-Policy |
-| D-5 | Testphase-Ende | offen: Tag 14 23:59 Berlin (01, umgesetzt) oder exakt 14 × 24 h | `create_company()` |
-| D-6 (E-16) | Datenbasis der Küche | verbindliche Revision (01 §4.2.3) | `binding_snapshot`/`binding_revision`; Views 4.6 |
-| D-7 (E-17) | Datenexport | im Browser (02 §10.2) | `data_exports` nur Protokoll; kein Bucket `exports`, kein Job `exports_cleanup` |
+| # | Frage | Festlegung | Status | Auswirkung im Modell |
+|---|---|---|---|---|
+| D-1 (E-10) | Gästezahl/Menüwahl im Portal | **01**: Gästezahl immer und alle Änderungen nach der Bestätigung als Änderungswunsch an den Admin (bestätigen oder ablehnen), Menüwahl vor der Annahme direkt ohne neue Revision, Sonderessen und Allergien sofort; ab ± 20 % Gästezahl Hinweis „bitte anrufen“ (02 §4) | **entschieden (R2-1)** | `pending_change` fest im Modell; `portal_selection`; RPCs `portal_request_change`, `portal_select_choice`, `resolve_pending_change`, `portal_confirm_revision`; Kanal `portal_change` entfällt; „wichtig“ ab ± 20 % berechnet, keine Spalte |
+| D-2 (E-8) | Abschluss vergangener Aufträge | **01 US-11.5**: Erinnerung am Tag nach dem Event um 09:00, Admin setzt `completed` selbst (einzeln oder gesammelt); nie automatisch, auch kein nächtlicher Job | **entschieden (R2-3)** | Job `events_completion` nur mit Erinnerung `completion_due`; `confirmed` → `completed` nur über `set_event_status()` durch `admin` |
+| D-3 (E-8) | Korrektur-Übergänge | **keine Rückwärts-Übergänge**: kein `completed` → `confirmed`, kein `invoiced` → `completed`, kein `declined` → `quoted`, keine Reaktivierung von `declined`/`cancelled`, keine Funktion „Status korrigieren“, keine Rücksprünge nach `inquiry`. `declined`, `cancelled`, `invoiced` sind Endzustände; neuer Anlauf per Kopie. Ersatz: Bestätigungsdialog vor jedem Statuswechsel (02 §1.1.1, clientseitig) | **entschieden (R2-4)** | `private.is_allowed_event_transition()` (7.8) als Übergangstabelle für `set_event_status()`, `commit_quote_send()` (nur `inquiry` → `quoted`), `record_*` und `portal_*`; `prepare_quote_send()` lehnt Endzustände ab; Tests 9.5 |
+| D-4 (E-8) | `inquiry` → `declined`, Direktbestätigung | `inquiry` → `declined` erlaubt („Anfrage kommt nicht zustande“, Grund Pflicht); Löschen nur für Fehleingaben ohne Versand. Zusätzlich `inquiry` → `optioned` und Direktbestätigung `inquiry`/`optioned` → `confirmed` ohne versendetes Angebot mit Bestätigungsweg | **entschieden (R2-2)** für die Direktbestätigung; übrige Übergänge folgen der Übergangstabelle 02 §1.1 | Statusübergang, `event_status_changes.confirmation_channel`, `copy_event(…, start_status = 'confirmed', confirmation_channel)`, Delete-Policy; Küche liest bei Revision 0 den Live-Stand (4.6) |
+| D-5 | Testphase-Ende | Tag 14 23:59 Berlin (01, umgesetzt) oder exakt 14 × 24 h | offen | `create_company()` |
+| D-6 (E-16) | Datenbasis der Küche | verbindliche Revision (01 §4.2.3) | Vorschlag, Bestätigung ausstehend | `binding_snapshot`/`binding_revision`; Views 4.6 |
+| D-7 (E-17) | Datenexport | **Hintergrund-Export mit Download-Link per E-Mail**, nicht im Browser: Edge Function `export-company`, privater Bucket `exports` (`{company_id}/{data_export_id}.zip`), signierter Link 7 Tage gültig, E-Mail „Export bereit“ an die anfordernde Person, automatische Löschung nach 7 Tagen (02 §10.2) | **entschieden (R2-14)**; ersetzt E-17 | `data_exports` mit `status`, `file_path`, `ready_at`, `expires_at`, `error` (3.7); Bucket `exports` (8); Job `exports_cleanup` (9.6) |
+
+**Runde 2 im Überblick** (00 §9; alle Punkte entschieden, keiner mehr „zur Freigabe“):
+
+| # | Entscheidung | Auswirkung im Datenmodell |
+|---|---|---|
+| R2-1 | Kundenportal: Menüwahl vor der Annahme direkt, Gästezahl und Änderungen nach der Bestätigung als Änderungswunsch, ab ± 20 % „bitte anrufen“, Sonderessen sofort | D-1; `portal_selection`, `pending_change`, `event_dietary_requirements` (Quelle `customer`) |
+| R2-2 | Direktbestätigung ohne Angebot erlaubt | D-4; `inquiry`/`optioned` → `confirmed` in `private.is_allowed_event_transition()`, Bestätigungsweg Pflicht |
+| R2-3 | „Durchgeführt“ nie automatisch, Erinnerung am Folgetag 09:00 | D-2; Job `events_completion` (9.6) ohne Statuswechsel |
+| R2-4 | Keine Rückwärts-Übergänge, Bestätigungsdialog vor jedem Statuswechsel | D-3; Übergangstabelle (7.8), RPC-Katalog (4.7), Tests (9.5) |
+| R2-5 | Preisvorschlag auf volle 10 Cent aufgerundet | `companies.price_rounding_cents` Standard `10`, immer aufrunden (TS-Modul) |
+| R2-6 | Änderungsschluss 72 h (Event-Catering) bzw. 24 h (Business-Lunch), je Auftrag änderbar | `portal_change_lead_hours`, `portal_change_lead_hours_business_lunch`, `events.changes_until` |
+| R2-7 | Menge p. P. = Rohware vor dem Garen; 5 % Puffer nur in der Einkaufsliste | `dish_ingredients.quantity_per_person`, `companies.shopping_buffer_bp` = `500` |
+| R2-8 | Kein Küchen-Tablet; Küche nutzt Smartphones (native App) | keine Auswirkung im Modell (keine Gerätetypen, `push_platform` bleibt `ios`/`android`); Tablet-Optimierung nach dem MVP (01 P-23) |
+| R2-9 | Genau eine Qualifikation je Slot (Pflicht) | `shift_slots.qualification_id not null`, Filter in `shift_board` |
+| R2-10 | Kein Sonderabsagerecht bei Verschiebung; normale Absagefrist (48 h, pro Firma), Benachrichtigung über die Zeitänderung | Spalte `shift_slots.special_cancel_until` entfällt; `my_shifts.cancel_deadline_at` und `cancel_my_application()` ohne Sonderfrist; `shift_slot_times_changed()` nur Benachrichtigung |
+| R2-11 | Keine Kinderportionen im MVP; Kinder als eigene Angebotsposition | keine Spalte für Kinderzahl; eigene `quote_items` mit `quantity_mode = 'fixed'` (02 §2.2) |
+| R2-12 | `delete-account` freigegeben | Edge Function (4.8, 9.1) → `delete_my_account()` |
+| R2-13 | `purge-company` freigegeben | Edge Function (4.8, 9.1), aufgerufen von `billing_lifecycle`; löscht Daten (CASCADE) und `{company_id}/` in `logos`, `quotes`, `exports` |
+| R2-14 | Datenexport per Download-Link per E-Mail | D-7; `data_exports` (3.7), Bucket `exports` (8), `export-company` (4.8), Job `exports_cleanup` (9.6) |
 
 ### 10.3 Annahmen dieses Dokuments
 
