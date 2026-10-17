@@ -67,7 +67,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:test": "bash scripts/db/test-local.sh",
-    "db:types": "supabase gen types typescript --local > supabase/functions/_shared/database.types.ts"
+    "db:types": "supabase gen types typescript --local > supabase/functions/_shared/database.types.ts",
+    "db:bundle": "bash scripts/db/bundle.sh"
   },
   "private": true
 }

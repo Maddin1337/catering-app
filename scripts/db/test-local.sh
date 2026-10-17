@@ -33,10 +33,16 @@ psql() { "${RUN[@]}" "$PGBIN/psql" -X -q -v ON_ERROR_STOP=1 "$@"; }
 psql -f "$ROOT/scripts/db/stubs.sql"
 psql -c "create extension pgtap with schema extensions;"
 
-for f in "$ROOT"/supabase/migrations/*.sql; do
-  echo "Migration: $(basename "$f")"
-  psql --single-transaction -f "$f"
-done
+if [ "${DB_BUNDLE:-}" = "1" ]; then
+  # Prüft die Datei für den SQL Editor (npm run db:bundle) statt der einzelnen Migrationen
+  echo "Bundle: supabase/remote-setup.sql"
+  psql -f "$ROOT/supabase/remote-setup.sql"
+else
+  for f in "$ROOT"/supabase/migrations/*.sql; do
+    echo "Migration: $(basename "$f")"
+    psql --single-transaction -f "$f"
+  done
+fi
 
 [ -s "$ROOT/supabase/seed.sql" ] && psql -f "$ROOT/supabase/seed.sql"
 

@@ -56,6 +56,17 @@ npx supabase db push        # wendet die vier Migrationen an
 npx supabase config push    # überträgt Auth-Einstellungen und Mail-Vorlagen aus supabase/config.toml
 ```
 
+### Ohne Terminal: über das Supabase-Dashboard
+
+1. **Datenbank:** Im Dashboard SQL Editor öffnen, „New query“ wählen, den gesamten Inhalt von `supabase/remote-setup.sql` einfügen und „Run“ drücken. Die Datei enthält alle vier Migrationen (erzeugt mit `npm run db:bundle`, geprüft gegen dieselben 37 Tests). Sie darf nur **einmal** laufen. Danach stehen unter „Table Editor“ die Tabellen `companies`, `company_members`, `subscriptions`, `allergens` (14 Zeilen) und `plan_limits` (4 Zeilen).
+2. **Auth-Einstellungen** (Authentication, die Menünamen können leicht abweichen):
+   - E-Mail-Anmeldung an, **„Confirm email“ an**
+   - Mindestlänge des Passworts **10**
+   - URL Configuration: Redirect-URLs `http://localhost:8081/**` und `cateringapp://**` eintragen (Site URL für den Moment `http://localhost:8081`)
+3. **Mail-Vorlagen** (Authentication, Emails, Templates): „Confirm signup“ und „Reset password“. Betreff „Bestätige deine E-Mail-Adresse“ bzw. „Passwort zurücksetzen“, Inhalt aus `supabase/templates/confirmation.html` bzw. `recovery.html` einfügen.
+
+Wer später doch die CLI nutzt, markiert die Migrationen vorher mit `npx supabase migration repair --status applied <Version>` als eingespielt, sonst versucht `db push` sie erneut.
+
 Hinweise:
 - `config.toml` enthält Werte für die lokale Entwicklung (`site_url` und Redirect-URLs zeigen auf `localhost`). Für das echte Staging bekommt das Projekt einen eigenen Block mit der Staging-Domain.
 - **Mailversand:** Das eingebaute Supabase-SMTP verschickt nur an Mitglieder des Supabase-Teams und nur wenige Mails pro Stunde. Für echte Nutzer braucht es einen eigenen Mail-Dienst (E-3, Resend oder Postmark) als SMTP in den Auth-Einstellungen.
