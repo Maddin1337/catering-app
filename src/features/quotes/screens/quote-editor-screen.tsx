@@ -532,7 +532,17 @@ function Editor({
             package: fromPackage,
             dish: fromDish,
             template: (tpl) => itemFromTemplate(tpl, rates),
-            blank: (type) => blankItem(type, rates),
+            // Freies Gericht/Paket ohne Katalogeintrag: als freie Position mit dem Satz für
+            // Speisen, Einheit und Menge wie beim Katalog (siehe storedType).
+            blank: (type) =>
+              type === 'dish' || type === 'package'
+                ? {
+                    ...blankItem('custom', rates),
+                    unit_label: type === 'dish' ? 'Portion' : 'Person',
+                    quantity_mode: guests ? 'per_guest' : 'fixed',
+                    tax_rate_id: blankItem(type, rates).tax_rate_id,
+                  }
+                : blankItem(type, rates),
             heading: () => blankItem('custom', rates, { heading: true }),
           }}
           suggestionFor={suggestionFor}

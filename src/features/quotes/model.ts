@@ -206,6 +206,16 @@ export function quoteWarnings(
   return w;
 }
 
+/**
+ * „Gericht“ und „Paket“ verlangen in der Datenbank einen Katalogeintrag (quote_items_dish,
+ * quote_items_package). Ohne ihn – frei angelegt – wird die Position als „Frei“ gespeichert.
+ */
+export function storedType(i: Pick<EditorItem, 'type' | 'dish_id' | 'menu_package_id'>): ItemType {
+  if (i.type === 'dish' && !i.dish_id) return 'custom';
+  if (i.type === 'package' && !i.menu_package_id) return 'custom';
+  return i.type;
+}
+
 /** Nutzlast für `save_quote`: Kopfdaten, Positionen mit berechneten Beträgen und Summen. */
 export function buildSavePayload(args: {
   quoteId: string;
@@ -246,7 +256,7 @@ export function buildSavePayload(args: {
       const l = line.get(i.key);
       return {
         id: i.key,
-        type: i.type,
+        type: storedType(i),
         menu_package_id: i.menu_package_id,
         dish_id: i.dish_id,
         name: i.name.trim(),

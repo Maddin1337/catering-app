@@ -7,6 +7,7 @@ import {
   effectiveQuantity,
   quoteWarnings,
   runCalc,
+  storedType,
 } from '../model';
 
 const rates: TaxRate[] = [
@@ -148,6 +149,17 @@ describe('Speichern', () => {
       line_gross_cents: 333840,
     });
     expect(payload.editor_seconds).toBe(42);
+  });
+});
+
+describe('Speichern: freie Gerichte und Pakete', () => {
+  it('speichert Gericht und Paket ohne Katalogeintrag als freie Position', () => {
+    // Die Datenbank verlangt bei „dish“/„package“ den Katalogeintrag (quote_items_dish/_package).
+    expect(storedType({ type: 'dish', dish_id: null, menu_package_id: null })).toBe('custom');
+    expect(storedType({ type: 'package', dish_id: null, menu_package_id: null })).toBe('custom');
+    expect(storedType({ type: 'dish', dish_id: 'd1', menu_package_id: null })).toBe('dish');
+    expect(storedType({ type: 'package', dish_id: null, menu_package_id: 'p1' })).toBe('package');
+    expect(storedType({ type: 'service', dish_id: null, menu_package_id: null })).toBe('service');
   });
 });
 
