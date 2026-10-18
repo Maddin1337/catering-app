@@ -34,11 +34,13 @@ import type { EventRow } from '../../events/types';
 import { useOpenChangeRequests } from '../../quotes/api';
 import { useStaffingOverview } from '../../shifts/api';
 import { useTeamMembers } from '../../team/api';
+import { useRevenueOverview } from '../api';
 import { AgendaRow } from '../components/agenda-row';
 import { NextEventCard } from '../components/next-event-card';
 import { QuickActions } from '../components/quick-actions';
 import { SetupCard } from '../components/setup-card';
 import { StatGrid } from '../components/stat-grid';
+import { RevenueCard } from '../components/revenue-card';
 import { TodoRow } from '../components/todo-row';
 import { WeekStrip } from '../components/week-strip';
 import {
@@ -49,6 +51,7 @@ import {
   overviewStats,
   weekStrip,
 } from '../overview';
+import { summarizeRevenue } from '../revenue';
 import { computeTodos, todayAndTomorrow } from '../todos';
 
 /** SC-12 Start (admin): Erste Schritte, heute und morgen, Zu erledigen mit Sammelaktion „Durchgeführt“. */
@@ -58,6 +61,7 @@ export function StartScreen() {
   const events = useEvents();
   const subscription = useSubscription();
   const membership = useMembership();
+  const revenue = summarizeRevenue(useRevenueOverview().data);
   const members = useTeamMembers();
   const dishes = useDishes();
   const staffing = useStaffingOverview().data;
@@ -158,6 +162,8 @@ export function StartScreen() {
           },
         ]}
       />
+
+      {revenue ? <RevenueCard summary={revenue} /> : null}
 
       <View style={{ gap: 12 }}>
         <Text variant="title2">{t('start.stats.title')}</Text>

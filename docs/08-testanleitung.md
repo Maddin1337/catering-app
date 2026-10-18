@@ -24,6 +24,7 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 14 | `remote-update-20261103090000.sql` | Korrekturen aus der Sicherheitsprüfung |
 | 15 | `remote-update-20261104090000.sql` | Annahme durch das Team macht die Fassung verbindlich |
 | 16 | `remote-update-20261105090000.sql` | Kalender-Abo |
+| 17 | `remote-update-20261106090000.sql` | Umsatzübersicht auf der Startseite |
 
 Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien. **Einstellungen → Datenbank-Stand** zeigt, welche.
 

@@ -354,3 +354,5 @@ Außerdem ein neuer Test `m9_app_writes` (alle direkten Schreibzugriffe der App 
 ## Design-Überarbeitung
 
 Komplette Überarbeitung der Oberfläche nach Appllama-Recherche, siehe [09-designsystem.md](09-designsystem.md): warmer Hintergrund mit weißen, weich beschatteten Karten, Plus Jakarta Sans für Überschriften, Pillen-Schaltflächen mit Verlauf, Federeffekt und Haptik, schlanke schwebende Tab-Leiste (58 px, nach Rückmeldung verkleinert), Segment-Reiter, Symbol-Plaketten, leere Zustände, Marken-Plakette auf Anmeldeseiten. Keine Datenbankänderung. Neue Pakete: `expo-linear-gradient`, `expo-haptics`, `@expo-google-fonts/plus-jakarta-sans`.
+
+Danach: neue Startseite für Admin (Begrüßung, Wochenleiste, Hero-Karte, Kennzahlen), Umsatzkarte mit neuer Funktion `revenue_overview()` (Migration `20261106090000`, `remote-update-20261106090000.sql`, 560 pgTAP-Tests, 225 Jest-Tests) und neu gestaltete Startseiten für Küche und Personal, siehe [09-designsystem.md](09-designsystem.md). Abweichung A-38: Die Monatssumme stammt aus dem gesendeten Angebotsstand und berücksichtigt spätere Auswahl-Änderungen des Kunden im Portal nicht.

@@ -26,3 +26,15 @@ export function formatCents(cents: number): string {
   }
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
+
+/** „12.400 €“: ganze Euro, für Kennzahlen (Rundung kaufmännisch, nur Anzeige). */
+export function formatEuroRounded(cents: number): string {
+  if (!Number.isInteger(cents)) {
+    throw new RangeError('formatEuroRounded erwartet ganze Cent-Beträge');
+  }
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}

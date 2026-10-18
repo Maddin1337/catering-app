@@ -16,6 +16,8 @@ export type StatTile = {
 
 /** Kennzahlen als zwei Spalten: große Zahl, Beschriftung, Symbol-Plakette. Tippbar, wenn es ein Ziel gibt. */
 export function StatGrid({ tiles }: { tiles: StatTile[] }) {
+  // Drei Kacheln stehen in einer Reihe, sonst zwei Spalten.
+  const basis = tiles.length === 3 ? '30%' : '45%';
   return (
     <View style={styles.grid}>
       {tiles.map(({ key, label, value, icon: Icon, tint, onPress }) => (
@@ -23,7 +25,7 @@ export function StatGrid({ tiles }: { tiles: StatTile[] }) {
           key={key}
           onPress={onPress}
           accessibilityLabel={`${label}: ${value}`}
-          style={styles.tile}
+          style={[styles.tile, { flexBasis: basis }]}
         >
           <View style={[styles.badge, { backgroundColor: tints[tint].bg }]}>
             <Icon color={tints[tint].fg} size={18} strokeWidth={2.2} />
@@ -42,7 +44,7 @@ export function StatGrid({ tiles }: { tiles: StatTile[] }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space[3] },
-  tile: { flexGrow: 1, flexBasis: '45%', gap: 0, padding: tokens.space[4] },
+  tile: { flexGrow: 1, gap: 0, padding: tokens.space[4] },
   badge: {
     width: 34,
     height: 34,

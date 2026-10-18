@@ -31,6 +31,19 @@ Tippflächen ≥ 44 dp (Tabs, Chips, Segmente und kleine Schaltflächen 44–48)
 
 ## Startseite (Admin)
 
-Aufbau von oben nach unten, nach Mustern aus Appllama (Decory, Joule, Fantastical, MileIQ, Gridwise, Xmind): Begrüßung mit Vorname und Datum, Wochenleiste (7 Tage, Punkt bei Aufträgen, heute dunkel), Hero-Karte „Als Nächstes“ (nächster optionierter oder bestätigter Auftrag mit Termin, Ort, Gästen, Status und „in n Tagen“), Fortschrittskarte „Erste Schritte“ (nur solange offen), zwei Schnellaktionen (Anfrage im Chat, Schnelles Formular), „Auf einen Blick“ (Aufträge und Gäste der nächsten 7 Tage, offene Anfragen, Angebote ohne Antwort), „Zu erledigen“ mit farbigen Symbol-Plaketten, „Heute und morgen“ als Tagesliste mit Uhrzeit.
+Aufbau von oben nach unten, nach Mustern aus Appllama (Decory, Joule, Fantastical, MileIQ, Gridwise, Xmind): Begrüßung mit Vorname und Datum, Wochenleiste (7 Tage, Punkt bei Aufträgen, heute dunkel), Hero-Karte „Als Nächstes“ (nächster optionierter oder bestätigter Auftrag mit Termin, Ort, Gästen, Status und „in n Tagen“), Fortschrittskarte „Erste Schritte“ (nur solange offen), zwei Schnellaktionen (Anfrage im Chat, Schnelles Formular), „Auf einen Blick“ (Aufträge und Gäste der nächsten 7 Tage, offene Anfragen, Angebote ohne Antwort), „Zu erledigen“ mit farbigen Symbol-Plaketten, „Heute und morgen“ als Tagesliste mit Uhrzeit. Admins sehen außerdem die Karte „Auftragswert“ (siehe unten).
 
 Die Berechnungen stehen in `src/features/start/overview.ts` (getestet), die Bausteine in `src/features/start/components/`. Umsatzzahlen fehlen bewusst: Angebotssummen liegen nur je Entwurf bzw. Version vor, eine Monatssumme bräuchte eine eigene, saubere Abfrage.
+
+### Auftragswert (Admin)
+
+Karte mit gebuchtem Wert des aktuellen Monats (netto, ganze Euro), Vergleich zum Vormonat, offenem Wert in versendeten und optionierten Angeboten und Balken für sechs Monate (zwei zurück, drei voraus). Datenquelle ist die Funktion `revenue_overview()` (Migration `20261106090000`, nur Admin, 8 pgTAP-Tests). Gerechnet wird nach Monat der Veranstaltung mit der Nettosumme der gültigen Angebotsfassung (verbindliche Fassung, sonst die zuletzt gesendete); später im Portal geänderte Auswahl-Optionen und Aufträge ohne versendetes Angebot sind nicht enthalten (steht so auch unter der Karte). Fehlt das SQL-Update, bleibt die Karte einfach weg.
+
+## Startseiten für Küche und Personal
+
+Gleiche Bausteine wie beim Admin (Begrüßung, Wochenleiste, Hero-Karte `HeroCard`, Kennzahlen `StatGrid`):
+
+- **Küche, Tab „Heute“:** Wochenleiste, nächster Auftrag, Umschalter Heute/Morgen, Kennzahlen (Aufträge, Gäste, Änderungen offen, Vorläufig) und Auftragskarten mit Uhrzeit, Markierungen (`Pill`: vorläufig, Änderung offen, Sonderessen), Gästen, Abfahrt, Ausgabe und Hinweisen. Keine Preise.
+- **Personal, Tab „Meine Schichten“** (und für die Küche unter Mehr): Wochenleiste mit zugesagten Schichten, Hero-Karte „Nächste Schicht“, Kennzahlen (zugesagt, beworben, freie Schichten auf der Börse), Schichtkarten mit Datumskachel (`DateTile`) und Statusmarkierung. Die Schichtbörse nutzt dieselben Karten.
+
+Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview.ts` (getestet).

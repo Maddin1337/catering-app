@@ -962,7 +962,20 @@
       "inquiries": "Offene Anfragen",
       "quotes": "Angebote ohne Antwort"
     },
-    "setupProgress": "{{done}} von {{total}} erledigt"
+    "setupProgress": "{{done}} von {{total}} erledigt",
+    "revenue": {
+      "title": "Auftragswert {{month}}",
+      "booked_one": "{{count}} Auftrag gebucht, netto",
+      "booked_other": "{{count}} Aufträge gebucht, netto",
+      "open_one": "Dazu offen im Angebot: {{amount}} ({{count}} Angebot)",
+      "open_other": "Dazu offen im Angebot: {{amount}} ({{count}} Angebote)",
+      "deltaUp": "+{{value}} % zum Vormonat",
+      "deltaDown": "{{value}} % zum Vormonat",
+      "legendBooked": "Gebucht",
+      "legendOpen": "Im Angebot",
+      "note": "Nach Monat der Veranstaltung, laut gesendetem Angebot. Spätere Auswahl-Änderungen im Portal sind nicht eingerechnet.",
+      "a11y": "{{month}}: {{booked}} gebucht, {{open}} im Angebot"
+    }
   },
   "today": {
     "title": "Heute",
@@ -972,7 +985,17 @@
     "provisional": "vorläufig",
     "special_one": "{{count}} Sonderessen",
     "special_other": "{{count}} Sonderessen",
-    "openChange": "Änderung offen: verbindlich {{from}} Gäste, geplant {{to}}"
+    "openChange": "Änderung offen: verbindlich {{from}} Gäste, geplant {{to}}",
+    "stats": {
+      "orders": "Aufträge",
+      "guests": "Gäste",
+      "changes": "Änderungen offen",
+      "provisional": "Vorläufig"
+    },
+    "badge": {
+      "provisional": "Vorläufig",
+      "change": "Änderung offen"
+    }
   },
   "picker": {
     "choose": "wählen",
@@ -1450,7 +1473,17 @@
       "dress": "Dresscode",
       "notes": "Hinweise",
       "pending": "Du bekommst Bescheid, sobald zugesagt ist.",
-      "moreBody": "Deine Bewerbungen und zugesagten Einsätze."
+      "moreBody": "Deine Bewerbungen und zugesagten Einsätze.",
+      "next": {
+        "label": "Nächste Schicht",
+        "none": "Keine Schicht in Sicht",
+        "noneBody": "Bewirb dich in der Schichtbörse auf freie Schichten."
+      },
+      "stats": {
+        "accepted": "Zugesagt",
+        "applied": "Beworben",
+        "free": "Freie Schichten"
+      }
     },
     "adminCancelled": "Vom Mitarbeiter abgesagt"
   }

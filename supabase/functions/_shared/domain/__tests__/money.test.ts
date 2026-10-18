@@ -1,4 +1,4 @@
-import { divRoundHalfUp, formatCents, roundUpToStep } from '../money';
+import { divRoundHalfUp, formatCents, formatEuroRounded, roundUpToStep } from '../money';
 
 describe('divRoundHalfUp', () => {
   it('rundet .5 kaufmännisch auf', () => {
@@ -44,5 +44,21 @@ describe('formatCents', () => {
 
   it('lehnt Kommazahlen ab', () => {
     expect(() => formatCents(10.5)).toThrow(RangeError);
+  });
+});
+
+describe('formatEuroRounded', () => {
+  it('zeigt ganze Euro mit Tausenderpunkt', () => {
+    expect(formatEuroRounded(1240000).replace(/\s/g, ' ')).toBe('12.400 €');
+    expect(formatEuroRounded(0).replace(/\s/g, ' ')).toBe('0 €');
+  });
+
+  it('rundet auf ganze Euro', () => {
+    expect(formatEuroRounded(12350).replace(/\s/g, ' ')).toBe('124 €');
+    expect(formatEuroRounded(12349).replace(/\s/g, ' ')).toBe('123 €');
+  });
+
+  it('lehnt Kommazahlen ab', () => {
+    expect(() => formatEuroRounded(1.5)).toThrow(RangeError);
   });
 });

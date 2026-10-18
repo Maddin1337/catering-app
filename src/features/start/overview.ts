@@ -29,11 +29,16 @@ export function nextEvent(events: EventRow[], now: Date = new Date()): EventRow 
   );
 }
 
-/** Tage von heute bis zum Auftrag (0 = heute); negativ, wenn der Beginn schon war. */
-export function daysUntil(event: EventRow, now: Date = new Date()): number {
+/** Tage von heute bis zu einem Zeitpunkt (0 = heute) nach Berliner Datum; negativ, wenn er schon vorbei ist. */
+export function daysUntilIso(iso: string, now: Date = new Date()): number {
   const a = Date.parse(`${todayBerlin(now)}T00:00:00Z`);
-  const b = Date.parse(`${isoToBerlin(event.starts_at).date}T00:00:00Z`);
+  const b = Date.parse(`${isoToBerlin(iso).date}T00:00:00Z`);
   return Math.round((b - a) / 86_400_000);
+}
+
+/** Tage von heute bis zum Beginn des Auftrags (0 = heute). */
+export function daysUntil(event: EventRow, now: Date = new Date()): number {
+  return daysUntilIso(event.starts_at, now);
 }
 
 export type StripDay = { date: string; count: number; isToday: boolean };
@@ -76,4 +81,14 @@ export function overviewStats(events: EventRow[], now: Date = new Date()): Stats
     inquiries: events.filter((e) => e.status === 'inquiry' && e.event_date >= today).length,
     quotes: events.filter((e) => e.status === 'quoted' && e.event_date >= today).length,
   };
+}
+
+/** Wochenleiste aus beliebigen Datums-Zeitstempeln (z. B. Schichten): Zahl der Einträge je Tag. */
+export function stripFromTimestamps(timestamps: string[], now: Date = new Date()): StripDay[] {
+  const today = todayBerlin(now);
+  const dates = timestamps.map((ts) => isoToBerlin(ts).date);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(today, i);
+    return { date, isToday: i === 0, count: dates.filter((d) => d === date).length };
+  });
 }

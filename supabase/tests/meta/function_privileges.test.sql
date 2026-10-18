@@ -66,6 +66,7 @@ select is(
     'public.resend_invitation',
     'public.reset_intake_questions',
     'public.resolve_pending_change',
+    'public.revenue_overview',
     'public.revoke_invitation',
     'public.revoke_portal_tokens',
     'public.save_dish',

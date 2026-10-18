@@ -5,6 +5,7 @@ import {
   greetingPart,
   nextEvent,
   overviewStats,
+  stripFromTimestamps,
   weekStrip,
 } from '../overview';
 
@@ -81,5 +82,18 @@ describe('Startseite: Übersicht', () => {
       NOW,
     );
     expect(stats).toEqual({ weekEvents: 2, weekGuests: 65, inquiries: 1, quotes: 1 });
+  });
+
+  it('zählt Einträge je Tag für die Wochenleiste aus Zeitstempeln', () => {
+    const strip = stripFromTimestamps(
+      [
+        '2026-10-15T10:00:00Z',
+        '2026-10-15T15:00:00Z',
+        '2026-10-17T10:00:00Z',
+        '2026-11-30T10:00:00Z',
+      ],
+      NOW,
+    );
+    expect(strip.map((d) => d.count)).toEqual([2, 0, 1, 0, 0, 0, 0]);
   });
 });

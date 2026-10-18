@@ -88,6 +88,11 @@ export const UPDATES: Update[] = [
     title: 'Kalender-Abo',
     probe: { kind: 'table', table: 'calendar_tokens' },
   },
+  {
+    file: '20261106090000',
+    title: 'Umsatzübersicht auf der Startseite',
+    probe: { kind: 'rpc', name: 'revenue_overview', args: {} },
+  },
 ];
 
 /** Tabelle oder Funktion fehlt: Postgres 42P01/42703, PostgREST PGRST200–PGRST205 bzw. 404. */

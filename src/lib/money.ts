@@ -1,1 +1,1 @@
-export { divRoundHalfUp, formatCents, roundUpToStep } from '@shared/money';
+export { divRoundHalfUp, formatCents, formatEuroRounded, roundUpToStep } from '@shared/money';
