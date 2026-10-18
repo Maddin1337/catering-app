@@ -38,7 +38,14 @@ export function EventsScreen() {
     <Screen title={t('events.title')}>
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
       {isAdmin ? (
-        <Button label={t('events.add')} onPress={() => router.push('/events/new')} />
+        <View style={{ gap: 8 }}>
+          <Button label={t('events.addChat')} onPress={() => router.push('/events/intake')} />
+          <Button
+            label={t('events.addQuick')}
+            variant="secondary"
+            onPress={() => router.push('/events/new')}
+          />
+        </View>
       ) : null}
       <TextField
         label={t('events.search')}

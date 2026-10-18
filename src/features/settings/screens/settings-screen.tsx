@@ -20,6 +20,7 @@ const PATHS = {
   qualifications: '/settings/qualifications',
   defaults: '/settings/defaults',
   'quote-texts': '/settings/quote-texts',
+  questionnaire: '/settings/questionnaire',
 } as const;
 
 /** SC-57 Einstellungen: Einstieg in die Bereiche. */

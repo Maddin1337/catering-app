@@ -72,7 +72,12 @@ export function StartScreen() {
         <Banner tone="info">{t('start.trial', { date: formatDate(trialEnd) })}</Banner>
       ) : null}
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
-      <Button label={t('start.new')} onPress={() => router.push('/events/new')} />
+      <Button label={t('start.new')} onPress={() => router.push('/events/intake')} />
+      <Button
+        label={t('start.newQuick')}
+        variant="secondary"
+        onPress={() => router.push('/events/new')}
+      />
 
       {setupOpen ? (
         <View style={{ gap: 8 }}>

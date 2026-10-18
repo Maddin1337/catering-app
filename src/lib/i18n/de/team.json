@@ -300,6 +300,10 @@
       "quote-texts": {
         "title": "Angebotstexte",
         "body": "Einleitung, Bedingungen und Schluss"
+      },
+      "questionnaire": {
+        "title": "Fragenkatalog",
+        "body": "Deine Fragen für den Anfrage-Chat"
       }
     },
     "company": {
@@ -810,7 +814,9 @@
       "note": "Notiz",
       "sourceInternal": "Intern erfasst",
       "sourceCustomer": "Vom Kunden"
-    }
+    },
+    "addQuick": "Schnelles Formular",
+    "addChat": "Anfrage im Chat erfassen"
   },
   "calendar": {
     "title": "Kalender",
@@ -825,7 +831,7 @@
   },
   "start": {
     "title": "Start",
-    "new": "Neue Anfrage",
+    "new": "Anfrage im Chat erfassen",
     "todayTomorrow": "Heute und morgen",
     "today": "Heute",
     "tomorrow": "Morgen",
@@ -847,7 +853,8 @@
     "setupDish": "Erstes Gericht anlegen",
     "setupEvent": "Erste Anfrage erfassen",
     "setupDone": "erledigt",
-    "trial": "Testphase bis {{date}}"
+    "trial": "Testphase bis {{date}}",
+    "newQuick": "Schnelles Formular"
   },
   "today": {
     "title": "Heute",
@@ -870,5 +877,133 @@
     "minute": "Minute",
     "apply": "{{time}} Uhr übernehmen",
     "add": "Weiteren Termin hinzufügen"
+  },
+  "intake": {
+    "title": "Fragenkatalog",
+    "body": "Diese Fragen stellt dir der Chat, wenn du eine Anfrage erfasst. Du bestimmst Text, Reihenfolge, Antwortart und wohin die Antwort fließt.",
+    "add": "Frage anlegen",
+    "test": "Testlauf (nichts wird gespeichert)",
+    "reset": "Standard wiederherstellen",
+    "resetTitle": "Standardkatalog wiederherstellen?",
+    "resetBody": "Deine jetzigen Fragen werden archiviert und der Standardkatalog kommt neu dazu. Bestehende Aufträge bleiben unverändert.",
+    "archive": "Frage archivieren",
+    "archiveTitle": "Frage archivieren?",
+    "archiveBody": "Die Frage erscheint nicht mehr im Chat. Alte Antworten an Aufträgen bleiben erhalten.",
+    "noTarget": "Notiz am Auftrag",
+    "required": "Pflicht",
+    "onlyIf": "nur wenn „{{question}}“ {{op}} {{value}}",
+    "type": {
+      "single_choice": "Auswahl (eine)",
+      "multi_choice": "Auswahl (mehrere)",
+      "number": "Zahl",
+      "date": "Datum",
+      "time": "Uhrzeit",
+      "time_range": "Von–bis (Uhrzeit)",
+      "datetime": "Datum und Uhrzeit",
+      "text": "Freitext",
+      "boolean": "Ja / Nein",
+      "customer": "Kunde"
+    },
+    "target": {
+      "customer": "Kunde",
+      "event_kind": "Art (Event-Catering oder Business-Lunch)",
+      "occasion": "Anlass",
+      "starts_at": "Datum und Beginn",
+      "ends_at": "Ende",
+      "guest_count": "Gästezahl",
+      "venue": "Ort",
+      "dietary_requirements": "Sonderessen",
+      "kitchen_notes": "Hinweise für die Küche",
+      "staff_notes": "Hinweise für das Personal",
+      "customer_reference": "Ihre Referenz"
+    },
+    "targetHint": {
+      "customer": "Wählt den Kunden oder legt ihn neu an.",
+      "event_kind": "Bestimmt auch den Änderungsschluss.",
+      "occasion": "Erscheint im Titelvorschlag.",
+      "starts_at": "Datum und Uhrzeit dürfen auf mehrere Fragen verteilt sein.",
+      "ends_at": "Nur nötig, wenn das Ende eine eigene Frage ist.",
+      "guest_count": "Ganze Zahl ab 1.",
+      "venue": "Name der Location; die Adresse ergänzt du im Auftrag.",
+      "dietary_requirements": "Legt je Antwort größer 0 einen Sonderessen-Eintrag an.",
+      "kitchen_notes": "Die Antwort steht als Zeile in den Küchenhinweisen.",
+      "staff_notes": "Die Antwort steht als Zeile in den Personalhinweisen.",
+      "customer_reference": "Steht vorerst in den internen Notizen."
+    },
+    "operator": {
+      "equals": "ist",
+      "not_equals": "ist nicht",
+      "in": "ist eines von",
+      "gt": "ist größer als",
+      "lt": "ist kleiner als",
+      "is_true": "ist Ja"
+    },
+    "form": {
+      "prompt": "Fragetext",
+      "help": "Hilfetext (optional)",
+      "type": "Antwortart",
+      "options": "Antworten (eine pro Zeile)",
+      "optionsHint": "Zum Beispiel: Hochzeit, Geburtstag, Firmenfeier",
+      "required": "Pflichtfrage (kein Überspringen)",
+      "target": "Wohin fließt die Antwort?",
+      "noTargetHint": "Die Antwort steht als Zeile in den internen Notizen.",
+      "diet": "Für welche Diätform?",
+      "condition": "Bedingung",
+      "conditionHint": "Zeige die Frage nur, wenn eine frühere Antwort passt.",
+      "conditionQuestion": "Abhängig von",
+      "always": "Immer stellen",
+      "operator": "Bedingung",
+      "value": "Wert",
+      "valueInHint": "Mehrere Werte mit Komma trennen."
+    },
+    "problems": {
+      "prompt_missing": "Bitte gib einen Fragetext ein.",
+      "options_missing": "Bitte gib mindestens eine Antwort an.",
+      "target_incompatible": "Diese Zuordnung passt nicht zur Antwortart.",
+      "diet_missing": "Bitte wähle eine Diätform.",
+      "show_if_invalid": "Die Bedingung darf nur auf eine frühere Frage zeigen.",
+      "value_missing": "Bitte gib einen Wert an."
+    },
+    "chat": {
+      "progress": "Frage {{n}} von {{total}}",
+      "summaryTitle": "Zusammenfassung",
+      "next": "Weiter",
+      "skip": "Überspringen",
+      "skipped": "Übersprungen",
+      "yes": "Ja",
+      "no": "Nein",
+      "yourAnswer": "Deine Antwort",
+      "pickDate": "Datum",
+      "pickTime": "Uhrzeit",
+      "from": "Von",
+      "to": "Bis (optional)",
+      "time": "Uhrzeit",
+      "change": "Antwort ändern",
+      "currentCustomer": "Aktuell: {{name}}",
+      "testRun": "Testlauf – nichts wird gespeichert.",
+      "dropped_one": "{{count}} Antwort entfällt.",
+      "dropped_other": "{{count}} Antworten entfallen.",
+      "noQuestions": "Dein Fragenkatalog ist leer. Lege unter Einstellungen → Fragenkatalog Fragen an.",
+      "discardShort": "Abbrechen",
+      "discardTitle": "Anfrage verwerfen?",
+      "discardBody": "Deine Antworten gehen verloren. Es wird nichts gespeichert.",
+      "discard": "Verwerfen",
+      "create": "Anfrage anlegen",
+      "update": "Anfrage aktualisieren",
+      "endTest": "Testlauf beenden",
+      "errors": {
+        "start": "Bitte wähle mindestens den Beginn.",
+        "datetime": "Bitte wähle Datum und Uhrzeit.",
+        "number": "Bitte gib eine Zahl ein, z. B. 65 oder 65,50.",
+        "integer": "Bitte gib eine ganze Zahl ein.",
+        "required": "Diese Frage braucht eine Antwort."
+      },
+      "problems": {
+        "missing_customer": "Es fehlt ein Kunde. Tippe oben auf die Frage nach dem Kunden und wähle einen.",
+        "missing_date": "Es fehlt das Datum.",
+        "missing_start": "Es fehlt der Beginn.",
+        "dietary_exceeds_guests": "Es gibt mehr Sonderessen als Gäste. Ändere die Gästezahl oder die Sonderessen."
+      }
+    }
   }
 }

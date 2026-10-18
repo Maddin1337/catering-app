@@ -100,7 +100,7 @@ export function CustomerDetailScreen() {
       <Button
         label={t('customers.detail.newEvent')}
         onPress={() =>
-          router.push({ pathname: '/events/new', params: { customerId: customer.id } })
+          router.push({ pathname: '/events/intake', params: { customerId: customer.id } })
         }
       />
       <View style={{ gap: 8 }}>

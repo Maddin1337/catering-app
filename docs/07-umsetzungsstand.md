@@ -170,6 +170,19 @@ Wochenansicht im Web (SC-14), persistenter Abfrage-Cache mit „Offline – Stan
 | A-23 | Endzustände schreibgeschützt | Aufträge nach `declined`/`cancelled` bleiben bearbeitbar | **nicht mehr änderbar** (RLS-Policy), nur `invoiced` behält Rechnungsdaten über `set_invoice_details()` | Passt zu „neuer Anlauf nur per Kopie“ (R2-4) |
 | A-24 | Uhrzeit-Eingabe | Datums-/Zeitwähler | **Textfelder** (TT.MM.JJJJ, HH:MM) | Native Wähler brauchen ein natives Modul und damit einen neuen Build; die Eingaben werden geprüft und in Berliner Ortszeit umgerechnet |
 
+## M4 (vorgezogen) · Angebots-Chat und eigener Fragenkatalog
+
+Auf Wunsch des Gründers vor dem Angebots-Editor gebaut: Anfragen werden in einem geführten Chat mit selbst festgelegten Fragen erfasst (docs/02 §11, SC-17, SC-64, SC-65).
+
+- **Datenbank:** `supabase/migrations/20261024090000_m4_intake.sql` (`intake_questions` mit Standardkatalog von 16 Fragen, für bestehende und neue Firmen; RPCs `create_event_from_intake` (Kunde, Anfrage, Sonderessen, Notizen und Antworten in einer Transaktion, auch als Ergänzung einer bestehenden Anfrage) und `reset_intake_questions`). Für das Dashboard: `supabase/remote-update-20261024090000.sql` im SQL Editor ausführen. 331 pgTAP-Tests laufen lokal.
+- **Domäne:** `_shared/domain/intake.ts` (sichtbare Fragen mit Bedingungen `equals`, `in`, `not_equals`, `gt`, `lt`, `is_true`; verwerfen von Antworten bei geänderten Bedingungen; Zuordnung der Antworten zu den Auftragsfeldern; Prüfung des Katalogs: passende Zuordnung, Optionen, Bedingung nur auf frühere Fragen) mit 18 Tests.
+- **App:** SC-17 Chat (Fragen links, Antworten rechts und antippbar zum Ändern, Fortschritt, Überspringen nur bei optionalen Fragen, alle zehn Antworttypen, Zusammenfassung mit Titelvorschlag, Verwerfen mit Rückfrage, Start mit vorgewähltem Kunden oder aus einer bestehenden Anfrage, Testlauf); SC-64/65 Fragenkatalog unter Einstellungen (Fragen anlegen, bearbeiten, sortieren, archivieren, Bedingungen, Zuordnung, Standard wiederherstellen). Einstiege: Tab „Aufträge“, Start und Kundendetail.
+- **Geprüft:** Typecheck, Lint, 132 Jest-Tests; im Browser mit Handy-Profil gegen eine simulierte Datenbank: kompletter Chat bis zur Anfrage, Fragenkatalog bearbeiten.
+
+### Noch offen
+
+Angebotsentwurf am Ende des Chats (kommt mit dem Angebots-Editor, M4/M5; bis dahin steht „Ihre Referenz“ in den internen Notizen), „Auftrag anlegen und Angebot öffnen“, Antworten bleiben nur im Speicher der App (bei App-Neustart verloren).
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |
