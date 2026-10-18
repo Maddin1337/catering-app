@@ -75,7 +75,15 @@ function EventCard({ event }: { event: EventRow }) {
       })}
     >
       <Text variant="kitchen">{event.title}</Text>
-      {event.status === 'optioned' ? (
+      {event.has_open_change ? (
+        <Text variant="caption" color="danger">
+          {t('today.openChange', {
+            from: event.guest_count ?? '–',
+            to: event.draft_guest_count ?? '–',
+          })}
+        </Text>
+      ) : null}
+      {event.status === 'optioned' || event.basis === 'snapshot' ? (
         <Text variant="caption" color="accent">
           {t('today.provisional')}
         </Text>

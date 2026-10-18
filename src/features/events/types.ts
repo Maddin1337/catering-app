@@ -24,6 +24,10 @@ export type EventRow = {
   dress_code: string | null;
   staff_notes: string | null;
   kitchen_notes: string | null;
+  // nur Küche (View kitchen_events): verbindliche Gästezahl, Entwurfszahl, Basis und Kennzeichen „Änderung offen“
+  draft_guest_count?: number | null;
+  basis?: 'binding' | 'snapshot' | 'live';
+  has_open_change?: boolean;
   // nur admin
   internal_notes?: string | null;
   option_expires_at?: string | null;

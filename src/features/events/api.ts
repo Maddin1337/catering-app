@@ -35,7 +35,9 @@ export function useEvents() {
       const q =
         role === 'admin'
           ? client().from('events').select(ADMIN_COLUMNS)
-          : client().from('kitchen_events').select(KITCHEN_COLUMNS);
+          : client()
+              .from('kitchen_events')
+              .select(`${KITCHEN_COLUMNS}, draft_guest_count, basis, has_open_change`);
       const { data, error } = await q.order('starts_at');
       if (error) throw toAppError(error);
       return ((data ?? []) as unknown as RawEvent[]).map(normalize);
