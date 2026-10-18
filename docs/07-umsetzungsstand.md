@@ -315,6 +315,10 @@ Eine unabhängige Prüfung der neuen SQL-Dateien fand 11 Punkte; alle sind in `s
 
 Bewusst nicht geändert: Die Gültigkeit („gültig bis“) gilt weiter live, damit „Gültigkeit verlängern“ ohne neue Fassung wirkt (docs/03).
 
+## Ergänzung · Annahme durch das Team
+
+`supabase/migrations/20261104090000_admin_acceptance.sql` (`remote-update-20261104090000.sql`): Wird ein Auftrag aus „Angebot versendet“ oder „Optioniert“ auf „Bestätigt“ gesetzt (Telefon, E-Mail, persönlich), wird die versendete Fassung verbindlich und angenommen (Annahmeprotokoll mit Bestätigungsweg). Vorher blieb die Küche in diesem Fall bei „vorläufig“. 521 pgTAP-Tests.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

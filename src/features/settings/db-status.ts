@@ -78,6 +78,11 @@ export const UPDATES: Update[] = [
     title: 'Korrekturen Sicherheitsprüfung',
     probe: { kind: 'table', table: 'quotes', column: 'binding_revision' },
   },
+  {
+    file: '20261104090000',
+    title: 'Annahme durch das Team macht die Fassung verbindlich',
+    probe: null,
+  },
 ];
 
 /** Tabelle oder Funktion fehlt: Postgres 42P01/42703, PostgREST PGRST200–PGRST205 bzw. 404. */
