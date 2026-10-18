@@ -187,6 +187,7 @@ export function AddItemSheet({
   return (
     <Sheet
       title={title}
+      step={step.name}
       onClose={onClose}
       footer={(close) =>
         step.name === 'details' ? (

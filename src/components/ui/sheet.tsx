@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -37,6 +36,7 @@ export function Sheet({
   onClose,
   children,
   footer,
+  step,
 }: {
   title?: string;
   onClose: () => void;
@@ -44,7 +44,13 @@ export function Sheet({
   children: ReactNode | ((close: (then?: () => void) => void) => ReactNode);
   /** Fester Bereich unter dem scrollenden Inhalt (z. B. „Übernehmen“). */
   footer?: ReactNode | ((close: (then?: () => void) => void) => ReactNode);
+  /** Bei Blättern mit Schritten: Wechselt der Wert, beginnt der Inhalt wieder oben. */
+  step?: string;
 }) {
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  useEffect(() => {
+    scroll.current?.scrollTo({ y: 0, animated: false });
+  }, [step]);
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const offset = useSharedValue(height);
@@ -108,6 +114,7 @@ export function Sheet({
             ) : null}
           </View>
           <ScrollView
+            ref={scroll}
             contentContainerStyle={styles.body}
             keyboardShouldPersistTaps="handled"
             bounces={false}
