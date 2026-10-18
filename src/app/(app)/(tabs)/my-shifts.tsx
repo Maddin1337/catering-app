@@ -1,8 +1,3 @@
-import { useTranslation } from 'react-i18next';
+import { MyShiftsScreen } from '@/features/shifts/screens/my-shifts-screen';
 
-import { PlaceholderScreen } from '@/features/shell/screens/placeholder-screen';
-
-export default function MyShiftsTab() {
-  const { t } = useTranslation();
-  return <PlaceholderScreen title={t('tabs.myShifts')} milestone="M7" />;
-}
+export default MyShiftsScreen;

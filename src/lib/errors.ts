@@ -49,6 +49,16 @@ export type AppErrorCode =
   | 'send_mode_required'
   | 'not_sent'
   | 'invalid_send'
+  | 'slot_full'
+  | 'slot_not_open'
+  | 'slot_not_found'
+  | 'missing_qualification'
+  | 'application_exists'
+  | 'application_not_found'
+  | 'deadline_passed'
+  | 'already_assigned'
+  | 'qualification_required'
+  | 'seats_below_taken'
   | 'unknown';
 
 export class AppError extends Error {
@@ -120,6 +130,16 @@ export const messages: Record<AppErrorCode, string> = {
     'Bitte wähle, ob der Kunde die Änderung bestätigen soll oder sie nur zur Info bekommt.',
   not_sent: 'Das Angebot wurde noch nicht versendet.',
   invalid_send: 'Der Versandweg ist ungültig.',
+  slot_full: 'Alle Plätze sind schon vergeben.',
+  slot_not_open: 'Diese Schicht ist nicht (mehr) offen.',
+  slot_not_found: 'Diese Schicht gibt es nicht mehr.',
+  missing_qualification: 'Dafür fehlt die nötige Qualifikation.',
+  application_exists: 'Du hast dich schon beworben.',
+  application_not_found: 'Diesen Einsatz gibt es nicht mehr.',
+  deadline_passed: 'Die Absagefrist ist abgelaufen. Bitte sage telefonisch ab.',
+  already_assigned: 'Diese Person ist schon eingeplant.',
+  qualification_required: 'Bitte wähle eine Qualifikation für die Schicht.',
+  seats_below_taken: 'Es sind schon mehr Plätze belegt. Plane erst Personen aus.',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',
 };
 
@@ -173,6 +193,15 @@ export function toAppError(error: unknown): AppError {
     case 'send_mode_required':
     case 'not_sent':
     case 'invalid_send':
+    case 'slot_full':
+    case 'slot_not_open':
+    case 'slot_not_found':
+    case 'missing_qualification':
+    case 'application_exists':
+    case 'application_not_found':
+    case 'deadline_passed':
+    case 'already_assigned':
+    case 'qualification_required':
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');
@@ -185,6 +214,8 @@ export function toAppError(error: unknown): AppError {
   )
     return new AppError('schema_outdated');
   if (e.code === '23505') return new AppError('duplicate');
+  if (e.code === '23514' && e.message?.includes('shift_slots_taken_le_seats'))
+    return new AppError('seats_below_taken');
   switch (e.code) {
     case 'invalid_credentials':
       return new AppError('invalid_credentials');

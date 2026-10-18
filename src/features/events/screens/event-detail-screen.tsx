@@ -18,6 +18,7 @@ import { useMembership } from '../../company/api';
 import { useExistingQuote } from '../../quotes/api';
 import { PortalStatus } from '../../quotes/components/portal-status';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
+import { StaffingTab } from '../../shifts/components/staffing-tab';
 import { KitchenTab } from '../components/kitchen-tab';
 import { ScheduleTab } from '../components/schedule-tab';
 import { StatusBadge } from '../components/status-badge';
@@ -62,7 +63,7 @@ export function EventDetailScreen() {
   const history = useStatusHistory(id);
   const quote = useExistingQuote(id).data;
   const del = useDeleteEvent();
-  const [tab, setTab] = useState<'overview' | 'schedule' | 'kitchen'>('overview');
+  const [tab, setTab] = useState<'overview' | 'schedule' | 'kitchen' | 'staff'>('overview');
   const [target, setTarget] = useState<EventStatus | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -158,7 +159,10 @@ export function EventDetailScreen() {
       ) : null}
 
       <View style={{ flexDirection: 'row' }} accessibilityRole="tablist">
-        {(['overview', 'schedule', 'kitchen'] as const).map((k) => (
+        {(isAdmin
+          ? (['overview', 'schedule', 'kitchen', 'staff'] as const)
+          : (['overview', 'schedule', 'kitchen'] as const)
+        ).map((k) => (
           <Pressable
             key={k}
             accessibilityRole="tab"
@@ -252,6 +256,8 @@ export function EventDetailScreen() {
         </View>
       ) : tab === 'schedule' ? (
         <ScheduleTab event={event} isAdmin={isAdmin} />
+      ) : tab === 'staff' ? (
+        <StaffingTab event={event} />
       ) : (
         <KitchenTab event={event} />
       )}

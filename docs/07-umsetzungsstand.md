@@ -258,6 +258,24 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 
 Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
 
+## M7 (Kern) · Schichtbörse
+
+- **Datenbank:** `supabase/migrations/20261030090000_m7_shifts.sql`: `shift_slots`, `shift_applications` mit Überbuchungsschutz (Trigger `track_slot_occupancy`), `can_read_event()` mit staff-Zweig, Views `shift_board`, `my_shifts`, `event_staffing`, `event_colleagues`, RPCs `save_slot`, `publish_slots`, `cancel_slot`, `apply_for_slot`, `decide_application`, `cancel_my_application`, `assign_member`, `record_late_cancellation`. Eine Qualifikation je Schicht ist Pflicht (R2-9), die Absagefrist gilt immer ab der aktuellen Schichtzeit (R2-10). Für das Dashboard: `supabase/remote-update-20261030090000.sql`. 472 pgTAP-Tests laufen lokal, auch mit dem Gesamtbundle (u. a. Qualifikation, Zusage, volle Schicht, Überbuchung, Frist, Adresse erst nach der Zusage).
+- **App:** Admin: Tab „Personal“ im Auftrag (Schichten anlegen und ändern, veröffentlichen, Bewerbungen zu- und absagen, Person einplanen (ohne Qualifikation nur nach Bestätigungsdialog), späte Absage eintragen, Schicht absagen). Aushilfen: „Schichtbörse“ (nur passende offene Schichten, Bewerben) und „Meine Schichten“ (Status, Einsatzinfos erst nach der Zusage, Absagen bis zur Frist, danach Hinweis mit Anrufknopf).
+- **Geprüft:** Typecheck, Lint, pgTAP; im Browser mit Handy-Profil gegen eine simulierte Datenbank (Personal-Tab, Schichtbörse, Meine Einsätze).
+
+### Abweichungen M7
+
+| Nr. | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-34 | Push und Benachrichtigungen | `notifications`, `push-dispatch`, Push bei Zusage und Zeitänderung | entfällt vorerst; Zu- und Absagen stehen in „Meine Einsätze“, Bewerbungen im Tab „Personal“ | Push braucht ein natives Build und Edge Functions |
+| A-35 | `assign_member` | `INSERT … ON CONFLICT` | getrennt in SELECT, UPDATE oder INSERT | Bei `ON CONFLICT` zählt der BEFORE-INSERT-Trigger den Platz schon vor der Konflikterkennung, der UPDATE-Pfad ein zweites Mal (falsches `slot_full`); die Variante in docs/03 ist damit fehlerhaft und wird dort nachgezogen |
+| A-36 | Warteliste | dritte Bewerbung auf der Warteliste | Bewerbungen auf volle Schichten werden abgelehnt (`slot_full`); wer sich vorher beworben hat, bleibt „Beworben“ | einfacher; Warteliste kann folgen |
+
+### Noch offen
+
+Zeitänderungen melden (kommt mit Push), Start-Karten „unbesetzte Schichten“ und „offene Bewerbungen“, Offline-Vorladen der Einsätze, Nebenläufigkeitstest mit zwei Sitzungen, Monatsübersicht der Stunden, Schichten für die Küche (Rolle `kitchen` bewirbt sich über die Funktionen, hat aber noch keinen eigenen Tab).
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |
