@@ -826,7 +826,15 @@
       "table": "Tisch (optional)",
       "note": "Notiz",
       "sourceInternal": "Intern erfasst",
-      "sourceCustomer": "Vom Kunden"
+      "sourceCustomer": "Vom Kunden",
+      "substitutes": "Ersatzgericht",
+      "substitutesNone": "Kein Ersatz: Die Küche entscheidet.",
+      "substitute": "{{to}} statt {{from}}",
+      "substituteRemove": "Entfernen",
+      "substituteAdd": "Ersatzgericht hinzufügen",
+      "substituteFrom": "Welches Gericht wird ersetzt?",
+      "substituteTo": "Durch welches Gericht?",
+      "substituteNoDishes": "Im Angebot dieses Auftrags stehen noch keine Gerichte."
     },
     "addQuick": "Schnelles Formular",
     "addChat": "Anfrage im Chat erfassen"

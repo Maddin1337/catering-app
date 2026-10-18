@@ -224,7 +224,7 @@ export function useDietary(eventId: string | undefined) {
       const { data, error } = await client()
         .from('event_dietary_requirements')
         .select(
-          'id, event_id, person_count, diet, avoid_allergens, guest_name, table_label, note, source, is_short_notice',
+          'id, event_id, person_count, diet, avoid_allergens, guest_name, table_label, note, source, is_short_notice, substitutions',
         )
         .eq('event_id', eventId!)
         .order('created_at');
@@ -236,7 +236,14 @@ export function useDietary(eventId: string | undefined) {
 
 export type DietaryInput = Pick<
   DietaryRow,
-  'person_count' | 'diet' | 'avoid_allergens' | 'guest_name' | 'table_label' | 'note' | 'source'
+  | 'person_count'
+  | 'diet'
+  | 'avoid_allergens'
+  | 'guest_name'
+  | 'table_label'
+  | 'note'
+  | 'source'
+  | 'substitutions'
 >;
 
 export const useSaveDietary = () =>

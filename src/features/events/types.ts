@@ -77,4 +77,5 @@ export type DietaryRow = {
   note: string | null;
   source: 'customer' | 'internal';
   is_short_notice: boolean;
+  substitutions: { from_dish_id: string; to_dish_id: string }[];
 };

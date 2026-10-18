@@ -245,6 +245,7 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 - **Domäne:** `_shared/domain/kitchen.ts`: Produktionsliste (Pakete mit Portionsfaktor, Einzelgerichte, Ersatzgerichte der Sonderessen), Einkaufsliste mit Puffer (ganzzahlig mit BigInt, Anzeige in g/kg, ml/l, Stück nach 02 §8.3, aufgerundet) und Prüfung Sonderessen gegen Gerichte. Das Rechenbeispiel 02 §8.5 (83/60/32 Portionen; 15,7 kg Rinderschulter …) ist als Test hinterlegt.
 - **App:** `/kitchen` (Tab „Mehr“ → Küchenplanung, für admin und Küche): Zeitraum (von–bis, Standard 7 Tage), Optionen zuschaltbar, Tabs Produktion (je Tag, je Auftrag aufgeschlüsselt, Allergen-Codes, „vorläufig“, Aufträge ohne Positionen), Sonderessen (Konflikte rot, Ersatzgericht, „Küche entscheidet“), Einkauf (Puffer änderbar, nach Warengruppe, Abhaken lokal, Liste teilen).
 - **Geprüft:** Typecheck, Lint, Jest, pgTAP; im Browser mit Handy-Profil gegen eine simulierte Datenbank: Rechenbeispiel aus 02 §8.5 Zahl für Zahl.
+- **Ersatzgerichte:** Im Formular der Sonderessen (Tab Küche im Auftrag) lässt sich „Gericht B statt Gericht A“ wählen (A aus dem Angebot des Auftrags, B aus dem Katalog); Produktion und Konfliktprüfung werten es aus.
 
 ### Abweichungen M8
 
@@ -255,7 +256,7 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 
 ### Noch offen
 
-Ersatzgerichte im Formular der Sonderessen (die Liste wertet sie aus, erfassen lassen sie sich noch nicht), Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
+Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
 
 ## Nicht in M0 gebaut (bewusst)
 

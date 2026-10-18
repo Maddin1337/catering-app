@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { PickerSheet } from '@/components/ui/picker-sheet';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -12,7 +13,9 @@ import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { toAppError } from '@/lib/errors';
 import { tokens } from '@/theme/tokens';
 
+import { useDishes, usePackageDishLines } from '../../catalog/api';
 import { AllergenCodes } from '../../catalog/components/allergen-codes';
+import { useKitchenLines } from '../../kitchen/api';
 import { useDeleteDietary, useDietary, useSaveDietary, type DietaryInput } from '../api';
 import type { DietaryRow, EventRow } from '../types';
 
@@ -53,6 +56,7 @@ export function KitchenTab({ event }: { event: EventRow }) {
           editing={editing}
           busy={save.isPending || del.isPending}
           onCancel={() => setEditing(null)}
+          eventId={event.id}
           onSave={(values) =>
             save.mutate(
               {
@@ -105,12 +109,14 @@ export function KitchenTab({ event }: { event: EventRow }) {
 }
 
 function DietaryForm({
+  eventId,
   editing,
   busy,
   onCancel,
   onSave,
   onDelete,
 }: {
+  eventId: string;
   editing: Editing;
   busy: boolean;
   onCancel: () => void;
@@ -126,6 +132,7 @@ function DietaryForm({
   const [table, setTable] = useState(row?.table_label ?? '');
   const [note, setNote] = useState(row?.note ?? '');
   const [source, setSource] = useState<'customer' | 'internal'>(row?.source ?? 'internal');
+  const [subs, setSubs] = useState(row?.substitutions ?? []);
   const [tried, setTried] = useState(false);
 
   const n = /^\d+$/.test(count.trim()) ? Number(count) : 0;
@@ -148,6 +155,7 @@ function DietaryForm({
       table_label: table.trim() || null,
       note: note.trim() || null,
       source,
+      substitutions: subs,
     });
   };
 
@@ -195,6 +203,7 @@ function DietaryForm({
           />
         ))}
       </View>
+      <Substitutions eventId={eventId} value={subs} onChange={setSubs} />
       <TextField
         label={t('events.kitchen.guest')}
         helper={t('events.kitchen.privacy')}
@@ -225,6 +234,104 @@ function DietaryForm({
         <Button label={t('events.schedule.delete')} variant="danger" onPress={onDelete} />
       ) : null}
       <Button label={t('common.cancel')} variant="ghost" onPress={onCancel} />
+    </View>
+  );
+}
+
+/** Ersatzgerichte: „statt Gericht A gibt es Gericht B“; A stammt aus dem Angebot des Auftrags, B aus dem Katalog. */
+function Substitutions({
+  eventId,
+  value,
+  onChange,
+}: {
+  eventId: string;
+  value: DietaryRow['substitutions'];
+  onChange: (v: DietaryRow['substitutions']) => void;
+}) {
+  const { t } = useTranslation();
+  const dishes = useDishes().data ?? [];
+  const lines = useKitchenLines().data ?? [];
+  const packageLines = usePackageDishLines().data ?? [];
+  const [open, setOpen] = useState(false);
+  const [from, setFrom] = useState<string | null>(null);
+  const name = (id: string) => dishes.find((d) => d.id === id)?.name ?? '?';
+
+  const orderedIds = new Set<string>();
+  for (const l of lines.filter((x) => x.event_id === eventId)) {
+    if (l.dish_id) orderedIds.add(l.dish_id);
+    else if (l.menu_package_id)
+      packageLines
+        .filter((p) => p.menu_package_id === l.menu_package_id)
+        .forEach((p) => orderedIds.add(p.dish_id));
+  }
+  const fromOptions = dishes.filter((d) => orderedIds.has(d.id));
+  const toOptions = dishes.filter((d) => !d.archived_at && d.id !== from);
+
+  return (
+    <View style={{ gap: 8 }}>
+      <Text variant="small" color="textSecondary">
+        {t('events.kitchen.substitutes')}
+      </Text>
+      {value.length === 0 ? (
+        <Text variant="small" color="textSecondary">
+          {t('events.kitchen.substitutesNone')}
+        </Text>
+      ) : null}
+      {value.map((s, i) => (
+        <View
+          key={`${s.from_dish_id}-${s.to_dish_id}`}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+        >
+          <Text variant="body" style={{ flex: 1 }}>
+            {t('events.kitchen.substitute', { to: name(s.to_dish_id), from: name(s.from_dish_id) })}
+          </Text>
+          <Button
+            label={t('events.kitchen.substituteRemove')}
+            variant="ghost"
+            onPress={() => onChange(value.filter((_, j) => j !== i))}
+          />
+        </View>
+      ))}
+      <Button
+        label={t('events.kitchen.substituteAdd')}
+        variant="secondary"
+        onPress={() => setOpen(true)}
+      />
+      {open ? (
+        <PickerSheet
+          title={from ? t('events.kitchen.substituteTo') : t('events.kitchen.substituteFrom')}
+          onClose={() => {
+            setOpen(false);
+            setFrom(null);
+          }}
+        >
+          {from === null ? (
+            fromOptions.length === 0 ? (
+              <Text variant="body" color="textSecondary">
+                {t('events.kitchen.substituteNoDishes')}
+              </Text>
+            ) : (
+              fromOptions.map((d) => (
+                <ListRow key={d.id} title={d.name} onPress={() => setFrom(d.id)} />
+              ))
+            )
+          ) : (
+            toOptions.map((d) => (
+              <ListRow
+                key={d.id}
+                title={d.name}
+                right={<AllergenCodes allergens={d.allergens} />}
+                onPress={() => {
+                  if (!value.some((s) => s.from_dish_id === from && s.to_dish_id === d.id))
+                    onChange([...value, { from_dish_id: from, to_dish_id: d.id }]);
+                  setOpen(false);
+                  setFrom(null);
+                }}
+              />
+            ))
+          )}
+        </PickerSheet>
+      ) : null}
     </View>
   );
 }
