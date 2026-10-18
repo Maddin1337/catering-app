@@ -42,6 +42,13 @@ export type AppErrorCode =
   | 'last_admin'
   | 'invalid_qualification'
   | 'member_not_found'
+  | 'quote_not_found'
+  | 'revision_outdated'
+  | 'snapshot_invalid'
+  | 'quote_empty'
+  | 'send_mode_required'
+  | 'not_sent'
+  | 'invalid_send'
   | 'unknown';
 
 export class AppError extends Error {
@@ -103,6 +110,16 @@ export const messages: Record<AppErrorCode, string> = {
   last_admin: 'Du bist der einzige Admin. Ernenne zuerst jemand anderen zum Admin.',
   invalid_qualification: 'Eine Qualifikation gibt es nicht mehr. Bitte lade die Seite neu.',
   member_not_found: 'Dieses Mitglied gibt es nicht mehr.',
+  quote_not_found: 'Dieses Angebot gibt es nicht mehr.',
+  revision_outdated:
+    'Das Angebot wurde inzwischen geändert oder schon versendet. Bitte öffne es neu.',
+  snapshot_invalid:
+    'Der Stand des Angebots stimmt nicht mit den Positionen überein. Bitte öffne das Angebot neu und versuche es erneut.',
+  quote_empty: 'Das Angebot hat noch keine Position.',
+  send_mode_required:
+    'Bitte wähle, ob der Kunde die Änderung bestätigen soll oder sie nur zur Info bekommt.',
+  not_sent: 'Das Angebot wurde noch nicht versendet.',
+  invalid_send: 'Der Versandweg ist ungültig.',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',
 };
 
@@ -149,11 +166,23 @@ export function toAppError(error: unknown): AppError {
     case 'use_quote_send':
     case 'invalid_dates':
     case 'guest_sum_exceeded':
+    case 'quote_not_found':
+    case 'revision_outdated':
+    case 'snapshot_invalid':
+    case 'quote_empty':
+    case 'send_mode_required':
+    case 'not_sent':
+    case 'invalid_send':
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');
   // Tabelle oder Funktion fehlt: das SQL-Update wurde noch nicht eingespielt (42P01, 42883, PGRST2xx)
-  if (e.code === '42P01' || e.code === '42883' || e.code?.startsWith('PGRST20'))
+  if (
+    e.code === '42P01' ||
+    e.code === '42883' ||
+    e.code === '42703' ||
+    e.code?.startsWith('PGRST20')
+  )
     return new AppError('schema_outdated');
   if (e.code === '23505') return new AppError('duplicate');
   switch (e.code) {

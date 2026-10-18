@@ -199,7 +199,26 @@ Angebote entstehen als Entwurf je Auftrag (docs/02 §3, SC-32/33). Versand, Schn
 
 ### Noch offen
 
-Versand mit Schnappschuss, PDF und Portal (M5).
+Kundenportal (M6, Seite hinter dem Link), Annahme/Ablehnung durch den Kunden, verbindlicher Stand für die Küche.
+
+## M5 · Versand, Revisionen, PDF (ohne E-Mail-Dienst)
+
+- **Datenbank:** `supabase/migrations/20261027090000_m5_send.sql` (Spalten `snapshot`, `snapshot_hash`, `sent_*` an `quotes`; Tabellen `quote_revisions` und `portal_tokens` (nur Hash); RPCs `send_quote`, `issue_portal_token`, `revoke_portal_tokens`, `discard_quote_changes`). `send_quote` prüft den Snapshot (Schema, Revision, Positions-IDs, Summen), berechnet den Hash, legt Revision und Link an und setzt `inquiry` → `quoted` in einer Transaktion; Endzustände und `completed` sind gesperrt, bei `confirmed` ist die Versandart Pflicht. Für das Dashboard: `supabase/remote-update-20261027090000.sql`. 396 pgTAP-Tests laufen lokal, auch mit dem Gesamtbundle.
+- **App:** SC-34 (`/events/[id]/quote-send`): Prüfliste (blockierend: leer, Gästezahl, Steuersatz, Rabatt, Wahlgruppen, Endzustand, E-Mail beim Versandweg E-Mail; Hinweise: Gültigkeit, ungeprüfte Allergene und Steuersätze), Vorschau mit Summen, Versandart bei `confirmed`, Bestätigungsdialog, Ergebnis mit Link, E-Mail-Entwurf (mailto) und PDF. Fassungen mit PDF, neuer Link, „Änderungen verwerfen“. Der Editor führt über „Weiter zum Versand“ (speichert vorher).
+- **PDF:** `renderQuoteHtml` (Logo-frei, Akzentfarbe, Allergen-Codes mit Legende, Summenblock, Seitenumbruch ohne Zeilenbruch) → native `expo-print` + `expo-sharing`, im Web Druckdialog („Als PDF speichern“).
+- **Geprüft:** Typecheck, Lint, 172 Jest-Tests; im Browser mit Handy-Profil gegen eine simulierte Datenbank: Prüfliste, Vorschau, Versand (Nutzlast mit Snapshot ohne Kalkulationsdaten), Ergebnisseite.
+
+### Abweichungen M5
+
+| Nr. | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-25 | Versandweg | Edge Functions `render-quote-pdf`/`send-email`, `prepare/commit_quote_send` nur für `service_role` | RPC `send_quote` für Admins, Snapshot aus der App (Datenbank prüft Konsistenz und rechnet den Hash); PDF auf dem Gerät aus dem Snapshot; E-Mail über die E-Mail-App des Nutzers (mailto) mit Portal-Link | Es gibt weder SMTP (E-3) noch ein Edge-Function-Deployment; der Gründer kann nur SQL einspielen. Der Versand bleibt eine Transaktion, Revisionen bleiben abrufbar (`quote_revisions` statt PDF-Dateien) |
+| A-26 | Zustellstatus | `email_status` mit Bounces | entfällt, solange kein Dienst sendet | siehe A-25 |
+| A-27 | Portal-Links | ein neuer Link je Versand | frühere Links bleiben gültig (zeigen immer die aktuelle Fassung); neue Links über „Neuen Link erzeugen“, sperren über `revoke_portal_tokens` | einfacher für den Kunden |
+
+### Noch offen
+
+Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kunden (M6), Sperren der Links in der App, echter E-Mail-Versand mit PDF-Anhang (E-3), Allergen-Anzeige live im Portal.
 
 ## Nicht in M0 gebaut (bewusst)
 

@@ -175,6 +175,7 @@ function Editor({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const save = useSaveQuote();
   const dishPrices = useDishPrices().data;
   const packagePrices = usePackagePrices().data;
@@ -224,24 +225,24 @@ function Editor({
     return { p, s, calc, cost };
   };
 
-  const flush = () => {
+  /** Speichert den wartenden Stand sofort; `true`, wenn nichts mehr aussteht. */
+  const flush = async (): Promise<boolean> => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     const payload = pending.current;
-    if (!payload) return;
+    if (!payload) return true;
     pending.current = null;
     const sent = seconds.current;
     setStatus('saving');
-    save.mutate(
-      { ...payload, editor_seconds: sent },
-      {
-        onSuccess: () => {
-          seconds.current = Math.max(0, seconds.current - sent);
-          setStatus('saved');
-        },
-        onError: () => setStatus('error'),
-      },
-    );
+    try {
+      await save.mutateAsync({ ...payload, editor_seconds: sent });
+      seconds.current = Math.max(0, seconds.current - sent);
+      setStatus('saved');
+      return true;
+    } catch {
+      setStatus('error');
+      return false;
+    }
   };
 
   const change = (fn: (d: Doc) => Doc) => {
@@ -278,7 +279,7 @@ function Editor({
     });
     setStatus('saving');
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(flush, AUTOSAVE_MS);
+    timer.current = setTimeout(() => void flush(), AUTOSAVE_MS);
   };
 
   const { p: parsedValues, calc, cost } = compute(doc);
@@ -354,8 +355,12 @@ function Editor({
   };
 
   const finish = () => {
-    flush();
+    void flush();
     onBack();
+  };
+  const toSend = async () => {
+    if (await flush())
+      router.push({ pathname: '/events/[id]/quote-send', params: { id: header.event_id } });
   };
 
   const rohertrag =
@@ -377,6 +382,9 @@ function Editor({
       >
         {t(`quote.status.${status}`)}
       </Text>
+      {header.revision > 0 ? (
+        <Banner tone="info">{t('quoteSend.editFirst', { n: header.revision })}</Banner>
+      ) : null}
       {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
       {warnings.map((w) => (
         <Banner key={w} tone="warning">
@@ -659,7 +667,12 @@ function Editor({
           </>
         ) : null}
       </View>
-      <Button label={t('quote.done')} onPress={finish} />
+      <Button
+        label={header.revision > 0 ? t('quote.toSendAgain') : t('quote.toSend')}
+        disabled={save.isPending}
+        onPress={() => void toSend()}
+      />
+      <Button label={t('quote.done')} variant="secondary" onPress={finish} />
     </Screen>
   );
 }
