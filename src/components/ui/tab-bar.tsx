@@ -2,13 +2,14 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Tabs } from 'expo-router';
 import { Plus } from 'lucide-react-native';
-import { useState, type ComponentProps } from 'react';
+import { useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tokens } from '@/theme/tokens';
 
+import type { Origin } from './create-morph';
 import { PressableScale } from './pressable-scale';
 import { Text } from './text';
 
@@ -33,9 +34,11 @@ export function FloatingTabBar({
   navigateToTab,
   onCreate,
   createLabel = 'Neu anlegen',
-}: TabBarProps & { onCreate?: () => void; createLabel?: string }) {
+}: TabBarProps & { onCreate?: (origin: Origin) => void; createLabel?: string }) {
   const insets = useSafeAreaInsets();
   const [width, setWidth] = useState(0);
+  // Lage des „+“ auf dem Bildschirm: Das Anlegen-Menü wächst genau aus ihm heraus.
+  const createRef = useRef<ComponentRef<typeof View>>(null);
 
   const tabs = state.routes
     .map((route, index) => ({ route, index }))
@@ -79,28 +82,32 @@ export function FloatingTabBar({
           if (slot.kind === 'create') {
             return (
               <View key="create" style={styles.slot}>
-                <PressableScale
-                  accessibilityRole="button"
-                  accessibilityLabel={createLabel}
-                  scale={0.88}
-                  onPress={() => {
-                    if (Platform.OS !== 'web')
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    onCreate?.();
-                  }}
-                  style={styles.create}
-                >
-                  <LinearGradient
-                    colors={[tokens.color.accentGradientFrom, tokens.color.accentGradientTo]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  {/* Eigene Ebene: im Web läge der Verlauf sonst über dem Symbol. */}
-                  <View>
-                    <Plus color={tokens.color.onAccent} size={24} strokeWidth={2.6} />
-                  </View>
-                </PressableScale>
+                <View ref={createRef} collapsable={false}>
+                  <PressableScale
+                    accessibilityRole="button"
+                    accessibilityLabel={createLabel}
+                    scale={0.88}
+                    onPress={() => {
+                      if (Platform.OS !== 'web')
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      createRef.current?.measureInWindow((x, y, w, h) =>
+                        onCreate?.({ x, y, width: w, height: h }),
+                      );
+                    }}
+                    style={styles.create}
+                  >
+                    <LinearGradient
+                      colors={[tokens.color.accentGradientFrom, tokens.color.accentGradientTo]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    {/* Eigene Ebene: im Web läge der Verlauf sonst über dem Symbol. */}
+                    <View>
+                      <Plus color={tokens.color.onAccent} size={24} strokeWidth={2.6} />
+                    </View>
+                  </PressableScale>
+                </View>
               </View>
             );
           }

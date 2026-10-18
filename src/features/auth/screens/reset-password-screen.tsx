@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { CodeInput } from '@/components/ui/code-input';
 import { TextField } from '@/components/ui/text-field';
 import { authEmailCode } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
@@ -201,18 +202,15 @@ function CodeForm({ email }: { email: string }) {
           control={control}
           name="code"
           render={({ field, fieldState }) => (
-            <TextField
+            <CodeInput
               label={t('auth.verify.codeLabel')}
+              helper={t('auth.verify.codeHint')}
               value={field.value}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
+              // Hier nicht automatisch absenden: Das neue Passwort fehlt noch.
+              onChange={field.onChange}
+              length={OTP_LENGTH}
               error={fieldState.error ? t(fieldState.error.message ?? '') : undefined}
-              inputMode="numeric"
-              keyboardType="number-pad"
-              maxLength={OTP_LENGTH}
-              autoComplete="one-time-code"
-              textContentType="oneTimeCode"
-              autoCorrect={false}
+              autoFocus
             />
           )}
         />

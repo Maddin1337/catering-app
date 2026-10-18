@@ -24,6 +24,7 @@ import { useCompanyProfile, useMembership } from '../../company/api';
 import { StatGrid } from '../../start/components/stat-grid';
 import { NotificationBell } from '../../notifications/components/notification-bell';
 import { whenLabel } from '../../start/components/next-event-card';
+import { LiveIsland } from '../../start/components/live-island';
 import { WeekStrip } from '../../start/components/week-strip';
 import { daysUntilIso, firstName, greetingPart, stripFromTimestamps } from '../../start/overview';
 import { useCancelMine, useMyShifts, useShiftBoard } from '../api';
@@ -106,6 +107,18 @@ export function MyShiftsScreen({ standalone = false }: { standalone?: boolean })
           onPress={() => void Linking.openURL(`tel:${phone.replace(/\s+/g, '')}`)}
         />
       ) : null}
+
+      <LiveIsland
+        items={current
+          .filter((s) => FIRM.includes(s.status) && !s.is_called_off)
+          .map((s) => ({
+            id: s.application_id,
+            title: s.event_title ?? s.title,
+            starts_at: s.starts_at,
+            ends_at: s.ends_at,
+            place: [s.venue_name, s.city].filter(Boolean).join(', ') || null,
+          }))}
+      />
 
       <WeekStrip
         days={stripFromTimestamps(

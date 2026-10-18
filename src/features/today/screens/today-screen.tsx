@@ -32,6 +32,7 @@ import { useDietary, useEvents, useScheduleItems } from '../../events/api';
 import type { EventRow } from '../../events/types';
 import { NextEventCard } from '../../start/components/next-event-card';
 import { StatGrid } from '../../start/components/stat-grid';
+import { LiveIsland } from '../../start/components/live-island';
 import { WeekStrip } from '../../start/components/week-strip';
 import { daysUntil, firstName, greetingPart, nextEvent, weekStrip } from '../../start/overview';
 
@@ -68,6 +69,14 @@ export function TodayScreen() {
       actions={<NotificationBell />}
     >
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
+
+      <LiveIsland
+        items={firm.map((e) => ({
+          ...e,
+          place: [e.venue_name, e.city].filter(Boolean).join(', ') || null,
+        }))}
+        onOpen={(id) => router.push({ pathname: '/events/[id]', params: { id } })}
+      />
 
       <WeekStrip days={weekStrip(firm)} />
 

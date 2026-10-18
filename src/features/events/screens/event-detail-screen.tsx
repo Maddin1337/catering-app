@@ -19,6 +19,7 @@ import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Appear } from '@/components/ui/appear';
 import type { SheetAction } from '@/components/ui/action-sheet';
+import { AvatarStack } from '@/components/ui/avatar-stack';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
@@ -40,6 +41,7 @@ import { useExistingQuote } from '../../quotes/api';
 import { PortalStatus } from '../../quotes/components/portal-status';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
 import { useApplications, useSlots } from '../../shifts/api';
+import { useTeamMembers } from '../../team/api';
 import { StaffingTab } from '../../shifts/components/staffing-tab';
 import { whenLabel } from '../../start/components/next-event-card';
 import { daysUntil } from '../../start/overview';
@@ -117,9 +119,21 @@ export function EventDetailScreen() {
   const [showHistory, setShowHistory] = useState(false);
   // Offene Bewerbungen als Zahl am Reiter „Personal“ (dieselben Abfragen wie im Reiter, aus dem Cache).
   const slots = useSlots(isAdmin ? id : undefined).data ?? [];
-  const pendingApps = (useApplications(slots.map((s) => s.id)).data ?? []).filter(
-    (a) => a.status === 'applied',
-  ).length;
+  const apps = useApplications(slots.map((s) => s.id)).data ?? [];
+  const pendingApps = apps.filter((a) => a.status === 'applied').length;
+  // Eingeplantes Team als Gesichter-Stapel in der Zusammenfassung.
+  const members = useTeamMembers().data ?? [];
+  const liveSlots = new Set(slots.filter((s) => !s.cancelled_at).map((s) => s.id));
+  const team = [
+    ...new Set(
+      apps
+        .filter(
+          (a) =>
+            liveSlots.has(a.shift_slot_id) && (a.status === 'accepted' || a.status === 'assigned'),
+        )
+        .map((a) => a.member_id),
+    ),
+  ].map((mid) => members.find((m) => m.id === mid)?.display_name ?? '?');
 
   if (!event) {
     return (
@@ -269,6 +283,17 @@ export function EventDetailScreen() {
           <Fact icon={Hourglass}>
             {`${t('events.detail.optionUntil')}: ${formatDate(event.option_expires_at)}`}
           </Fact>
+        ) : null}
+        {team.length > 0 ? (
+          <View style={styles.teamRow}>
+            <AvatarStack
+              names={team}
+              label={t('events.detail.teamA11y', { names: team.join(', ') })}
+            />
+            <Text variant="small" color="textSecondary">
+              {t('events.detail.team', { count: team.length })}
+            </Text>
+          </View>
         ) : null}
       </Surface>
 
@@ -427,6 +452,7 @@ export function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   summary: { gap: tokens.space[3], padding: tokens.space[4] },
+  teamRow: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[3] },
   summaryTop: {
     flexDirection: 'row',
     alignItems: 'center',

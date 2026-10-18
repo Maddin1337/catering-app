@@ -13,7 +13,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
-import { SearchField } from '@/components/ui/search-field';
+import { SearchToggle } from '@/components/ui/search-toggle';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
@@ -73,25 +73,27 @@ export function CustomersScreen() {
       {customers.error ? (
         <Banner tone="danger">{toAppError(customers.error).message}</Banner>
       ) : null}
-      <SearchField
+      <SearchToggle
         label={t('customers.search')}
         clearLabel={t('common.clear')}
+        openLabel={t('common.search')}
         value={query}
         onChangeText={setQuery}
-      />
-      <ChipRow>
-        <Chip label={t('customers.all')} selected={type === null} onPress={() => setType(null)} />
-        <Chip
-          label={t('customers.type.business')}
-          selected={type === 'business'}
-          onPress={() => setType(type === 'business' ? null : 'business')}
-        />
-        <Chip
-          label={t('customers.type.private')}
-          selected={type === 'private'}
-          onPress={() => setType(type === 'private' ? null : 'private')}
-        />
-      </ChipRow>
+      >
+        <ChipRow bleedLeft={false}>
+          <Chip label={t('customers.all')} selected={type === null} onPress={() => setType(null)} />
+          <Chip
+            label={t('customers.type.business')}
+            selected={type === 'business'}
+            onPress={() => setType(type === 'business' ? null : 'business')}
+          />
+          <Chip
+            label={t('customers.type.private')}
+            selected={type === 'private'}
+            onPress={() => setType(type === 'private' ? null : 'private')}
+          />
+        </ChipRow>
+      </SearchToggle>
       {customers.isPending ? <SkeletonList /> : null}
       {!customers.isPending && (customers.data ?? []).length === 0 ? (
         <EmptyState icon={Users} tint="sky" text={t('customers.empty')} />

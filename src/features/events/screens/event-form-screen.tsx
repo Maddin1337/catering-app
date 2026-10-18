@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { FormSection } from '@/components/ui/form-section';
@@ -14,6 +13,7 @@ import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { TimeField } from '@/components/ui/time-field';
+import { SwitchRow } from '@/components/ui/switch';
 import { berlinToIso, endIso, formatGermanDate, isoToBerlin, todayBerlin } from '@/lib/berlin';
 import { toAppError } from '@/lib/errors';
 
@@ -294,7 +294,7 @@ function EventForm({
           inputMode="numeric"
         />
         <TextField label={t('events.form.city')} value={city} onChangeText={setCity} />
-        <Checkbox label={t('events.form.pickup')} checked={pickup} onChange={setPickup} />
+        <SwitchRow label={t('events.form.pickup')} value={pickup} onChange={setPickup} />
       </FormSection>
       <FormSection title={t('events.form.section.contact')}>
         <TextField

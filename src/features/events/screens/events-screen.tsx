@@ -8,12 +8,13 @@ import { ActionSheet } from '@/components/ui/action-sheet';
 import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Chip } from '@/components/ui/chip';
+import { ChipRow } from '@/components/ui/chip-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { Screen } from '@/components/ui/screen';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
-import { SearchField } from '@/components/ui/search-field';
+import { SearchToggle } from '@/components/ui/search-toggle';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { toAppError } from '@/lib/errors';
 
@@ -74,27 +75,29 @@ export function EventsScreen() {
           ]}
         />
       ) : null}
-      <SearchField
-        label={t('events.search')}
-        clearLabel={t('common.clear')}
-        value={filters.query}
-        onChangeText={(v) => setFilters((f) => ({ ...f, query: v }))}
-      />
       <SegmentedTabs
         items={MODES.map((m) => ({ key: m, label: t(`events.mode.${m}`) }))}
         active={filters.mode === 'all' ? 'upcoming' : filters.mode}
         onChange={(m) => setFilters((f) => ({ ...f, mode: m }))}
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {(['event_catering', 'business_lunch'] as const).map((k) => (
-          <Chip
-            key={k}
-            label={t(`events.kind.${k}`)}
-            selected={filters.kind === k}
-            onPress={() => setFilters((f) => ({ ...f, kind: f.kind === k ? null : k }))}
-          />
-        ))}
-      </View>
+      <SearchToggle
+        label={t('events.search')}
+        clearLabel={t('common.clear')}
+        openLabel={t('common.search')}
+        value={filters.query}
+        onChangeText={(v) => setFilters((f) => ({ ...f, query: v }))}
+      >
+        <ChipRow bleedLeft={false}>
+          {(['event_catering', 'business_lunch'] as const).map((k) => (
+            <Chip
+              key={k}
+              label={t(`events.kind.${k}`)}
+              selected={filters.kind === k}
+              onPress={() => setFilters((f) => ({ ...f, kind: f.kind === k ? null : k }))}
+            />
+          ))}
+        </ChipRow>
+      </SearchToggle>
       {events.isPending ? <SkeletonList rows={4} /> : null}
       {!events.isPending && (events.data ?? []).length === 0 ? (
         <EmptyState icon={PartyPopper} text={t('events.empty')} />

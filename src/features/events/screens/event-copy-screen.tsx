@@ -5,12 +5,12 @@ import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
+import { SwitchRow } from '@/components/ui/switch';
 import { addDays, berlinToIso, isoToBerlin } from '@/lib/berlin';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
@@ -164,7 +164,7 @@ export function EventCopyScreen() {
             ) : null}
           </>
         ) : null}
-        <Checkbox label={t('events.copy.dietary')} checked={dietary} onChange={setDietary} />
+        <SwitchRow label={t('events.copy.dietary')} value={dietary} onChange={setDietary} />
       </View>
     </Screen>
   );

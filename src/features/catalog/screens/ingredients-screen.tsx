@@ -8,11 +8,12 @@ import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { ChipRow } from '@/components/ui/chip-row';
 import { IconButton } from '@/components/ui/icon-button';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { SearchField } from '@/components/ui/search-field';
+import { SearchToggle } from '@/components/ui/search-toggle';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
@@ -92,19 +93,21 @@ export function IngredientsScreen() {
         />
       ) : (
         <>
-          <SearchField
+          <SearchToggle
             label={t('catalog.search')}
             clearLabel={t('common.clear')}
+            openLabel={t('common.search')}
             value={query}
             onChangeText={setQuery}
-          />
-          <View style={{ flexDirection: 'row' }}>
-            <Chip
-              label={t('catalog.archive')}
-              selected={archived}
-              onPress={() => setArchived((a) => !a)}
-            />
-          </View>
+          >
+            <ChipRow bleedLeft={false}>
+              <Chip
+                label={t('catalog.archive')}
+                selected={archived}
+                onPress={() => setArchived((a) => !a)}
+              />
+            </ChipRow>
+          </SearchToggle>
           <View style={{ gap: 8 }}>
             {shown.map((i, n) => {
               const price = priceById.get(i.id);

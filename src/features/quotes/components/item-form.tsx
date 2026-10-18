@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioList } from '@/components/ui/radio-list';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -11,6 +10,7 @@ import { formatCents } from '@/lib/money';
 import { centsToEuroInput, parseEuroToCents } from '@/lib/money-input';
 import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
 import { surfaceStyle } from '@/components/ui/surface';
+import { SwitchRow } from '@/components/ui/switch';
 import { tokens } from '@/theme/tokens';
 
 import type { TaxRate } from '../../company/types';
@@ -125,7 +125,7 @@ export function ItemForm({
             onChangeText={setDescription}
             multiline
           />
-          <Checkbox label={t('quote.item.perGuest')} checked={perGuest} onChange={setPerGuest} />
+          <SwitchRow label={t('quote.item.perGuest')} value={perGuest} onChange={setPerGuest} />
           {!perGuest ? (
             <TextField
               label={t('quote.item.qty')}
@@ -203,9 +203,9 @@ export function ItemForm({
             onChangeText={setGroup}
           />
           {group.trim() ? (
-            <Checkbox label={t('quote.item.selected')} checked={selected} onChange={setSelected} />
+            <SwitchRow label={t('quote.item.selected')} value={selected} onChange={setSelected} />
           ) : null}
-          <Checkbox label={t('quote.item.customerQty')} checked={custQty} onChange={setCustQty} />
+          <SwitchRow label={t('quote.item.customerQty')} value={custQty} onChange={setCustQty} />
         </>
       ) : null}
       <Button label={t('common.save')} onPress={submit} />

@@ -8,7 +8,7 @@ import { Linking } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
-import { TextField } from '@/components/ui/text-field';
+import { CodeInput } from '@/components/ui/code-input';
 import { authEmailCode } from '@/lib/env';
 import { toAppError } from '@/lib/errors';
 
@@ -139,20 +139,18 @@ function CheckMail({ email }: { email: string }) {
             control={control}
             name="code"
             render={({ field, fieldState }) => (
-              <TextField
+              <CodeInput
                 label={t('auth.verify.codeLabel')}
                 helper={t('auth.verify.codeHint')}
                 value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
+                onChange={(v) => {
+                  field.onChange(v);
+                  // Vollständig eingegeben oder eingefügt: gleich prüfen, ohne extra Tippen.
+                  if (v.length === OTP_LENGTH) setTimeout(() => void submit(), 0);
+                }}
+                length={OTP_LENGTH}
                 error={fieldState.error ? t(fieldState.error.message ?? '') : undefined}
-                inputMode="numeric"
-                keyboardType="number-pad"
-                maxLength={OTP_LENGTH}
-                autoComplete="one-time-code"
-                textContentType="oneTimeCode"
-                autoCorrect={false}
-                onSubmitEditing={() => void submit()}
+                autoFocus
               />
             )}
           />

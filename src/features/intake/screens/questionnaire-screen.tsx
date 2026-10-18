@@ -5,7 +5,6 @@ import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { RadioList } from '@/components/ui/radio-list';
@@ -24,6 +23,7 @@ import {
   type Target,
 } from '@/lib/intake';
 import { surfaceStyle } from '@/components/ui/surface';
+import { SwitchRow } from '@/components/ui/switch';
 import { tokens } from '@/theme/tokens';
 
 import {
@@ -319,7 +319,7 @@ function QuestionForm({
           }
         />
       ) : null}
-      <Checkbox label={t('intake.form.required')} checked={required} onChange={setRequired} />
+      <SwitchRow label={t('intake.form.required')} value={required} onChange={setRequired} />
 
       <RadioList
         label={t('intake.form.target')}

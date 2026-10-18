@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
+import { SlideToConfirm } from '@/components/ui/slide-to-confirm';
 import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Text } from '@/components/ui/text';
@@ -60,7 +61,7 @@ export function StatusDialog({
 
   const submit = () => {
     setTried(true);
-    if (optionError || channelError || reasonError) return;
+    if (optionError || channelError || reasonError) return false;
     set.mutate(
       {
         eventId: event.id,
@@ -97,12 +98,13 @@ export function StatusDialog({
             style={{ flex: 1 }}
             onPress={onClose}
           />
-          <Button
+          {/* Unumkehrbar: bewusst schieben statt antippen. */}
+          <SlideToConfirm
             label={t(`events.action.${actionKey}`)}
-            variant={danger ? 'danger' : 'dark'}
-            style={{ flex: 1 }}
-            loading={set.isPending}
-            onPress={submit}
+            hint={t('common.slideHint')}
+            tone={danger ? 'danger' : 'accent'}
+            busy={set.isPending}
+            onConfirm={submit}
           />
         </>
       }

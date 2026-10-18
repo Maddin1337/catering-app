@@ -5,12 +5,12 @@ import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ListRow } from '@/components/ui/list-row';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { SwitchRow } from '@/components/ui/switch';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
 import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
@@ -167,11 +167,11 @@ function RateForm({
           {t('settings.tax.isDefaultNote')}
         </Text>
       ) : (
-        <Checkbox
+        <SwitchRow
           label={t('settings.tax.makeDefault', {
             category: t(`settings.tax.categories.${category}`),
           })}
-          checked={isDefault}
+          value={isDefault}
           onChange={setIsDefault}
         />
       )}

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
@@ -11,6 +10,7 @@ import { TextField } from '@/components/ui/text-field';
 import { formatCents } from '@/lib/money';
 import { centsToEuroInput, parseEuroToCents, parseQuantityToHundredths } from '@/lib/money-input';
 import { surfaceStyle } from '@/components/ui/surface';
+import { SwitchRow } from '@/components/ui/switch';
 import { tokens } from '@/theme/tokens';
 
 import type { ItemTemplate } from '../types';
@@ -230,9 +230,9 @@ export function ItemTemplates({
               keyboardType="decimal-pad"
             />
           ) : null}
-          <Checkbox
+          <SwitchRow
             label={t('settings.quoteTexts.templatePerGuest')}
-            checked={editing.draft.perGuest}
+            value={editing.draft.perGuest}
             onChange={(c) => set({ perGuest: c })}
           />
           {invalid ? (

@@ -63,6 +63,26 @@ Alle Reanimated-Wirkungen folgen „Bewegung reduzieren“; `AnimatedNumber` spr
 
 **Hinweis Web:** Eigene Startwerte (`withInitialValues`) und Layout-Übergänge in Scrollbereichen vermeiden – Reanimated positioniert solche Elemente im Web danach absolut bzw. hält Scrollen für Bewegung.
 
+## Bencho-Bausteine (Oktober 2026, dritte Runde)
+
+Nachbauten für React Native nach frei lizenzierten Blöcken aus Bencho (bencho.dev, MIT, © 2026 Lorenzo Cabra; Lizenztext in `THIRD_PARTY_NOTICES.md`). Übernommen wurde die Idee und die Bewegung, nicht der Web-Code: Gesten mit `PanResponder`, Federn und Übergänge mit Reanimated, Haken mit `react-native-svg`. Jede Datei nennt im Kopf ihr Vorbild.
+
+| Baustein | Wo in der App | Was er tut |
+|---|---|---|
+| `SlideToConfirm` (`slide-to-confirm`) | Statuswechsel im Auftrag (rot bei Absagen/Stornieren), „Alle als durchgeführt markieren“ | Griff folgt dem Finger, löst erst am Ende der Bahn aus, entfaltet sich dann über die Bahn, Pfeil wird zum Haken, Kreisel während des Speicherns. Schlägt die Aktion fehl, rollt er zurück. Bildschirmleser bestätigen über die Standardaktion. |
+| `SwitchRow` (`liq-toggle`) | Ja/Nein-Einstellungen in Formularen (Abholung, Optionen einrechnen, Sonderessen mitkopieren, Pflichtfrage, pro Gast, Standard-Steuersatz …) | Daumen dehnt sich auf halbem Weg wie ein Tropfen; die ganze Zeile schaltet. Auswahl aus mehreren Dingen und Einwilligungen bleiben Kästchen. |
+| `Checkbox` (`checklist`) | überall, wo Kästchen bleiben; Einkaufsliste mit `strike` | Haken wird gezeichnet, Fläche federt, erledigte Einträge werden durchgestrichen. |
+| `TextField` (`label-input`) | alle Formulare | Beschriftung sitzt im Feld und hebt sich beim Tippen nach oben; Fehler schütteln das Feld kurz. |
+| `CodeInput` (`one-time-code`) | E-Mail bestätigen, Passwort zurücksetzen (nur mit Code-Modus) | sechs Kästchen, blinkender Cursor, Ziffern springen hinein; Einfügen und iOS-Codevorschlag funktionieren (`oneTimeCode`). Beim Bestätigen wird nach der 6. Ziffer automatisch gesendet. |
+| `SearchToggle` (`seek`) | Aufträge, Kunden, Gerichte, Zutaten | Die Lupe wird selbst zum Suchfeld, die Filter-Chips daneben treten zur Seite. |
+| `CreateMorph` (`liq-create`) | „+“ in der Tab-Leiste (Admin) | Das Menü wächst aus dem Knopf, Petrol geht in Weiß über, Einträge kommen gestaffelt. |
+| `ToastHost` (`toast-stack`) | alle Rückmeldungen | Mehrere Meldungen stapeln sich (höchstens drei), Tippen fächert den Stapel auf. |
+| `AvatarStack` (`picker`) | Auftragsdetail, Zusammenfassung | Gesichter der eingeplanten Personen überlappend in einer Pille, ab vier „+n“. |
+| `LiveIsland` (`dynamic-island`) | Start (Admin), Heute (Küche), Meine Schichten (Personal) | Schwarze Pille, solange ein Auftrag/eine Schicht läuft oder in den nächsten 3 Stunden beginnt: pulsierender Punkt, Restzeit; Tippen klappt Zeit, Ort, Fortschritt und „Öffnen“ auf. Logik in `src/features/start/live.ts` (getestet). |
+| Scrubbing in `RevenueCard` (`stacked-bars`) | Start (Admin), Auftragswert | Finger über die Balken wählt einen Monat; Zahl, Titel und Zeilen zählen auf diesen Monat um, ein Lichtkasten gleitet mit, die anderen Balken treten zurück. |
+
+**Bewusst nicht übernommen:** alle Pro-Blöcke (andere Lizenz) und Blöcke, die auf dem Handy von Maus-Hover leben oder in dieser App keinen passenden Einsatzort haben (z. B. Partikel, Augen, Dock, Münze, Fluchtknopf, Klangflächen, Bildvergleich, Unterschrift, Sprachnotiz).
+
 ## Unverändert (Barrierefreiheit und Mobil)
 
 Tippflächen ≥ 44 dp (Tabs, Chips, Segmente und kleine Schaltflächen 44–48), Eingaben 16 px (kein Zoom in iOS Safari), Rahmen von Eingabefeldern bleiben als `borderInput` kontrastreich (≥ 3:1), Textkontraste ≥ 4,5:1 (Statusfarben ≥ 6:1). `scripts/smoke/mobile-audit.mjs` prüft das weiter automatisch.
@@ -82,6 +102,10 @@ Tippflächen ≥ 44 dp (Tabs, Chips, Segmente und kleine Schaltflächen 44–48)
 | Rückmeldung, Platzhalter | `toast.tsx`, `skeleton.tsx` |
 | Bewegung | `appear.tsx`, `animated-number.tsx`, `transition.ts` |
 | Gruppierte Liste, Chip-Reihe | `list-group.tsx`, `chip-row.tsx` |
+| Schieben zum Bestätigen, Schalter, Kästchen | `slide-to-confirm.tsx`, `switch.tsx`, `checkbox.tsx` |
+| Feld mit schwebender Beschriftung, Code-Kästchen, ausklappende Suche | `text-field.tsx`, `code-input.tsx`, `search-toggle.tsx` |
+| Anlegen-Menü aus dem „+“, Gesichter-Stapel | `create-morph.tsx`, `avatar-stack.tsx` |
+| Live-Insel, Auftragswert | `src/features/start/components/live-island.tsx`, `revenue-card.tsx` |
 
 ## Startseite (Admin)
 
@@ -104,9 +128,9 @@ Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview
 
 ## Listen, Kalender und Suche
 
-- **Auftragsliste:** Suchpille (`SearchField`), Segmente Anstehend/Vergangen/Archiv, Art als Chips, Aufträge nach Monat gruppiert (`groupByMonth`), Karten `EventListItem` mit Datumskachel, Zeit, Gästen, Kunde und Status.
+- **Auftragsliste:** ausklappende Suche (`SearchToggle`) neben den Art-Chips, Segmente Anstehend/Vergangen/Archiv, Aufträge nach Monat gruppiert (`groupByMonth`), Karten `EventListItem` mit Datumskachel, Zeit, Gästen, Kunde und Status.
 - **Kalender:** Segmente Monat/Woche/Liste, Monatskarte mit runden Tagen (gewählter Tag dunkel, heute mit Ring, Punkte in Statusfarbe), runde Pfeilknöpfe (`IconButton`), dieselben Auftragskarten für Tag, Woche und Liste.
-- **Kunden und Team:** `Avatar` mit Initialen auf Pastellgrund (Ton aus dem Namen) in `ListRow`; Suche überall als `SearchField`.
+- **Kunden und Team:** `Avatar` mit Initialen auf Pastellgrund (Ton aus dem Namen) in `ListRow`; Suche auf Kunden, Gerichten und Zutaten als `SearchToggle`, in Auswahlblättern weiter als `SearchField`.
 - **Datumsauswahl:** Monatspfeile als `IconButton`.
 
 ## Auftragsreiter (Personal, Zeitplan, Küche)

@@ -14,7 +14,9 @@
     "save": "Speichern",
     "saved": "Gespeichert.",
     "remove": "Entfernen",
-    "clear": "Leeren"
+    "clear": "Leeren",
+    "slideHint": "Zum Bestätigen nach rechts schieben",
+    "search": "Suchen"
   },
   "auth": {
     "onlineOnly": "Anmeldung nur online.",
@@ -820,7 +822,10 @@
       "call": "Anrufen",
       "open": "Offen",
       "historyEntry": "{{from}} → {{to}}",
-      "quoteSent": "Fassung {{n}} versendet"
+      "quoteSent": "Fassung {{n}} versendet",
+      "team_one": "{{count}} Person eingeplant",
+      "team_other": "{{count}} Personen eingeplant",
+      "teamA11y": "Eingeplant: {{names}}"
     },
     "dialog": {
       "title": "„{{title}}“: {{action}}?",
@@ -1003,6 +1008,17 @@
       "legendOpen": "Im Angebot",
       "note": "Nach Monat der Veranstaltung, laut gesendetem Angebot. Spätere Auswahl-Änderungen im Portal sind nicht eingerechnet.",
       "a11y": "{{month}}: {{booked}} gebucht, {{open}} im Angebot"
+    },
+    "live": {
+      "running": "Läuft",
+      "soon": "Gleich",
+      "left": "noch {{value}} {{unit}}",
+      "in": "in {{value}} {{unit}}",
+      "unit": {
+        "h": "Std.",
+        "min": "Min."
+      },
+      "open": "Öffnen"
     }
   },
   "today": {

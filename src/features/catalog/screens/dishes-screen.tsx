@@ -16,7 +16,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { SkeletonList } from '@/components/ui/skeleton';
 import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
-import { SearchField } from '@/components/ui/search-field';
+import { SearchToggle } from '@/components/ui/search-toggle';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { formatCents } from '@/lib/money';
 import { toAppError } from '@/lib/errors';
@@ -75,37 +75,39 @@ export function DishesScreen() {
     >
       <CatalogTabs active="dishes" />
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      <SearchField
+      <SearchToggle
         label={t('catalog.search')}
         clearLabel={t('common.clear')}
+        openLabel={t('common.search')}
         value={filters.query}
         onChangeText={(v) => set('query', v)}
-      />
-      <ChipRow>
-        <Chip
-          label={
-            extraFilters > 0
-              ? t('catalog.filterCount', { count: extraFilters })
-              : t('catalog.filter')
-          }
-          selected={extraFilters > 0}
-          icon={SlidersHorizontal}
-          onPress={() => setFilterOpen(true)}
-        />
-        <Chip
-          label={t('catalog.all')}
-          selected={filters.category === null}
-          onPress={() => set('category', null)}
-        />
-        {DISH_CATEGORIES.map((c) => (
+      >
+        <ChipRow bleedLeft={false}>
           <Chip
-            key={c}
-            label={t(`catalog.category.${c}`)}
-            selected={filters.category === c}
-            onPress={() => set('category', filters.category === c ? null : c)}
+            label={
+              extraFilters > 0
+                ? t('catalog.filterCount', { count: extraFilters })
+                : t('catalog.filter')
+            }
+            selected={extraFilters > 0}
+            icon={SlidersHorizontal}
+            onPress={() => setFilterOpen(true)}
           />
-        ))}
-      </ChipRow>
+          <Chip
+            label={t('catalog.all')}
+            selected={filters.category === null}
+            onPress={() => set('category', null)}
+          />
+          {DISH_CATEGORIES.map((c) => (
+            <Chip
+              key={c}
+              label={t(`catalog.category.${c}`)}
+              selected={filters.category === c}
+              onPress={() => set('category', filters.category === c ? null : c)}
+            />
+          ))}
+        </ChipRow>
+      </SearchToggle>
       {filterOpen ? (
         <Sheet
           title={t('catalog.filterTitle')}

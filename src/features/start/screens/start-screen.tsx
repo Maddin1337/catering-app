@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Sheet } from '@/components/ui/sheet';
+import { SlideToConfirm } from '@/components/ui/slide-to-confirm';
 import { Text } from '@/components/ui/text';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
@@ -37,6 +38,7 @@ import { useStaffingOverview } from '../../shifts/api';
 import { useTeamMembers } from '../../team/api';
 import { useRevenueOverview } from '../api';
 import { AgendaRow } from '../components/agenda-row';
+import { LiveIsland } from '../components/live-island';
 import { NextEventCard } from '../components/next-event-card';
 import { SetupCard } from '../components/setup-card';
 import { StatGrid } from '../components/stat-grid';
@@ -139,6 +141,13 @@ export function StartScreen() {
         <Banner tone="info">{t('start.trial', { date: formatDate(trialEnd) })}</Banner>
       ) : null}
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
+
+      <LiveIsland
+        items={all
+          .filter((e) => e.status === 'optioned' || e.status === 'confirmed')
+          .map((e) => ({ ...e, place: [e.venue_name, e.city].filter(Boolean).join(', ') || null }))}
+        onOpen={open}
+      />
 
       <Appear index={0}>
         <WeekStrip days={weekStrip(all)} />
@@ -324,11 +333,11 @@ function CompleteDialog({ events, onClose }: { events: EventRow[]; onClose: () =
             style={{ flex: 1 }}
             onPress={onClose}
           />
-          <Button
+          <SlideToConfirm
             label={t('start.completeAll')}
-            style={{ flex: 1 }}
-            loading={busy}
-            onPress={() => void run()}
+            hint={t('common.slideHint')}
+            busy={busy}
+            onConfirm={() => void run()}
           />
         </>
       }

@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { SwitchRow } from '@/components/ui/switch';
 import { addDays, formatGermanDate, todayBerlin } from '@/lib/berlin';
 import { toAppError } from '@/lib/errors';
 import { parsePercentToBp } from '@/lib/percent';
@@ -142,7 +143,7 @@ export function KitchenPlanScreen() {
       <View style={{ gap: 12 }}>
         <DateField label={t('kitchenPlan.from')} value={from} onChange={(v) => v && setFrom(v)} />
         <DateField label={t('kitchenPlan.to')} value={to} onChange={(v) => v && setTo(v)} />
-        <Checkbox label={t('kitchenPlan.options')} checked={options} onChange={setOptions} />
+        <SwitchRow label={t('kitchenPlan.options')} value={options} onChange={setOptions} />
       </View>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {(['production', 'special', 'shopping'] as Tab[]).map((x) => (
@@ -301,6 +302,7 @@ export function KitchenPlanScreen() {
               {items.map((i) => (
                 <Checkbox
                   key={i.ingredientId}
+                  strike
                   label={`${fmt(i.value)} ${t(`kitchenPlan.unit.${i.displayUnit}`)} ${i.name}`}
                   checked={checked.has(i.ingredientId)}
                   onChange={(c) =>

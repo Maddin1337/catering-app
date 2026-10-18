@@ -17,7 +17,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { ActionSheet } from '@/components/ui/action-sheet';
+import { CreateMorph, type Origin } from '@/components/ui/create-morph';
 import { FloatingTabBar } from '@/components/ui/tab-bar';
 
 import { useMembership } from '@/features/company/api';
@@ -36,7 +36,7 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const router = useRouter();
   const role = useMembership().data?.role ?? 'staff';
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<Origin | null>(null);
   const visible = (name: string) => (TABS[role].includes(name) ? undefined : (null as null));
   const icon = (Icon: typeof House) =>
     function TabIcon({ color, size }: { color: unknown; size: number }) {
@@ -59,7 +59,7 @@ export default function TabsLayout() {
         tabBar={(props) => (
           <FloatingTabBar
             {...props}
-            onCreate={role === 'admin' ? () => setCreating(true) : undefined}
+            onCreate={role === 'admin' ? setCreating : undefined}
             createLabel={t('tabs.create')}
           />
         )}
@@ -111,9 +111,10 @@ export default function TabsLayout() {
         />
       </Tabs>
       {creating ? (
-        <ActionSheet
+        <CreateMorph
+          origin={creating}
           title={t('create.title')}
-          onClose={() => setCreating(false)}
+          onClose={() => setCreating(null)}
           actions={create.map((c) => ({
             label: t(`create.${c.key}`),
             hint: t(`create.${c.key}Hint`),
