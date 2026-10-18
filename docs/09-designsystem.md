@@ -28,3 +28,9 @@ Tippflächen ≥ 44 dp (Tabs, Chips, Segmente und kleine Schaltflächen 44–48)
 | Schaltfläche | `src/components/ui/button.tsx` |
 | Tab-Leiste, Segmente | `tab-bar.tsx`, `segmented-tabs.tsx` |
 | Leerer Zustand, Marken-Plakette | `empty-state.tsx`, `brand-mark.tsx` |
+
+## Startseite (Admin)
+
+Aufbau von oben nach unten, nach Mustern aus Appllama (Decory, Joule, Fantastical, MileIQ, Gridwise, Xmind): Begrüßung mit Vorname und Datum, Wochenleiste (7 Tage, Punkt bei Aufträgen, heute dunkel), Hero-Karte „Als Nächstes“ (nächster optionierter oder bestätigter Auftrag mit Termin, Ort, Gästen, Status und „in n Tagen“), Fortschrittskarte „Erste Schritte“ (nur solange offen), zwei Schnellaktionen (Anfrage im Chat, Schnelles Formular), „Auf einen Blick“ (Aufträge und Gäste der nächsten 7 Tage, offene Anfragen, Angebote ohne Antwort), „Zu erledigen“ mit farbigen Symbol-Plaketten, „Heute und morgen“ als Tagesliste mit Uhrzeit.
+
+Die Berechnungen stehen in `src/features/start/overview.ts` (getestet), die Bausteine in `src/features/start/components/`. Umsatzzahlen fehlen bewusst: Angebotssummen liegen nur je Entwurf bzw. Version vor, eine Monatssumme bräuchte eine eigene, saubere Abfrage.

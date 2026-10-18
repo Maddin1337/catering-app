@@ -932,7 +932,37 @@
     "changeRequests": "{{count}} Änderungswunsch aus dem Portal",
     "applications": "{{count}} offene Bewerbung(en) auf Schichten",
     "unfilled": "{{count}} Platz/Plätze in veröffentlichten Schichten unbesetzt",
-    "quoted": "{{count}} Angebot(e) warten auf Antwort"
+    "quoted": "{{count}} Angebot(e) warten auf Antwort",
+    "greeting": {
+      "morning": "Guten Morgen",
+      "day": "Guten Tag",
+      "evening": "Guten Abend"
+    },
+    "hello": "{{greeting}}, {{name}}",
+    "week": {
+      "title": "Diese Woche",
+      "days": ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+      "dayLabel_one": "{{date}}, {{count}} Auftrag",
+      "dayLabel_other": "{{date}}, {{count}} Aufträge",
+      "dayLabelEmpty": "{{date}}, keine Aufträge"
+    },
+    "next": {
+      "label": "Als Nächstes",
+      "none": "Kein anstehender Auftrag",
+      "noneBody": "Sobald ein Auftrag optioniert oder bestätigt ist, siehst du ihn hier.",
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "inDays": "in {{count}} Tagen",
+      "open": "Auftrag öffnen"
+    },
+    "stats": {
+      "title": "Auf einen Blick",
+      "week": "Aufträge in 7 Tagen",
+      "guests": "Gäste in 7 Tagen",
+      "inquiries": "Offene Anfragen",
+      "quotes": "Angebote ohne Antwort"
+    },
+    "setupProgress": "{{done}} von {{total}} erledigt"
   },
   "today": {
     "title": "Heute",

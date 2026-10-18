@@ -1,27 +1,54 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { CalendarCheck, CircleCheck, FilePlus, MessageSquarePlus } from 'lucide-react-native';
+import {
+  CalendarCheck,
+  CalendarDays,
+  CircleCheck,
+  Clock,
+  FilePlus,
+  Hand,
+  Hourglass,
+  Inbox,
+  MessageSquarePlus,
+  MessageSquareWarning,
+  Send,
+  UserPlus,
+  Users,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { ListRow } from '@/components/ui/list-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { formatDate, formatTime } from '@/lib/dates';
+import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { tokens } from '@/theme/tokens';
 
 import { useDishes } from '../../catalog/api';
-import { useSubscription } from '../../company/api';
+import { useMembership, useSubscription } from '../../company/api';
 import { useEvents, useSetEventStatus } from '../../events/api';
-import { StatusBadge } from '../../events/components/status-badge';
 import type { EventRow } from '../../events/types';
 import { useOpenChangeRequests } from '../../quotes/api';
 import { useStaffingOverview } from '../../shifts/api';
 import { useTeamMembers } from '../../team/api';
+import { AgendaRow } from '../components/agenda-row';
+import { NextEventCard } from '../components/next-event-card';
+import { QuickActions } from '../components/quick-actions';
+import { SetupCard } from '../components/setup-card';
+import { StatGrid } from '../components/stat-grid';
+import { TodoRow } from '../components/todo-row';
+import { WeekStrip } from '../components/week-strip';
+import {
+  daysUntil,
+  firstName,
+  greetingPart,
+  nextEvent,
+  overviewStats,
+  weekStrip,
+} from '../overview';
 import { computeTodos, todayAndTomorrow } from '../todos';
 
 /** SC-12 Start (admin): Erste Schritte, heute und morgen, Zu erledigen mit Sammelaktion „Durchgeführt“. */
@@ -30,6 +57,7 @@ export function StartScreen() {
   const router = useRouter();
   const events = useEvents();
   const subscription = useSubscription();
+  const membership = useMembership();
   const members = useTeamMembers();
   const dishes = useDishes();
   const staffing = useStaffingOverview().data;
@@ -64,63 +92,110 @@ export function StartScreen() {
 
   const open = (id: string) => router.push({ pathname: '/events/[id]', params: { id } });
 
-  const dayCard = (label: string, list: EventRow[]) =>
+  const next = nextEvent(all);
+  const stats = overviewStats(all);
+  const name = firstName(membership.data?.display_name);
+  const greeting = t(`start.greeting.${greetingPart()}`);
+  const todayLabel = new Intl.DateTimeFormat('de-DE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Europe/Berlin',
+  }).format(new Date());
+
+  const agenda = (label: string, list: EventRow[]) =>
     list.length > 0 ? (
       <View style={{ gap: 8 }}>
         <Text variant="small" color="textSecondary">
           {label}
         </Text>
         {list.map((e) => (
-          <ListRow
-            key={e.id}
-            title={e.title}
-            subtitle={`${formatTime(e.starts_at)}${e.customer_name ? ` · ${e.customer_name}` : ''}`}
-            right={<StatusBadge status={e.status} />}
-            onPress={() => open(e.id)}
-          />
+          <AgendaRow key={e.id} event={e} onPress={() => open(e.id)} />
         ))}
       </View>
     ) : null;
 
   return (
-    <Screen title={t('start.title')}>
+    <Screen title={name ? t('start.hello', { greeting, name }) : greeting} subtitle={todayLabel}>
       {trialEnd ? (
         <Banner tone="info">{t('start.trial', { date: formatDate(trialEnd) })}</Banner>
       ) : null}
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
-      <Button
-        label={t('start.new')}
-        icon={MessageSquarePlus}
-        onPress={() => router.push('/events/intake')}
-      />
-      <Button
-        label={t('start.newQuick')}
-        icon={FilePlus}
-        variant="secondary"
-        onPress={() => router.push('/events/new')}
+
+      <WeekStrip days={weekStrip(all)} />
+
+      <NextEventCard
+        event={next}
+        days={next ? daysUntil(next) : 0}
+        onPress={() => next && open(next.id)}
       />
 
       {setupOpen ? (
-        <View style={{ gap: 8 }}>
-          <Text variant="title2">{t('start.setup')}</Text>
-          {setup.map((s) => (
-            <ListRow
-              key={s.key}
-              title={t(`start.${s.key}`)}
-              subtitle={s.done ? t('start.setupDone') : undefined}
-              onPress={s.done ? undefined : () => router.push(s.href)}
-            />
-          ))}
-        </View>
+        <SetupCard
+          steps={setup.map((s) => ({
+            key: s.key,
+            label: t(`start.${s.key}`),
+            done: s.done,
+            onPress: () => router.push(s.href),
+          }))}
+        />
       ) : null}
 
+      <QuickActions
+        actions={[
+          {
+            key: 'chat',
+            label: t('start.new'),
+            icon: MessageSquarePlus,
+            primary: true,
+            onPress: () => router.push('/events/intake'),
+          },
+          {
+            key: 'form',
+            label: t('start.newQuick'),
+            icon: FilePlus,
+            onPress: () => router.push('/events/new'),
+          },
+        ]}
+      />
+
       <View style={{ gap: 12 }}>
-        <Text variant="title2">{t('start.todayTomorrow')}</Text>
-        {today.length + tomorrow.length === 0 ? (
-          <EmptyState icon={CalendarCheck} text={t('start.nothing')} />
-        ) : null}
-        {dayCard(t('start.today'), today)}
-        {dayCard(t('start.tomorrow'), tomorrow)}
+        <Text variant="title2">{t('start.stats.title')}</Text>
+        <StatGrid
+          tiles={[
+            {
+              key: 'week',
+              label: t('start.stats.week'),
+              value: stats.weekEvents,
+              icon: CalendarDays,
+              tint: 'teal',
+              onPress: () => router.push('/calendar'),
+            },
+            {
+              key: 'guests',
+              label: t('start.stats.guests'),
+              value: stats.weekGuests,
+              icon: Users,
+              tint: 'violet',
+            },
+            {
+              key: 'inquiries',
+              label: t('start.stats.inquiries'),
+              value: stats.inquiries,
+              icon: Inbox,
+              tint: 'amber',
+              onPress: () => router.push('/events'),
+            },
+            {
+              key: 'quotes',
+              label: t('start.stats.quotes'),
+              value: stats.quotes,
+              icon: Send,
+              tint: 'sky',
+              onPress: () => router.push('/events'),
+            },
+          ]}
+        />
       </View>
 
       <View style={{ gap: 8 }}>
@@ -129,25 +204,33 @@ export function StartScreen() {
           <EmptyState icon={CircleCheck} tint="indigo" text={t('start.nothingTodo')} />
         ) : null}
         {todos.staleInquiries.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={Clock}
+            tint="amber"
             title={t('start.staleInquiries', { count: todos.staleInquiries.length })}
             onPress={() => open(todos.staleInquiries[0]!.id)}
           />
         ) : null}
         {todos.expiringOptions.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={Hourglass}
+            tint="rose"
             title={t('start.expiringOptions', { count: todos.expiringOptions.length })}
             onPress={() => open(todos.expiringOptions[0]!.id)}
           />
         ) : null}
         {changeRequests.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={MessageSquareWarning}
+            tint="violet"
             title={t('start.changeRequests', { count: changeRequests.length })}
             onPress={() => open(changeRequests[0]!)}
           />
         ) : null}
         {applications.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={Hand}
+            tint="teal"
             title={t('start.applications', {
               count: applications.reduce((n, a) => n + a.count, 0),
             })}
@@ -155,23 +238,38 @@ export function StartScreen() {
           />
         ) : null}
         {unfilled.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={UserPlus}
+            tint="indigo"
             title={t('start.unfilled', { count: unfilled.reduce((n, a) => n + a.open, 0) })}
             onPress={() => open(unfilled[0]!.event_id)}
           />
         ) : null}
         {quoted.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={Send}
+            tint="sky"
             title={t('start.quoted', { count: quoted.length })}
             onPress={() => open(quoted[0]!.id)}
           />
         ) : null}
         {todos.toComplete.length > 0 ? (
-          <ListRow
+          <TodoRow
+            icon={CircleCheck}
+            tint="slate"
             title={t('start.toComplete', { count: todos.toComplete.length })}
             onPress={() => setCompleting(true)}
           />
         ) : null}
+      </View>
+
+      <View style={{ gap: 12 }}>
+        <Text variant="title2">{t('start.todayTomorrow')}</Text>
+        {today.length + tomorrow.length === 0 ? (
+          <EmptyState icon={CalendarCheck} text={t('start.nothing')} />
+        ) : null}
+        {agenda(t('start.today'), today)}
+        {agenda(t('start.tomorrow'), tomorrow)}
       </View>
 
       {completing ? (
