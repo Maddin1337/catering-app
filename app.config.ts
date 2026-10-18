@@ -20,6 +20,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     icon: './assets/expo.icon',
     bundleIdentifier: BUNDLE_ID,
+    infoPlist: {
+      // Die App nutzt nur Standardverschlüsselung (HTTPS): keine Exportrückfrage bei jedem TestFlight-Build.
+      ITSAppUsesNonExemptEncryption: false,
+    },
     // Kein Tablet im MVP (R2-8).
     supportsTablet: false,
   },
@@ -41,7 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     'expo-router',
     'expo-secure-store',
-    'expo-localization',
+    ['expo-localization', { supportedLocales: { ios: ['de'], android: ['de'] } }],
     [
       'expo-image-picker',
       {

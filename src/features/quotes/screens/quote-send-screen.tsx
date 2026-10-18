@@ -63,6 +63,8 @@ export function QuoteSendScreen() {
   const [mode, setMode] = useState<'confirm_required' | 'info_only'>('confirm_required');
   const [result, setResult] = useState<Result | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // neuer Link: wird angezeigt, kopiert wird per Tipp (iOS erlaubt die Zwischenablage nur direkt nach einer Berührung)
+  const [freshLink, setFreshLink] = useState<string | null>(null);
 
   const back = () => router.replace({ pathname: '/events/[id]', params: { id } });
   const title = t('quoteSend.title');
@@ -414,10 +416,22 @@ export function QuoteSendScreen() {
             loading={issue.isPending}
             onPress={() =>
               issue.mutate(header.id, {
-                onSuccess: (token) => void copyLink(token),
+                onSuccess: (token) => setFreshLink(token),
               })
             }
           />
+          {freshLink ? (
+            <View style={{ gap: 8 }}>
+              <Text variant="small" selectable>
+                {portalLink(freshLink)}
+              </Text>
+              <Button
+                label={t('quoteSend.copyLink')}
+                variant="secondary"
+                onPress={() => void copyLink(freshLink)}
+              />
+            </View>
+          ) : null}
           {issue.error ? <Banner tone="danger">{toAppError(issue.error).message}</Banner> : null}
           {header.has_unsent_changes ? (
             <Button

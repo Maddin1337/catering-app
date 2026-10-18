@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tokens } from '@/theme/tokens';
 
@@ -15,10 +16,14 @@ export function PickerSheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Schließen">
-        <Pressable style={styles.sheet} onPress={() => undefined}>
+        <Pressable
+          style={[styles.sheet, { paddingBottom: tokens.space[5] + insets.bottom }]}
+          onPress={() => undefined}
+        >
           <ScrollView
             contentContainerStyle={{ gap: tokens.space[3] }}
             keyboardShouldPersistTaps="handled"

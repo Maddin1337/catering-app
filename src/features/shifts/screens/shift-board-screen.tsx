@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -12,15 +13,20 @@ import { tokens } from '@/theme/tokens';
 import { useApply, useShiftBoard } from '../api';
 
 /** SC-48 Schichtbörse: offene, passende Schichten; Bewerben mit einem Tipp. Keine Adresse, keine Preise. */
-export function ShiftBoardScreen() {
+export function ShiftBoardScreen({ standalone = false }: { standalone?: boolean }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const board = useShiftBoard();
   const apply = useApply();
   const list = board.data ?? [];
   const error = board.error ?? apply.error;
 
   return (
-    <Screen title={t('shifts.board.title')}>
+    <Screen
+      title={t('shifts.board.title')}
+      onBack={standalone ? () => router.back() : undefined}
+      backLabel={t('common.back')}
+    >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       {!board.isPending && list.length === 0 ? (
         <Text variant="body" color="textSecondary">

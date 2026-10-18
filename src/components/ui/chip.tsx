@@ -19,7 +19,6 @@ export function Chip({
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={onPress ? { selected: !!selected } : undefined}
       disabled={!onPress}
-      hitSlop={4}
       onPress={onPress}
       style={[styles.chip, selected && styles.on]}
     >
@@ -32,7 +31,7 @@ export function Chip({
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: 36,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: tokens.space[3],
     borderRadius: tokens.radius.full,

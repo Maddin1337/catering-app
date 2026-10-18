@@ -72,7 +72,12 @@ export function ForgotPasswordScreen() {
       />
       <View style={{ alignItems: 'center' }}>
         <Link href="/login" asChild>
-          <Text variant="small" color="accent" accessibilityRole="link">
+          <Text
+            variant="small"
+            color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
+          >
             {t('auth.forgot.back')}
           </Text>
         </Link>

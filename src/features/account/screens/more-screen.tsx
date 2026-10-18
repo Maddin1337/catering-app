@@ -75,12 +75,12 @@ export function MoreScreen() {
             <ActionCard
               title={t('shifts.board.title')}
               body={t('shifts.board.moreBody')}
-              onPress={() => router.push('/shift-board')}
+              onPress={() => router.push('/shifts/board')}
             />
             <ActionCard
               title={t('shifts.mine.title')}
               body={t('shifts.mine.moreBody')}
-              onPress={() => router.push('/my-shifts')}
+              onPress={() => router.push('/shifts/mine')}
             />
           </>
         ) : null}

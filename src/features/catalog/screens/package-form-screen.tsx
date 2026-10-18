@@ -232,7 +232,7 @@ function PackageForm({
                 keyboardType="decimal-pad"
               />
               {!readOnly ? (
-                <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   <Button
                     label={t('catalog.package.up')}
                     variant="ghost"

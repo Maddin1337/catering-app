@@ -96,7 +96,12 @@ export function RegisterScreen() {
       </Text>
       <View style={{ alignItems: 'center' }}>
         <Link href={{ pathname: '/login' }} asChild>
-          <Text variant="small" color="accent" accessibilityRole="link">
+          <Text
+            variant="small"
+            color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
+          >
             {t('auth.register.toLogin')}
           </Text>
         </Link>

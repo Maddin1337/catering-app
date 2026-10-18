@@ -326,6 +326,14 @@ Bewusst nicht geändert: Die Gültigkeit („gültig bis“) gilt weiter live, d
 - Abweichung A-37: Vercel-Funktion statt Edge Function (kein Supabase-Function-Deployment möglich); der Token liegt im Klartext in `calendar_tokens` (nur das Mitglied selbst liest ihn), damit sich der Link wieder anzeigen lässt.
 - Nicht getestet gegen die echte Vercel-Umgebung; Handler und Kalenderdatei sind per Unit-Test geprüft.
 
+## Mobil-Prüfung (iPhone und iPad-Browser)
+
+Automatische Prüfung `scripts/smoke/mobile-audit.mjs` (Chromium mit iPhone-Profil SE/13/15 Pro Max, simulierte Datenbank, 60 Seiten in drei Rollen): kein waagerechter Überlauf, alle Tippflächen ≥ 44 px, alle Eingabefelder ≥ 16 px (sonst vergrößert iOS die Seite), keine Skriptfehler. Echte iPhones oder ein iOS-Simulator standen nicht zur Verfügung (kein WebKit); der Safari-Test steht aus.
+
+Gefunden und behoben: kein `viewport-fit=cover` (sichere Bereiche, neues `src/app/+html.tsx`); Chips, Kalender-Pfeile und Textlinks zu klein; Tastenzeile im Paketformular lief auf dem SE über; Auswahlblätter ohne Abstand zur Home-Anzeige; **Schichtbörse und Meine Schichten waren für die Küche nicht erreichbar** (versteckte Tabs leiten um, jetzt eigene Seiten unter Mehr); neuer Link wurde automatisch in die Zwischenablage kopiert (iOS erlaubt das nur direkt nach einer Berührung, jetzt Tipp auf „Link kopieren“). iOS-Konfiguration geprüft per `expo prebuild` (Fotos-Hinweistext, `ITSAppUsesNonExemptEncryption`, Sprache Deutsch); iOS- und Android-Bundle (Hermes) bauen fehlerfrei, `expo-doctor` meldet nichts.
+
+Bekannte iOS-Eigenheiten der Web-App: Safari löscht Daten von Websites nach 7 Tagen ohne Nutzung (erneut anmelden); „E-Mail vorbereiten“ und PDF öffnen sich in Safari über Tipp auf die Schaltfläche (Pop-up-Regeln).
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

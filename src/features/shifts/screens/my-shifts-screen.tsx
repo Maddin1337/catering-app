@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, View } from 'react-native';
@@ -18,8 +19,9 @@ import type { MyShift } from '../types';
 const CLOSED = ['rejected', 'withdrawn', 'cancelled_by_staff'];
 
 /** SC-50/SC-51 Meine Einsätze: Status, Einsatzinfos nach der Zusage, Absagen bis zur Frist. */
-export function MyShiftsScreen() {
+export function MyShiftsScreen({ standalone = false }: { standalone?: boolean }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const shifts = useMyShifts();
   const cancel = useCancelMine();
   const phone = useCompanyProfile().data?.phone ?? null;
@@ -46,7 +48,11 @@ export function MyShiftsScreen() {
   };
 
   return (
-    <Screen title={t('shifts.mine.title')}>
+    <Screen
+      title={t('shifts.mine.title')}
+      onBack={standalone ? () => router.back() : undefined}
+      backLabel={t('common.back')}
+    >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       {phoneHint ? <Banner tone="warning">{t('shifts.mine.phoneOnly')}</Banner> : null}
       {phoneHint && phone ? (

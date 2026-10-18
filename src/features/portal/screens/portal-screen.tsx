@@ -407,6 +407,8 @@ export function PortalScreen() {
           <Text
             variant="small"
             color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
             onPress={() => void Linking.openURL(company.imprint_url!)}
           >
             {t('legal.imprint')}
@@ -416,6 +418,8 @@ export function PortalScreen() {
           <Text
             variant="small"
             color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
             onPress={() => void Linking.openURL(company.privacy_policy_url!)}
           >
             {t('legal.privacy')}

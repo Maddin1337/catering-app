@@ -77,12 +77,22 @@ export function LoginScreen() {
       />
       <View style={{ gap: 8, alignItems: 'center' }}>
         <Link href="/forgot-password" asChild>
-          <Text variant="small" color="accent" accessibilityRole="link">
+          <Text
+            variant="small"
+            color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
+          >
             {t('auth.login.forgot')}
           </Text>
         </Link>
         <Link href="/register" asChild>
-          <Text variant="small" color="accent" accessibilityRole="link">
+          <Text
+            variant="small"
+            color="accent"
+            accessibilityRole="link"
+            style={{ paddingVertical: 12 }}
+          >
             {t('auth.login.toRegister')}
           </Text>
         </Link>
