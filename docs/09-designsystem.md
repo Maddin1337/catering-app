@@ -147,4 +147,29 @@ Glocke (`NotificationBell`) rechts in der Kopfleiste der Startseiten; das rote A
 ## Auftragsdetail und Formulare
 
 - **Auftragsdetail:** Zusammenfassungskarte (Status, „in n Tagen“, Termin, Kunde, Gäste, Adresse als Kartenlink, Optionsfrist), Angaben als gruppierte Karten mit Trennlinien (`FieldGroup`), Angebotskarte mit Nummer, Summe, Portal-Status und den Aktionen. Bearbeiten oben rechts, Kopieren und Seltenes im „⋯“-Menü, der nächste Status fest unten (siehe Tabelle oben).
-- **Formulare:** Speichern steht in der festen Leiste unten, Erfolg meldet ein Toast. `FormSection` bündelt Felder unter einer Überschrift in einer weißen Karte (Auftragsformular: Kunde, Termin, Anlass und Gäste, Ort, Ansprechpartner, Hinweise, Portal; Angebotseditor: Kopfdaten, Kalkulation, Anzahlung).
+- **Formulare:** Speichern steht in der festen Leiste unten, Erfolg meldet ein Toast. `FormSection` bündelt Felder unter einer Überschrift in einer weißen Karte (Auftragsformular: Kunde, Termin, Anlass und Gäste, Ort, Ansprechpartner, Hinweise, Portal; Angebotseditor siehe unten).
+
+## Angebotseditor (Oktober 2026, neu aufgebaut)
+
+Vorbilder aus Appllama: Wave (Kartenaufbau, Einstellungen als Zeilen mit Wert), Joist („Ordnen“ statt Pfeilen an jeder Zeile, Rabatt und Anzahlung als Zeilen in der Summe), Invoice Fly und Invoice Maker (Positionszeile „Menge × Preis“, Betrag rechts, feste Hauptaktion unten), Eato und Instacart (Auswahlblatt mit Suche und „+“ an der Zeile). Übernommen wurden Muster, kein Bildmaterial.
+
+Grundsatz: Die Seite zeigt nur Positionen und Summe. Alles andere öffnet ein Blatt, und jede Zeile nennt ihren aktuellen Wert.
+
+| Bereich | Inhalt |
+|---|---|
+| Kopfleiste | Zurück (speichert), Speicherstand als Pille: „Gespeichert“, „Speichert …“, „Nicht gespeichert“ |
+| Gültigkeit | Zeile „Gültig bis …“ mit Referenz darunter → Blatt „Gültigkeit und Referenz“ |
+| Positionen | Karten mit Symbol der Art, Bezeichnung, „80 Gäste × 24,50 €“ und Betrag (vor Gesamtrabatt). Zwischenüberschriften als Abschnittstitel. „Ordnen“ blendet Pfeile ein. Tippen → Blatt „Position bearbeiten“ |
+| Position hinzufügen | gestrichelte Zeile → Blatt in Schritten (siehe unten) |
+| Kalkulation und Summe | Zeilen Kalkulation (Preise netto/brutto, Pauschal oder Aufschlag, Wareneinsatz und Rohertrag im Blatt), Rabatt, Anzahlung; darunter die Summenaufstellung |
+| Texte | eine Zeile → Blatt mit Einleitung, Bedingungen, Schluss |
+| Leiste unten | Summe (netto oder brutto je Anzeige, zählt mit) und „Weiter zum Versand“ |
+
+**Position hinzufügen (`AddItemSheet`):**
+1. Katalog: Reiter Pakete | Gerichte | Vorlagen mit Suche. Das runde „+“ fügt sofort hinzu (Pakete und Gerichte pro Gast, Katalogpreis), ein Toast bestätigt, das Blatt bleibt für weitere offen („Fertig · 2 hinzugefügt“). Tippen auf die Zeile führt zu Schritt 3.
+2. Ohne Katalog: „Freie Position“ fragt nur nach der Art (Personal, Getränke, Equipment, Anfahrt, Frei); „Zwischenüberschrift“ fragt nur nach dem Text.
+3. Menge und Preis: dieselben Felder wie beim Bearbeiten.
+
+**Felder einer Position (`ItemFields`):** Bezeichnung; Menge als Umschalter „Pro Gast (80) | Feste Anzahl“; bei Personal die Stunden; Preis mit Vorschlag aus dem Wareneinsatz als Chip; darunter „Ergibt 80 × 24,50 € = 1.960,00 €“. Zugeklappt unter „Weitere Optionen“ (die Zeile nennt, was eingestellt ist): Steuersatz als Chips, Beschreibung, Einheit, Rabatt, Wahlgruppe mit „gewählt“, „Kunde darf die Menge ändern“. Fehlt der Steuersatz, ist der Bereich offen. Im Bearbeiten-Blatt zusätzlich Duplizieren und Entfernen.
+
+Logik getestet in `src/features/quotes/item-draft.ts` (Eingaben, Prüfung, Zeilenrechnung) und `editor-doc.ts` (Rabatt, Anzahlung, Zeilenwerte).

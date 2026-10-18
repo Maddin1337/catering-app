@@ -1,25 +1,36 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  Calculator,
+  CalendarClock,
+  Check,
+  CircleAlert,
+  FileText,
+  ListPlus,
+  Percent,
+  Plus,
+  Wallet,
+} from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AnimatedNumber } from '@/components/ui/animated-number';
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
-import { Chip } from '@/components/ui/chip';
-import { DateField } from '@/components/ui/date-field';
-import { ListRow } from '@/components/ui/list-row';
-import { FormSection } from '@/components/ui/form-section';
+import { EmptyState } from '@/components/ui/empty-state';
+import { GroupRow, ListGroup } from '@/components/ui/list-group';
+import { Pill } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SkeletonList } from '@/components/ui/skeleton';
-import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
-import { costRatioBp, suggestPriceCents } from '@/lib/costing';
+import { suggestPriceCents } from '@/lib/costing';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
-import { centsToEuroInput, parseEuroToCents } from '@/lib/money-input';
 import { unitPriceOnCalcSide } from '@/lib/calc';
-import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
+import { newId } from '@/lib/uuid';
+import { tokens } from '@/theme/tokens';
 
 import {
   packageCostFor,
@@ -37,20 +48,22 @@ import { useEvent } from '../../events/api';
 import { useCompanySettings } from '../../settings/api';
 import type { ItemTemplate } from '../../settings/types';
 import { useQuoteForEditing, useSaveQuote } from '../api';
-import { AddItem } from '../components/add-item';
-import { ItemForm } from '../components/item-form';
+import { AddItemSheet } from '../components/add-item-sheet';
+import { ItemCard } from '../components/item-card';
+import { ItemSheet } from '../components/item-sheet';
+import { SettingsSheet, type SettingsKind } from '../components/settings-sheet';
 import { TotalsBlock } from '../components/totals-block';
+import { docSummaries, parseDoc, toDoc, type Doc } from '../editor-doc';
 import {
   blankItem,
-  itemFromTemplate,
   buildSavePayload,
   costTotal,
   effectiveQuantity,
-  itemFromStored,
+  itemFromTemplate,
   quoteWarnings,
   runCalc,
 } from '../model';
-import type { EditorItem, ItemType, QuoteHeader, StoredItem } from '../types';
+import type { EditorItem, QuoteHeader } from '../types';
 
 const AUTOSAVE_MS = 1500;
 const clock = { now: () => Date.now() };
@@ -60,52 +73,6 @@ function trackActiveTime(last: number | null, acc: { current: number }): number 
   const now = clock.now();
   if (last) acc.current += Math.min((now - last) / 1000, 60);
   return now;
-}
-
-type Doc = {
-  items: EditorItem[];
-  price_display: 'net' | 'gross';
-  pricing_mode: 'flat' | 'cost_based';
-  markup: string;
-  valid_until: string;
-  customer_reference: string;
-  intro: string;
-  terms: string;
-  closing: string;
-  discountMode: 'bp' | 'cents';
-  discount: string;
-  depositMode: 'none' | 'bp' | 'cents';
-  deposit: string;
-  deposit_due_on: string;
-};
-
-function toDoc(h: QuoteHeader, items: StoredItem[]): Doc {
-  return {
-    items: items.map(itemFromStored),
-    price_display: h.price_display,
-    pricing_mode: h.pricing_mode,
-    markup: bpToPercentString(h.markup_bp),
-    valid_until: h.valid_until ?? '',
-    customer_reference: h.customer_reference ?? '',
-    intro: h.intro_text ?? '',
-    terms: h.terms_text ?? '',
-    closing: h.closing_text ?? '',
-    discountMode: h.discount_cents > 0 ? 'cents' : 'bp',
-    discount:
-      h.discount_cents > 0
-        ? centsToEuroInput(h.discount_cents)
-        : h.discount_bp > 0
-          ? bpToPercentString(h.discount_bp)
-          : '',
-    depositMode: h.deposit_cents != null ? 'cents' : h.deposit_bp != null ? 'bp' : 'none',
-    deposit:
-      h.deposit_cents != null
-        ? centsToEuroInput(h.deposit_cents)
-        : h.deposit_bp != null
-          ? bpToPercentString(h.deposit_bp)
-          : '',
-    deposit_due_on: h.deposit_due_on ?? '',
-  };
 }
 
 /** SC-32 Angebots-Editor: Positionen, Kalkulation, Summen, Texte; speichert automatisch (nur online). */
@@ -190,7 +157,8 @@ function Editor({
   const [status, setStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [showTexts, setShowTexts] = useState(false);
+  const [ordering, setOrdering] = useState(false);
+  const [sheet, setSheet] = useState<SettingsKind | null>(null);
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Record<string, unknown> | null>(null);
@@ -198,25 +166,8 @@ function Editor({
   const seconds = useRef(0);
   const lastChange = useRef<number | null>(null);
 
-  const parsed = (d: Doc) => {
-    const disc =
-      d.discount.trim() === ''
-        ? 0
-        : d.discountMode === 'bp'
-          ? parsePercentToBp(d.discount, 0, 100)
-          : parseEuroToCents(d.discount);
-    const dep =
-      d.depositMode === 'none' || d.deposit.trim() === ''
-        ? null
-        : d.depositMode === 'bp'
-          ? parsePercentToBp(d.deposit, 0, 100)
-          : parseEuroToCents(d.deposit);
-    const markup = parsePercentToBp(d.markup, 0, 1000);
-    return { disc, dep, markup };
-  };
-
   const compute = (d: Doc) => {
-    const p = parsed(d);
+    const p = parseDoc(d);
     const s = {
       entryMode,
       display: d.price_display,
@@ -238,7 +189,8 @@ function Editor({
     const payload = pending.current;
     if (!payload) return true;
     pending.current = null;
-    const sent = seconds.current;
+    // Die Datenbank zählt ganze Sekunden; der Rest bleibt für das nächste Speichern stehen.
+    const sent = Math.floor(seconds.current);
     setStatus('saving');
     const run = (async () => {
       try {
@@ -259,8 +211,11 @@ function Editor({
     return ok;
   };
 
+  // Neuester Stand auch zwischen zwei Renderings (z. B. mehrere Positionen schnell hintereinander).
+  const latest = useRef(initial);
   const change = (fn: (d: Doc) => Doc) => {
-    const next = fn(doc);
+    const next = fn(latest.current);
+    latest.current = next;
     setDoc(next);
     lastChange.current = trackActiveTime(lastChange.current, seconds);
     const { p, s, calc, cost } = compute(next);
@@ -297,10 +252,15 @@ function Editor({
   };
 
   const { p: parsedValues, calc, cost } = compute(doc);
-  const warnings = quoteWarnings(doc.items, guests, calc, cost.incomplete, rates);
+  const warnings = quoteWarnings(doc.items, guests, calc, cost.incomplete, rates).filter(
+    // Leere Liste zeigt die Seite selbst; der Wareneinsatz steht bei „Kalkulation“.
+    (w) => w !== 'no_items' && w !== 'cost_incomplete',
+  );
   const lineById = new Map(calc.lines.map((l) => [l.id, l]));
-  const entryLabel = entryMode === 'net' ? t('quote.net') : t('quote.gross');
+  const entryLabel = t(entryMode === 'net' ? 'quote.item.basisNet' : 'quote.item.basisGross');
   const markupBp = parsedValues.markup ?? header.markup_bp;
+  const summary = docSummaries(doc, t);
+  const net = doc.price_display === 'net';
 
   const setItems = (fn: (items: EditorItem[]) => EditorItem[]) =>
     change((d) => ({ ...d, items: fn(d.items) }));
@@ -313,16 +273,9 @@ function Editor({
       return next;
     });
 
-  const addItem = (item: EditorItem) => {
-    setItems((items) => [...items, item]);
-    setAdding(false);
-    setEditing(item.key);
-  };
-
   const fromDish = (d: Dish): EditorItem => {
     const price = dishPrices?.find((x) => x.id === d.id);
     const c = dishCosts.get(d.id);
-    const unitCost = c?.complete ? c.micro / 100000 : null;
     const base = blankItem('dish', rates);
     const suggested =
       doc.pricing_mode === 'cost_based' && c ? suggestPriceCents(c, markupBp, rounding) : null;
@@ -332,8 +285,10 @@ function Editor({
       name: d.name,
       description: d.description ?? '',
       unit_label: d.portion_label,
+      // Ein Gericht für den Auftrag ist fast immer „pro Gast“; ohne Gästezahl eine feste Menge.
+      quantity_mode: guests ? 'per_guest' : 'fixed',
       unit_price_cents: suggested ?? price?.price_cents ?? 0,
-      unit_cost: unitCost,
+      unit_cost: c?.complete ? c.micro / 100000 : null,
       markup_bp: price?.markup_bp ?? null,
       tax_rate_id: price?.tax_rate_id ?? base.tax_rate_id,
     };
@@ -377,10 +332,29 @@ function Editor({
       router.push({ pathname: '/events/[id]/quote-send', params: { id: header.event_id } });
   };
 
-  const rohertrag =
-    cost.cents !== null && !cost.incomplete
-      ? (doc.price_display === 'net' ? calc.netCents : calc.netCents) - cost.cents
-      : null;
+  const unitPrice = (it: EditorItem) =>
+    lineById.get(it.key)?.unitPriceDisplayCents ??
+    unitPriceOnCalcSide(
+      it.unit_price_cents ?? 0,
+      rates.find((r) => r.id === it.tax_rate_id)?.rate_bp ?? 0,
+      entryMode,
+      doc.price_display,
+    );
+  const qtyLabel = (it: EditorItem) =>
+    it.quantity_mode === 'per_guest'
+      ? t('quote.list.guests', { count: guests ?? 0 })
+      : unitCount(effectiveQuantity(it, guests), it.unit_label, t);
+  const editingItem = doc.items.find((x) => x.key === editing) ?? null;
+  const priced = doc.items.filter((i) => !i.is_heading).length;
+
+  const statusPill =
+    status === 'error' ? (
+      <Pill label={t('quote.status.errorShort')} tone="danger" icon={CircleAlert} />
+    ) : status === 'saving' ? (
+      <Pill label={t('quote.status.saving')} tone="sky" />
+    ) : (
+      <Pill label={t('quote.status.saved')} tone="slate" icon={Check} />
+    );
 
   return (
     <Screen
@@ -388,303 +362,257 @@ function Editor({
       subtitle={`${header.number} · ${eventTitle}`}
       onBack={finish}
       backLabel={t('common.back')}
+      actions={<View accessibilityLiveRegion="polite">{statusPill}</View>}
+      footer={
+        <>
+          <View style={styles.footerTotal}>
+            <Text variant="caption" color="textSecondary">
+              {net ? t('quote.totals.net') : t('quote.totals.gross')}
+            </Text>
+            <AnimatedNumber
+              value={net ? calc.netCents : calc.grossCents}
+              format={(n) => formatCents(Math.round(n))}
+              variant="title2"
+              tabular
+            />
+          </View>
+          <Button
+            label={header.revision > 0 ? t('quote.toSendAgain') : t('quote.toSend')}
+            disabled={save.isPending || priced === 0}
+            onPress={() => void toSend()}
+            style={styles.footerButton}
+          />
+        </>
+      }
     >
-      <Text
-        variant="small"
-        color={status === 'error' ? 'danger' : 'textSecondary'}
-        accessibilityLiveRegion="polite"
-      >
-        {t(`quote.status.${status}`)}
-      </Text>
       {header.revision > 0 ? (
         <Banner tone="info">{t('quoteSend.editFirst', { n: header.revision })}</Banner>
       ) : null}
-      {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
+      {status === 'error' && save.error ? (
+        <Banner tone="danger">
+          {`${t('quote.status.error')} ${toAppError(save.error).message}`}
+        </Banner>
+      ) : null}
       {warnings.map((w) => (
         <Banner key={w} tone="warning">
           {t(`quote.warning.${w}`)}
         </Banner>
       ))}
 
-      <Surface style={{ gap: 16, padding: 16 }}>
-        <View style={{ gap: 8 }}>
-          <Text variant="small" color="textSecondary">
-            {t('quote.display')}
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Chip
-              label={t('quote.net')}
-              selected={doc.price_display === 'net'}
-              onPress={() => change((d) => ({ ...d, price_display: 'net' }))}
-            />
-            <Chip
-              label={t('quote.gross')}
-              selected={doc.price_display === 'gross'}
-              onPress={() => change((d) => ({ ...d, price_display: 'gross' }))}
-            />
+      <Appear index={0}>
+        <ListGroup>
+          <GroupRow
+            icon={CalendarClock}
+            tint="sky"
+            title={summary.validity}
+            subtitle={
+              doc.customer_reference.trim()
+                ? t('quote.settings.referenceValue', { value: doc.customer_reference.trim() })
+                : t('quote.settings.noReference')
+            }
+            onPress={() => setSheet('details')}
+          />
+        </ListGroup>
+      </Appear>
+
+      <Appear index={1} style={styles.section}>
+        <View style={styles.sectionHead}>
+          <View style={styles.sectionTitle}>
+            <Text variant="title2">{t('quote.items')}</Text>
+            {guests ? (
+              <Text variant="small" color="textSecondary">
+                {t('quote.guests', { count: guests })}
+              </Text>
+            ) : null}
           </View>
-        </View>
-        <DateField
-          label={t('quote.validUntil')}
-          value={doc.valid_until}
-          onChange={(v) => change((d) => ({ ...d, valid_until: v }))}
-          optional
-        />
-        <TextField
-          label={t('quote.reference')}
-          value={doc.customer_reference}
-          onChangeText={(v) => change((d) => ({ ...d, customer_reference: v }))}
-        />
-      </Surface>
-
-      <View style={{ gap: 8 }}>
-        <Text variant="title2">{t('quote.items')}</Text>
-        {guests ? (
-          <Text variant="small" color="textSecondary">
-            {t('quote.guests', { count: guests })}
-          </Text>
-        ) : null}
-        {doc.items.length === 0 ? (
-          <Text variant="body" color="textSecondary">
-            {t('quote.empty')}
-          </Text>
-        ) : null}
-        {doc.items.map((it, idx) => {
-          const line = lineById.get(it.key);
-          if (editing === it.key) {
-            return (
-              <ItemForm
-                key={it.key}
-                item={it}
-                rates={rates}
-                suggestion={suggestionFor(it)}
-                entryLabel={entryLabel}
-                onCancel={() => setEditing(null)}
-                onRemove={() => {
-                  setItems((items) => items.filter((x) => x.key !== it.key));
-                  setEditing(null);
-                }}
-                onSave={(v) => {
-                  setItems((items) => items.map((x) => (x.key === it.key ? v : x)));
-                  setEditing(null);
-                }}
-              />
-            );
-          }
-          const qty = effectiveQuantity(it, guests);
-          return (
-            <View key={it.key} style={{ gap: 4 }}>
-              <ListRow
-                title={it.is_heading ? it.name : `${it.name}`}
-                subtitle={
-                  it.is_heading
-                    ? t('quote.heading')
-                    : [
-                        `${String(qty).replace('.', ',')} × ${formatCents(line?.unitPriceDisplayCents ?? unitPriceOnCalcSide(it.unit_price_cents ?? 0, rates.find((r) => r.id === it.tax_rate_id)?.rate_bp ?? 0, entryMode, doc.price_display))}${it.type === 'service' && it.hours ? ` × ${String(it.hours).replace('.', ',')} h` : ''}`,
-                        it.choice_group
-                          ? `${t('quote.group')}: ${it.choice_group}${it.is_selected ? '' : ` (${t('quote.notSelected')})`}`
-                          : null,
-                        !it.tax_rate_id ? t('quote.noTax') : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                }
-                right={
-                  !it.is_heading && line ? (
-                    <Text variant="bodyStrong" tabular>
-                      {formatCents(
-                        doc.price_display === 'net' ? line.lineNetCents : line.lineGrossCents,
-                      )}
-                    </Text>
-                  ) : undefined
-                }
-                onPress={() => setEditing(it.key)}
-              />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Button
-                  label={t('catalog.package.up')}
-                  variant="ghost"
-                  disabled={idx === 0}
-                  onPress={() => move(idx, -1)}
-                />
-                <Button
-                  label={t('catalog.package.down')}
-                  variant="ghost"
-                  disabled={idx === doc.items.length - 1}
-                  onPress={() => move(idx, 1)}
-                />
-              </View>
-            </View>
-          );
-        })}
-        {adding ? (
-          <AddItem
-            dishes={dishes}
-            packages={packages}
-            templates={templates}
-            onTemplate={(tpl) => addItem(itemFromTemplate(tpl, rates))}
-            onClose={() => setAdding(false)}
-            onBlank={(type: ItemType) => addItem(blankItem(type, rates))}
-            onHeading={() => addItem({ ...blankItem('custom', rates, { heading: true }) })}
-            onDish={(d) => addItem(fromDish(d))}
-            onPackage={(pk) => addItem(fromPackage(pk))}
-          />
-        ) : (
-          <Button label={t('quote.addItem')} onPress={() => setAdding(true)} />
-        )}
-      </View>
-
-      <FormSection title={t('quote.calculation')}>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          <Chip
-            label={t('quote.mode.flat')}
-            selected={doc.pricing_mode === 'flat'}
-            onPress={() => change((d) => ({ ...d, pricing_mode: 'flat' }))}
-          />
-          <Chip
-            label={t('quote.mode.cost_based')}
-            selected={doc.pricing_mode === 'cost_based'}
-            onPress={() => change((d) => ({ ...d, pricing_mode: 'cost_based' }))}
-          />
-        </View>
-        {doc.pricing_mode === 'cost_based' ? (
-          <TextField
-            label={t('quote.markup')}
-            helper={t('quote.markupHint')}
-            value={doc.markup}
-            onChangeText={(v) => change((d) => ({ ...d, markup: v }))}
-            error={parsedValues.markup === null ? t('settings.defaults.errors.markup') : undefined}
-            inputMode="decimal"
-            keyboardType="decimal-pad"
-          />
-        ) : null}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Chip
-            label={t('quote.discountPercent')}
-            selected={doc.discountMode === 'bp'}
-            onPress={() => change((d) => ({ ...d, discountMode: 'bp', discount: '' }))}
-          />
-          <Chip
-            label={t('quote.discountAmount')}
-            selected={doc.discountMode === 'cents'}
-            onPress={() => change((d) => ({ ...d, discountMode: 'cents', discount: '' }))}
-          />
-        </View>
-        <TextField
-          label={
-            doc.discountMode === 'bp'
-              ? t('quote.discountPercentLabel')
-              : t('quote.discountAmountLabel')
-          }
-          value={doc.discount}
-          onChangeText={(v) => change((d) => ({ ...d, discount: v }))}
-          error={parsedValues.disc === null ? t('quote.errors.discount') : undefined}
-          inputMode="decimal"
-          keyboardType="decimal-pad"
-        />
-      </FormSection>
-
-      <TotalsBlock calc={calc} display={doc.price_display} guests={guests} />
-      {cost.cents !== null ? (
-        <View style={{ gap: 4 }}>
-          <Text variant="small" color="textSecondary">
-            {t('quote.cost', { cost: formatCents(cost.cents) })}
-            {cost.incomplete ? ` (${t('catalog.dish.costIncomplete')})` : ''}
-          </Text>
-          {rohertrag !== null && calc.netCents > 0 ? (
-            <Text variant="small" color="textSecondary">
-              {t('quote.profit', {
-                profit: formatCents(rohertrag),
-                quote: bpToPercentString(
-                  costRatioBp({ micro: cost.cents * 100000, complete: true }, calc.netCents) ?? 0,
-                ),
-              })}
-            </Text>
+          {doc.items.length > 1 ? (
+            <Button
+              label={ordering ? t('common.done') : t('quote.list.order')}
+              variant={ordering ? 'tonal' : 'ghost'}
+              size="sm"
+              onPress={() => setOrdering((o) => !o)}
+            />
           ) : null}
         </View>
-      ) : null}
 
-      <FormSection title={t('quote.depositTitle')}>
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          <Chip
-            label={t('quote.depositNone')}
-            selected={doc.depositMode === 'none'}
-            onPress={() => change((d) => ({ ...d, depositMode: 'none', deposit: '' }))}
-          />
-          <Chip
-            label={t('quote.discountPercent')}
-            selected={doc.depositMode === 'bp'}
-            onPress={() => change((d) => ({ ...d, depositMode: 'bp', deposit: '' }))}
-          />
-          <Chip
-            label={t('quote.discountAmount')}
-            selected={doc.depositMode === 'cents'}
-            onPress={() => change((d) => ({ ...d, depositMode: 'cents', deposit: '' }))}
-          />
-        </View>
-        {doc.depositMode !== 'none' ? (
-          <>
-            <TextField
-              label={
-                doc.depositMode === 'bp'
-                  ? t('quote.depositPercentLabel')
-                  : t('quote.depositAmountLabel')
+        {doc.items.length === 0 ? <EmptyState icon={ListPlus} text={t('quote.empty')} /> : null}
+        {doc.items.map((it, idx) => {
+          const line = lineById.get(it.key);
+          return (
+            <ItemCard
+              key={it.key}
+              item={it}
+              quantityLabel={qtyLabel(it)}
+              unitPriceCents={it.is_heading ? null : unitPrice(it)}
+              // Menge × Preis abzüglich nur des eigenen Positionsrabatts; der Gesamtrabatt
+              // steht unten in der Summe (sonst passt die Karte nicht zu „80 × 24,50 €“).
+              totalCents={
+                line ? line.baseCents - Math.round((line.baseCents * it.discount_bp) / 10000) : null
               }
-              value={doc.deposit}
-              onChangeText={(v) => change((d) => ({ ...d, deposit: v }))}
-              error={
-                doc.deposit.trim() !== '' && parsedValues.dep === null
-                  ? t('quote.errors.discount')
-                  : undefined
-              }
-              inputMode="decimal"
-              keyboardType="decimal-pad"
+              ordering={ordering}
+              first={idx === 0}
+              last={idx === doc.items.length - 1}
+              onPress={() => setEditing(it.key)}
+              onMove={(dir) => move(idx, dir)}
             />
-            <DateField
-              label={t('quote.depositDue')}
-              value={doc.deposit_due_on}
-              onChange={(v) => change((d) => ({ ...d, deposit_due_on: v }))}
-              optional
-            />
-          </>
+          );
+        })}
+
+        {!ordering ? (
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={t('quote.addItem')}
+            onPress={() => setAdding(true)}
+            scale={0.98}
+            pressedStyle={{ backgroundColor: tokens.color.bgMuted }}
+            style={styles.addRow}
+          >
+            <View style={styles.addIcon}>
+              <Plus color={tokens.color.onAccent} size={18} strokeWidth={2.6} />
+            </View>
+            <Text variant="bodyStrong" color="accent">
+              {t('quote.addItem')}
+            </Text>
+          </PressableScale>
         ) : null}
-      </FormSection>
+      </Appear>
 
-      <View style={{ gap: 12 }}>
-        <Button
-          label={showTexts ? t('quote.hideTexts') : t('quote.showTexts')}
-          variant="secondary"
-          onPress={() => setShowTexts((s) => !s)}
+      <Appear index={2} style={styles.section}>
+        <ListGroup title={t('quote.settings.sumTitle')}>
+          <GroupRow
+            icon={Calculator}
+            tint="teal"
+            title={t('quote.calculation')}
+            subtitle={[
+              summary.display,
+              cost.incomplete ? t('quote.settings.costIncompleteShort') : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            value={summary.pricing}
+            onPress={() => setSheet('pricing')}
+          />
+          <GroupRow
+            icon={Percent}
+            tint="rose"
+            title={t('quote.settings.title.discount')}
+            value={summary.discount}
+            onPress={() => setSheet('discount')}
+          />
+          <GroupRow
+            icon={Wallet}
+            tint="amber"
+            title={t('quote.settings.title.deposit')}
+            value={summary.deposit}
+            onPress={() => setSheet('deposit')}
+          />
+        </ListGroup>
+        {priced > 0 ? (
+          <TotalsBlock calc={calc} display={doc.price_display} guests={guests} />
+        ) : null}
+      </Appear>
+
+      <Appear index={3}>
+        <ListGroup>
+          <GroupRow
+            icon={FileText}
+            tint="violet"
+            title={t('quote.settings.title.texts')}
+            subtitle={t('quote.settings.textsSub')}
+            value={summary.texts}
+            onPress={() => setSheet('texts')}
+          />
+        </ListGroup>
+      </Appear>
+
+      {adding ? (
+        <AddItemSheet
+          dishes={dishes}
+          packages={packages}
+          templates={templates}
+          rates={rates}
+          guests={guests}
+          entryLabel={entryLabel}
+          make={{
+            package: fromPackage,
+            dish: fromDish,
+            template: (tpl) => itemFromTemplate(tpl, rates),
+            blank: (type) => blankItem(type, rates),
+            heading: () => blankItem('custom', rates, { heading: true }),
+          }}
+          suggestionFor={suggestionFor}
+          onAdd={(item) => setItems((items) => [...items, item])}
+          onClose={() => setAdding(false)}
         />
-        {showTexts ? (
-          <>
-            <TextField
-              label={t('settings.quoteTexts.quote_intro_text')}
-              value={doc.intro}
-              onChangeText={(v) => change((d) => ({ ...d, intro: v }))}
-              multiline
-            />
-            <TextField
-              label={t('settings.quoteTexts.quote_terms_text')}
-              value={doc.terms}
-              onChangeText={(v) => change((d) => ({ ...d, terms: v }))}
-              multiline
-            />
-            <TextField
-              label={t('settings.quoteTexts.quote_closing_text')}
-              value={doc.closing}
-              onChangeText={(v) => change((d) => ({ ...d, closing: v }))}
-              multiline
-            />
-          </>
-        ) : null}
-      </View>
-      <Button
-        label={header.revision > 0 ? t('quote.toSendAgain') : t('quote.toSend')}
-        disabled={save.isPending}
-        onPress={() => void toSend()}
-      />
-      <Button label={t('quote.done')} variant="secondary" onPress={finish} />
+      ) : null}
+      {editingItem ? (
+        <ItemSheet
+          key={editingItem.key}
+          item={editingItem}
+          rates={rates}
+          suggestion={suggestionFor(editingItem)}
+          entryLabel={entryLabel}
+          guests={guests}
+          onSave={(v) => setItems((items) => items.map((x) => (x.key === v.key ? v : x)))}
+          onDuplicate={() =>
+            setItems((items) => {
+              const i = items.findIndex((x) => x.key === editingItem.key);
+              const copy = { ...editingItem, key: newId() };
+              return [...items.slice(0, i + 1), copy, ...items.slice(i + 1)];
+            })
+          }
+          onRemove={() => setItems((items) => items.filter((x) => x.key !== editingItem.key))}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
+      {sheet ? (
+        <SettingsSheet
+          kind={sheet}
+          doc={doc}
+          change={change}
+          netCents={calc.netCents}
+          cost={cost}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
     </Screen>
   );
 }
+
+/** „3 Personen“, „2 Stück“, „0,5 kg“ – für die übliche Einheit „Person“ mit richtiger Mehrzahl. */
+function unitCount(
+  qty: number,
+  unit: string,
+  t: (k: string, o?: Record<string, unknown>) => string,
+) {
+  if (unit.trim() === 'Person')
+    return t('quote.list.persons', { count: qty, value: String(qty).replace('.', ',') });
+  return `${String(qty).replace('.', ',')} ${unit}`.trim();
+}
+
+const styles = StyleSheet.create({
+  section: { gap: tokens.space[3] },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[2] },
+  sectionTitle: { flex: 1, gap: 2 },
+  addRow: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: tokens.space[2],
+    borderRadius: tokens.radius.xl,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: tokens.color.accent,
+  },
+  addIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.color.accent,
+  },
+  footerTotal: { flex: 1, justifyContent: 'center' },
+  footerButton: { flex: 1.4 },
+});
