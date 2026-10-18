@@ -15,6 +15,7 @@ export type CompanySettings = {
   privacy_policy_url: string | null;
   imprint_url: string | null;
   accent_color: string | null;
+  price_entry_mode: 'net' | 'gross';
   default_pricing_mode: PricingMode;
   default_markup_bp: number;
   price_rounding_cents: number;

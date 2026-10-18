@@ -15,6 +15,7 @@ const settings: CompanySettings = {
   privacy_policy_url: null,
   imprint_url: null,
   accent_color: null,
+  price_entry_mode: 'net',
   default_pricing_mode: 'flat',
   default_markup_bp: 20000,
   price_rounding_cents: 10,

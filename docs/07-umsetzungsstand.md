@@ -183,6 +183,19 @@ Auf Wunsch des Gründers vor dem Angebots-Editor gebaut: Anfragen werden in eine
 
 Angebotsentwurf am Ende des Chats (kommt mit dem Angebots-Editor, M4/M5; bis dahin steht „Ihre Referenz“ in den internen Notizen), „Auftrag anlegen und Angebot öffnen“, Antworten bleiben nur im Speicher der App (bei App-Neustart verloren).
 
+## M4 · Angebots-Editor (Entwurf)
+
+Angebote entstehen als Entwurf je Auftrag (docs/02 §3, SC-32/33). Versand, Schnappschuss, PDF und Portal folgen mit M5.
+
+- **Datenbank:** `supabase/migrations/20261025090000_m4_quotes.sql` (`quotes` mit Nummer `A-JJJJ-NNNN`, `quote_items` mit Prüfregeln, RPCs `ensure_quote` und `save_quote`; `save_quote` ersetzt alle Positionen in einer Transaktion). Für das Dashboard: `supabase/remote-update-20261025090000.sql` ausführen. 356 pgTAP-Tests laufen lokal.
+- **Domäne:** `_shared/domain/calc.ts` (Rechenseite = Anzeigemodus, USt je Satz auf die Summe, Rundung nach Largest-Remainder, keine negativen Preise, Rabatt nur über Felder; Beispiel 3.261,69 € getestet).
+- **App:** Editor mit Positionen (Paket, Gericht, Personal, Freitext, Überschrift), Gesamtrabatt, Netto/Brutto-Anzeige, Summenblock mit USt je Satz, Warnungen, Autosave (1,5 s Verzögerung) und Referenzfeld. Einstieg über die Schaltfläche „Angebot“ im Auftrag.
+- **Geprüft:** Typecheck, Lint, 160 Jest-Tests; im Browser mit Handy-Profil gegen eine simulierte Datenbank: Paket und Personal hinzufügen, 5 % Rabatt, Summen und Speicher-Payload stimmen.
+
+### Noch offen
+
+Angebotstexte und Vorlagen (SC-63), Kopie von Angeboten beim Kopieren eines Auftrags, Versand mit Schnappschuss/PDF/Portal (M5).
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

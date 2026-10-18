@@ -10,10 +10,12 @@ import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { formatDate, formatDateTime, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { formatCents } from '@/lib/money';
 import { isClosed, nextStatuses, type EventStatus } from '@/lib/event-status';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
+import { useExistingQuote } from '../../quotes/api';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
 import { KitchenTab } from '../components/kitchen-tab';
 import { ScheduleTab } from '../components/schedule-tab';
@@ -57,6 +59,7 @@ export function EventDetailScreen() {
   const events = useEvent(id);
   const event = events.data;
   const history = useStatusHistory(id);
+  const quote = useExistingQuote(id).data;
   const del = useDeleteEvent();
   const [tab, setTab] = useState<'overview' | 'schedule' | 'kitchen'>('overview');
   const [target, setTarget] = useState<EventStatus | null>(null);
@@ -254,6 +257,21 @@ export function EventDetailScreen() {
 
       {isAdmin ? (
         <View style={{ gap: 8 }}>
+          {!closed ? (
+            <Button
+              label={
+                quote
+                  ? t('quote.summary', {
+                      number: quote.number,
+                      total: formatCents(quote.total_gross_cents),
+                    })
+                  : t('quote.open')
+              }
+              onPress={() =>
+                router.push({ pathname: '/events/[id]/quote', params: { id: event.id } })
+              }
+            />
+          ) : null}
           {!closed ? (
             <Button
               label={t('events.detail.edit')}

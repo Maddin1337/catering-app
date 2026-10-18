@@ -1005,5 +1005,115 @@
         "dietary_exceeds_guests": "Es gibt mehr Sonderessen als Gäste. Ändere die Gästezahl oder die Sonderessen."
       }
     }
+  },
+  "quote": {
+    "title": "Angebot",
+    "net": "Netto",
+    "gross": "Brutto",
+    "display": "Preise anzeigen als",
+    "validUntil": "Gültig bis",
+    "reference": "Ihre Referenz (Bestellnummer, Kostenstelle)",
+    "items": "Positionen",
+    "guests": "Gästezahl des Auftrags: {{count}}",
+    "empty": "Noch keine Positionen. Füge ein Paket, ein Gericht oder eine freie Position hinzu.",
+    "heading": "Zwischenüberschrift",
+    "group": "Wahlgruppe",
+    "notSelected": "nicht gewählt",
+    "noTax": "Steuersatz fehlt",
+    "addItem": "Position hinzufügen",
+    "calculation": "Kalkulation",
+    "markup": "Aufschlag (Prozent)",
+    "markupHint": "Preisvorschläge für Katalogpositionen: Wareneinsatz plus Aufschlag, immer auf das Preisraster aufgerundet.",
+    "mode": {
+      "flat": "Pauschalpreis",
+      "cost_based": "Wareneinsatz + Aufschlag"
+    },
+    "discountPercent": "Prozent",
+    "discountAmount": "Betrag",
+    "discountPercentLabel": "Gesamtrabatt in Prozent (optional)",
+    "discountAmountLabel": "Gesamtrabatt in Euro (optional)",
+    "depositTitle": "Anzahlung",
+    "depositNone": "Keine",
+    "depositPercentLabel": "Anzahlung in Prozent vom Brutto",
+    "depositAmountLabel": "Anzahlung in Euro",
+    "depositDue": "Fällig am",
+    "showTexts": "Texte bearbeiten (Einleitung, Bedingungen, Schluss)",
+    "hideTexts": "Texte ausblenden",
+    "done": "Fertig",
+    "cost": "Wareneinsatz gesamt: {{cost}}",
+    "profit": "Rohertrag: {{profit}} (Wareneinsatzquote {{quote}} %)",
+    "status": {
+      "saved": "Gespeichert",
+      "saving": "Speichert …",
+      "error": "Speichern fehlgeschlagen. Prüfe deine Verbindung."
+    },
+    "errors": {
+      "discount": "Bitte gib einen gültigen Wert ein."
+    },
+    "type": {
+      "package": "Paket",
+      "dish": "Gericht",
+      "service": "Personal",
+      "beverage": "Getränke",
+      "equipment": "Equipment",
+      "travel": "Anfahrt",
+      "custom": "Frei"
+    },
+    "add": {
+      "title": "Position hinzufügen",
+      "hint": "Wähle die Art der Position.",
+      "heading": "Überschrift",
+      "free": "Freie {{type}}-Position",
+      "create": "{{type}} hinzufügen"
+    },
+    "item": {
+      "name": "Bezeichnung",
+      "description": "Beschreibung",
+      "perGuest": "Menge folgt der Gästezahl (pro Person)",
+      "qty": "Menge",
+      "hours": "Stunden je Person",
+      "hoursHint": "In Viertelstunden, z. B. 6,5",
+      "unit": "Einheit",
+      "price": "Einzelpreis {{basis}} (in Euro)",
+      "manual": "manuell angepasst",
+      "suggestion": "Preisvorschlag aus dem Wareneinsatz: {{price}}",
+      "tax": "Steuersatz",
+      "noTax": "Kein Steuersatz",
+      "discount": "Rabatt auf die Position (Prozent)",
+      "group": "Wahlgruppe (Alternativen)",
+      "groupHint": "Positionen mit gleichem Namen sind Alternativen; genau eine ist gewählt.",
+      "selected": "Diese Alternative ist gewählt",
+      "customerQty": "Kunde darf die Menge ändern",
+      "remove": "Position entfernen",
+      "errors": {
+        "name": "Bitte gib eine Bezeichnung ein.",
+        "qty": "Bitte gib eine Menge wie 2 oder 0,5 ein.",
+        "hours": "Bitte gib Stunden in Viertelstunden ein, z. B. 6,5.",
+        "price": "Bitte gib einen Betrag wie 11,70 ein.",
+        "discount": "Bitte gib einen Prozentwert von 0 bis 100 ein."
+      }
+    },
+    "warning": {
+      "no_items": "Das Angebot hat noch keine Position.",
+      "no_guests": "Der Auftrag hat keine Gästezahl, aber Positionen folgen der Gästezahl.",
+      "missing_tax": "Bei mindestens einer Position fehlt der Steuersatz.",
+      "cost_incomplete": "Wareneinsatz unvollständig: Bei Katalogpositionen fehlen Einkaufspreise oder Zutaten.",
+      "discount_exceeds": "Der Rabatt ist höher als die Summe.",
+      "choice_group_empty": "In einer Wahlgruppe muss genau eine Alternative gewählt sein."
+    },
+    "totals": {
+      "sumNet": "Summe netto vor Rabatt",
+      "discount": "Rabatt",
+      "discountIncl": "Rabatt (im Preis enthalten)",
+      "net": "Summe netto",
+      "taxOn": "zzgl. USt {{rate}} % auf {{base}}",
+      "taxIncl": "darin enthaltene USt {{rate}} %",
+      "gross": "Gesamtbetrag brutto",
+      "deposit": "Anzahlung",
+      "perGuest": "entspricht {{value}} pro Gast"
+    },
+    "open": "Angebot bearbeiten",
+    "summary": "Angebot {{number}}: {{total}}",
+    "none": "Noch kein Angebot"
   }
 }

@@ -15,7 +15,7 @@ function client() {
 
 const COLUMNS =
   'name, phone, contact_email, website, street, postal_code, city, vat_id, tax_number, footer_text, ' +
-  'privacy_policy_url, imprint_url, accent_color, default_pricing_mode, default_markup_bp, ' +
+  'privacy_policy_url, imprint_url, accent_color, price_entry_mode, default_pricing_mode, default_markup_bp, ' +
   'price_rounding_cents, quote_validity_days, portal_change_lead_hours, ' +
   'portal_change_lead_hours_business_lunch, shift_cancel_deadline_hours, shopping_buffer_bp, ' +
   'quote_intro_text, quote_terms_text, quote_closing_text';
