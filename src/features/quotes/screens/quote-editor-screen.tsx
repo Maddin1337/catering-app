@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
 import { ListRow } from '@/components/ui/list-row';
+import { FormSection } from '@/components/ui/form-section';
 import { Screen } from '@/components/ui/screen';
+import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { costRatioBp, suggestPriceCents } from '@/lib/costing';
@@ -403,7 +405,7 @@ function Editor({
         </Banner>
       ))}
 
-      <View style={{ gap: 16 }}>
+      <Surface style={{ gap: 16, padding: 16 }}>
         <View style={{ gap: 8 }}>
           <Text variant="small" color="textSecondary">
             {t('quote.display')}
@@ -432,7 +434,7 @@ function Editor({
           value={doc.customer_reference}
           onChangeText={(v) => change((d) => ({ ...d, customer_reference: v }))}
         />
-      </View>
+      </Surface>
 
       <View style={{ gap: 8 }}>
         <Text variant="title2">{t('quote.items')}</Text>
@@ -531,8 +533,7 @@ function Editor({
         )}
       </View>
 
-      <View style={{ gap: 12 }}>
-        <Text variant="title2">{t('quote.calculation')}</Text>
+      <FormSection title={t('quote.calculation')}>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Chip
             label={t('quote.mode.flat')}
@@ -580,7 +581,7 @@ function Editor({
           inputMode="decimal"
           keyboardType="decimal-pad"
         />
-      </View>
+      </FormSection>
 
       <TotalsBlock calc={calc} display={doc.price_display} guests={guests} />
       {cost.cents !== null ? (
@@ -602,8 +603,7 @@ function Editor({
         </View>
       ) : null}
 
-      <View style={{ gap: 12 }}>
-        <Text variant="title2">{t('quote.depositTitle')}</Text>
+      <FormSection title={t('quote.depositTitle')}>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Chip
             label={t('quote.depositNone')}
@@ -647,7 +647,7 @@ function Editor({
             />
           </>
         ) : null}
-      </View>
+      </FormSection>
 
       <View style={{ gap: 12 }}>
         <Button

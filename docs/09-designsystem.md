@@ -54,3 +54,8 @@ Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview
 - **Kalender:** Segmente Monat/Woche/Liste, Monatskarte mit runden Tagen (gewählter Tag dunkel, heute mit Ring, Punkte in Statusfarbe), runde Pfeilknöpfe (`IconButton`), dieselben Auftragskarten für Tag, Woche und Liste.
 - **Kunden und Team:** `Avatar` mit Initialen auf Pastellgrund (Ton aus dem Namen) in `ListRow`; Suche überall als `SearchField`.
 - **Datumsauswahl:** Monatspfeile als `IconButton`.
+
+## Auftragsdetail und Formulare
+
+- **Auftragsdetail:** Zusammenfassungskarte (Status, „in n Tagen“, Termin, Kunde, Gäste, Adresse als Kartenlink, Optionsfrist), Angaben als gruppierte Karten mit Trennlinien (`FieldGroup`), Angebotskarte mit Nummer, Summe, Portal-Status und den Aktionen, Bearbeiten und Kopieren nebeneinander.
+- **Formulare:** `FormSection` bündelt Felder unter einer Überschrift in einer weißen Karte (Auftragsformular: Kunde, Termin, Anlass und Gäste, Ort, Ansprechpartner, Hinweise, Portal; Angebotseditor: Kopfdaten, Kalkulation, Anzahlung).

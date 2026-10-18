@@ -1,52 +1,93 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, Platform, Pressable, View } from 'react-native';
+import {
+  CalendarDays,
+  Copy,
+  FileText,
+  Hourglass,
+  MapPin,
+  Pencil,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react-native';
+import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { Pill } from '@/components/ui/pill';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { formatDate, formatDateTime, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
 import { isClosed, nextStatuses, type EventStatus } from '@/lib/event-status';
+import { tints, tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useExistingQuote } from '../../quotes/api';
 import { PortalStatus } from '../../quotes/components/portal-status';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
 import { StaffingTab } from '../../shifts/components/staffing-tab';
+import { whenLabel } from '../../start/components/next-event-card';
+import { daysUntil } from '../../start/overview';
 import { KitchenTab } from '../components/kitchen-tab';
 import { ScheduleTab } from '../components/schedule-tab';
 import { StatusBadge } from '../components/status-badge';
 import { StatusDialog } from '../components/status-dialog';
 import type { EventRow } from '../types';
 
-function Field({
-  label,
-  value,
+type FieldRow = { label: string; value: string | null | undefined; onPress?: () => void };
+
+/** Gruppierte Angaben: eine Karte, Zeilen mit feiner Trennlinie; leere Angaben entfallen. */
+function FieldGroup({ rows }: { rows: FieldRow[] }) {
+  const shown = rows.filter((r) => r.value);
+  if (shown.length === 0) return null;
+  return (
+    <Surface padded={false} style={{ overflow: 'hidden' }}>
+      {shown.map((r, i) => (
+        <Pressable
+          key={r.label}
+          disabled={!r.onPress}
+          onPress={r.onPress}
+          accessibilityRole={r.onPress ? 'link' : undefined}
+          style={[styles.field, i > 0 && styles.fieldDivider]}
+        >
+          <Text variant="small" color="textSecondary">
+            {r.label}
+          </Text>
+          <Text variant="body" color={r.onPress ? 'accent' : 'text'}>
+            {r.value}
+          </Text>
+        </Pressable>
+      ))}
+    </Surface>
+  );
+}
+
+function Fact({
+  icon: Icon,
+  children,
   onPress,
 }: {
-  label: string;
-  value: string | null | undefined;
+  icon: LucideIcon;
+  children: string;
   onPress?: () => void;
 }) {
-  if (!value) return null;
   return (
     <Pressable
       disabled={!onPress}
       onPress={onPress}
       accessibilityRole={onPress ? 'link' : undefined}
-      style={{ gap: 2 }}
+      style={[styles.fact, onPress && styles.factLink]}
     >
-      <Text variant="small" color="textSecondary">
-        {label}
-      </Text>
-      <Text variant="body" color={onPress ? 'accent' : 'text'}>
-        {value}
+      <Icon color={tokens.color.textTertiary} size={18} strokeWidth={2} />
+      <Text variant="body" color={onPress ? 'accent' : 'text'} style={{ flex: 1 }}>
+        {children}
       </Text>
     </Pressable>
   );
@@ -84,6 +125,10 @@ export function EventDetailScreen() {
   }
 
   const closed = isClosed(event.status);
+  const upcomingDays =
+    !closed && !['declined', 'cancelled'].includes(event.status) && daysUntil(event) >= 0
+      ? daysUntil(event)
+      : null;
   const address = [
     event.venue_name,
     event.street,
@@ -116,28 +161,29 @@ export function EventDetailScreen() {
   return (
     <Screen title={event.title} onBack={() => router.back()} backLabel={t('common.back')}>
       {del.error ? <Banner tone="danger">{toAppError(del.error).message}</Banner> : null}
-      <View style={{ gap: 6 }}>
-        <StatusBadge status={event.status} />
-        <Text variant="body">
-          {formatDate(event.starts_at)} · {formatTime(event.starts_at)}
-          {event.ends_at ? `–${formatTime(event.ends_at)}` : ''}
-        </Text>
-        {event.customer_name ? (
-          <Text variant="body" color="textSecondary">
-            {event.customer_name}
-          </Text>
-        ) : null}
+      <Surface style={styles.summary}>
+        <View style={styles.summaryTop}>
+          <StatusBadge status={event.status} />
+          {upcomingDays !== null ? <Pill label={whenLabel(upcomingDays, t)} tone="teal" /> : null}
+        </View>
+        <Fact icon={CalendarDays}>
+          {`${formatDate(event.starts_at)} · ${formatTime(event.starts_at)}${event.ends_at ? `–${formatTime(event.ends_at)}` : ''}`}
+        </Fact>
+        {event.customer_name ? <Fact icon={UserRound}>{event.customer_name}</Fact> : null}
         {event.guest_count ? (
-          <Text variant="body" color="textSecondary">
-            {t('events.detail.guests', { count: event.guest_count })}
-          </Text>
+          <Fact icon={Users}>{t('events.detail.guests', { count: event.guest_count })}</Fact>
+        ) : null}
+        {address ? (
+          <Fact icon={MapPin} onPress={openMap}>
+            {address}
+          </Fact>
         ) : null}
         {event.status === 'optioned' && event.option_expires_at ? (
-          <Text variant="small" color="textSecondary">
-            {t('events.detail.optionUntil')}: {formatDate(event.option_expires_at)}
-          </Text>
+          <Fact icon={Hourglass}>
+            {`${t('events.detail.optionUntil')}: ${formatDate(event.option_expires_at)}`}
+          </Fact>
         ) : null}
-      </View>
+      </Surface>
 
       {isAdmin && closed ? <Banner tone="info">{t('events.detail.closed')}</Banner> : null}
       {isAdmin && nextStatuses(event.status).length > 0 ? (
@@ -169,45 +215,50 @@ export function EventDetailScreen() {
 
       {tab === 'overview' ? (
         <View style={{ gap: 12 }}>
-          <Field label={t('events.detail.kind')} value={t(`events.kind.${event.kind}`)} />
-          <Field label={t('events.detail.occasion')} value={event.occasion} />
-          <Field
-            label={t('events.detail.venue')}
-            value={address}
-            onPress={address ? openMap : undefined}
+          <FieldGroup
+            rows={[
+              { label: t('events.detail.kind'), value: t(`events.kind.${event.kind}`) },
+              { label: t('events.detail.occasion'), value: event.occasion },
+              {
+                label: t('events.detail.onsite'),
+                value: [event.onsite_contact_name, event.onsite_contact_phone]
+                  .filter(Boolean)
+                  .join(' · '),
+                onPress: event.onsite_contact_phone
+                  ? () => void Linking.openURL(`tel:${event.onsite_contact_phone}`)
+                  : undefined,
+              },
+              { label: t('events.detail.pickup'), value: event.is_pickup ? '✓' : null },
+            ]}
           />
-          {event.is_pickup ? <Field label={t('events.detail.pickup')} value="✓" /> : null}
-          <Field
-            label={t('events.detail.onsite')}
-            value={[event.onsite_contact_name, event.onsite_contact_phone]
-              .filter(Boolean)
-              .join(' · ')}
-            onPress={
-              event.onsite_contact_phone
-                ? () => void Linking.openURL(`tel:${event.onsite_contact_phone}`)
-                : undefined
-            }
+          <FieldGroup
+            rows={[
+              { label: t('events.detail.kitchenNotes'), value: event.kitchen_notes },
+              { label: t('events.detail.staffNotes'), value: event.staff_notes },
+              ...(isAdmin
+                ? [{ label: t('events.detail.internalNotes'), value: event.internal_notes }]
+                : []),
+            ]}
           />
-          <Field label={t('events.detail.kitchenNotes')} value={event.kitchen_notes} />
-          <Field label={t('events.detail.staffNotes')} value={event.staff_notes} />
           {isAdmin ? (
-            <Field label={t('events.detail.internalNotes')} value={event.internal_notes} />
-          ) : null}
-          {isAdmin && event.changes_until ? (
-            <Field
-              label={t('events.detail.changesUntil')}
-              value={formatDateTime(event.changes_until)}
-            />
-          ) : null}
-          {isAdmin && event.invoice_reference ? (
-            <Field
-              label={t('events.detail.invoice')}
-              value={[
-                event.invoice_reference,
-                event.invoiced_on ? formatDate(event.invoiced_on) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
+            <FieldGroup
+              rows={[
+                {
+                  label: t('events.detail.changesUntil'),
+                  value: event.changes_until ? formatDateTime(event.changes_until) : null,
+                },
+                {
+                  label: t('events.detail.invoice'),
+                  value: event.invoice_reference
+                    ? [
+                        event.invoice_reference,
+                        event.invoiced_on ? formatDate(event.invoiced_on) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : null,
+                },
+              ]}
             />
           ) : null}
           {isAdmin ? (
@@ -246,54 +297,68 @@ export function EventDetailScreen() {
       )}
 
       {isAdmin ? (
-        <View style={{ gap: 8 }}>
-          {!closed ? (
-            <Button
-              label={
-                quote
-                  ? t('quote.summary', {
-                      number: quote.number,
-                      total: formatCents(quote.total_gross_cents),
-                    })
-                  : t('quote.open')
-              }
-              onPress={() =>
-                router.push({ pathname: '/events/[id]/quote', params: { id: event.id } })
-              }
-            />
-          ) : null}
-          {quote && quote.revision > 0 ? (
-            <>
-              <Text variant="small" color="textSecondary">
-                {t('events.detail.quoteSent', { n: quote.revision })}
-                {quote.has_unsent_changes ? ` · ${t('quoteSend.unsent')}` : ''}
-              </Text>
-              <PortalStatus quoteId={quote.id} enabled />
-              {!closed ? (
-                <Button
-                  label={t('quoteSend.title')}
-                  variant="secondary"
-                  onPress={() =>
-                    router.push({ pathname: '/events/[id]/quote-send', params: { id: event.id } })
-                  }
-                />
+        <View style={{ gap: 12 }}>
+          <Surface style={styles.quote}>
+            <View style={styles.quoteHead}>
+              <View style={styles.quoteIcon}>
+                <FileText color={tints.violet.fg} size={22} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="title2">{quote ? quote.number : t('quote.none')}</Text>
+                {quote && quote.revision > 0 ? (
+                  <Text variant="small" color="textSecondary">
+                    {t('events.detail.quoteSent', { n: quote.revision })}
+                    {quote.has_unsent_changes ? ` · ${t('quoteSend.unsent')}` : ''}
+                  </Text>
+                ) : null}
+              </View>
+              {quote ? (
+                <Text variant="title2" tabular>
+                  {formatCents(quote.total_gross_cents)}
+                </Text>
               ) : null}
-            </>
-          ) : null}
-          {!closed ? (
+            </View>
+            {quote && quote.revision > 0 ? <PortalStatus quoteId={quote.id} enabled /> : null}
+            {!closed ? (
+              <Button
+                label={t('quote.open')}
+                onPress={() =>
+                  router.push({ pathname: '/events/[id]/quote', params: { id: event.id } })
+                }
+              />
+            ) : null}
+            {quote && quote.revision > 0 && !closed ? (
+              <Button
+                label={t('quoteSend.title')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({ pathname: '/events/[id]/quote-send', params: { id: event.id } })
+                }
+              />
+            ) : null}
+          </Surface>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {!closed ? (
+              <Button
+                label={t('events.detail.edit')}
+                icon={Pencil}
+                variant="secondary"
+                style={{ flex: 1 }}
+                onPress={() =>
+                  router.push({ pathname: '/events/[id]/edit', params: { id: event.id } })
+                }
+              />
+            ) : null}
             <Button
-              label={t('events.detail.edit')}
+              label={t('events.detail.copy')}
+              icon={Copy}
               variant="secondary"
+              style={{ flex: 1 }}
               onPress={() =>
-                router.push({ pathname: '/events/[id]/edit', params: { id: event.id } })
+                router.push({ pathname: '/events/[id]/copy', params: { id: event.id } })
               }
             />
-          ) : null}
-          <Button
-            label={t('events.detail.copy')}
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/events/[id]/copy', params: { id: event.id } })}
-          />
+          </View>
           {event.status === 'inquiry' ? (
             <Button
               label={t('events.detail.delete')}
@@ -311,3 +376,27 @@ export function EventDetailScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  summary: { gap: tokens.space[3], padding: tokens.space[4] },
+  summaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[2],
+    flexWrap: 'wrap',
+  },
+  factLink: { minHeight: 44, alignItems: 'center' },
+  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: tokens.space[3], minHeight: 24 },
+  field: { gap: 2, paddingVertical: tokens.space[3], paddingHorizontal: tokens.space[4] },
+  fieldDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.color.border },
+  quote: { gap: tokens.space[3], padding: tokens.space[4] },
+  quoteHead: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[3] },
+  quoteIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: tints.violet.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

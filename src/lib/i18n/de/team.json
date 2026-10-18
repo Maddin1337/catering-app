@@ -757,7 +757,16 @@
       "warnSameDay_other": "Am {{date}} gibt es schon {{count}} Aufträge.",
       "changesUntilDate": "Änderungen im Portal bis: Datum (optional)",
       "changesUntilTime": "Änderungen im Portal bis: Uhrzeit",
-      "changesUntilHint": "Vorbelegt aus deiner Einstellung für die Auftragsart. Ohne Datum gibt es keinen Änderungsschluss."
+      "changesUntilHint": "Vorbelegt aus deiner Einstellung für die Auftragsart. Ohne Datum gibt es keinen Änderungsschluss.",
+      "section": {
+        "customer": "Kunde",
+        "when": "Termin",
+        "what": "Anlass und Gäste",
+        "where": "Ort",
+        "contact": "Ansprechpartner vor Ort",
+        "notes": "Hinweise",
+        "portal": "Änderungen im Portal"
+      }
     },
     "detail": {
       "title": "Auftrag",

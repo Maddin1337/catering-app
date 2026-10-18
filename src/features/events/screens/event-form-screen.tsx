@@ -1,13 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
+import { FormSection } from '@/components/ui/form-section';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -200,21 +200,23 @@ function EventForm({
       backLabel={t('common.back')}
     >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      <CustomerPicker
-        value={customerId}
-        onChange={setCustomerId}
-        error={tried ? errors.customer : undefined}
-      />
-      <RadioList
-        label={t('events.form.kind')}
-        value={kind}
-        onChange={setKind}
-        options={(['event_catering', 'business_lunch'] as const).map((k) => ({
-          value: k,
-          label: t(`events.kind.${k}`),
-        }))}
-      />
-      <View style={{ gap: 16 }}>
+      <FormSection title={t('events.form.section.customer')}>
+        <CustomerPicker
+          value={customerId}
+          onChange={setCustomerId}
+          error={tried ? errors.customer : undefined}
+        />
+        <RadioList
+          label={t('events.form.kind')}
+          value={kind}
+          onChange={setKind}
+          options={(['event_catering', 'business_lunch'] as const).map((k) => ({
+            value: k,
+            label: t(`events.kind.${k}`),
+          }))}
+        />
+      </FormSection>
+      <FormSection title={t('events.form.section.when')}>
         <DateField
           label={t('events.form.date')}
           value={date}
@@ -243,6 +245,8 @@ function EventForm({
         <Text variant="small" color="textTertiary">
           {t('events.form.endHint')}
         </Text>
+      </FormSection>
+      <FormSection title={t('events.form.section.what')}>
         <TextField label={t('events.form.occasion')} value={occasion} onChangeText={setOccasion} />
         <TextField
           label={t('events.form.title')}
@@ -260,6 +264,8 @@ function EventForm({
           inputMode="numeric"
           keyboardType="number-pad"
         />
+      </FormSection>
+      <FormSection title={t('events.form.section.where')}>
         <TextField label={t('events.form.venue')} value={venue} onChangeText={setVenue} />
         <TextField label={t('events.form.street')} value={street} onChangeText={setStreet} />
         <TextField
@@ -270,6 +276,8 @@ function EventForm({
         />
         <TextField label={t('events.form.city')} value={city} onChangeText={setCity} />
         <Checkbox label={t('events.form.pickup')} checked={pickup} onChange={setPickup} />
+      </FormSection>
+      <FormSection title={t('events.form.section.contact')}>
         <TextField
           label={t('events.form.onsiteName')}
           value={onsiteName}
@@ -281,6 +289,8 @@ function EventForm({
           onChangeText={setOnsitePhone}
           inputMode="tel"
         />
+      </FormSection>
+      <FormSection title={t('events.form.section.notes')}>
         <TextField
           label={t('events.form.kitchenNotes')}
           value={kitchenNotes}
@@ -299,6 +309,8 @@ function EventForm({
           onChangeText={setInternalNotes}
           multiline
         />
+      </FormSection>
+      <FormSection title={t('events.form.section.portal')}>
         <DateField
           label={t('events.form.changesUntilDate')}
           value={changes.date}
@@ -316,7 +328,7 @@ function EventForm({
         <Text variant="small" color="textTertiary">
           {t('events.form.changesUntilHint')}
         </Text>
-      </View>
+      </FormSection>
       <Button
         label={t('events.form.save')}
         loading={create.isPending || update.isPending}

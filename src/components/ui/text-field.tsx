@@ -101,7 +101,7 @@ export function TextField({
 
 const styles = StyleSheet.create({
   wrap: { gap: tokens.space[2] },
-  label: { fontFamily: tokens.font.semibold, marginLeft: tokens.space[1] },
+  label: { fontFamily: tokens.font.semibold },
   field: {
     minHeight: tokens.touch.min,
     flexDirection: 'row',
