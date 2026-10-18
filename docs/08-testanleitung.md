@@ -22,7 +22,7 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 12 | `remote-update-20261101090000.sql` | Firmenlogo (Speicher) |
 | 13 | `remote-update-20261102090000.sql` | Sonderessen im Portal |
 
-Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien.
+Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien. **Einstellungen → Datenbank-Stand** zeigt, welche.
 
 ## 2. Rundgang
 

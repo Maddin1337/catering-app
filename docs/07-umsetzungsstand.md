@@ -292,6 +292,11 @@ Zeitänderungen melden (kommt mit Push), Start-Karten „unbesetzte Schichten“
 - App: Einstellungen → Branding → „Logo wählen“ (`expo-image-picker`, neuer Dateiname je Upload, altes Logo wird gelöscht); das Logo steht im Angebots-PDF und im Kundenportal. Nur Pfade der Form `{company_id}/logo-{uuid}.{png|jpg}` werden eingebunden.
 - Neues natives Modul (`expo-image-picker`): In Expo Go und im Web läuft es; für einen Store-Build braucht es einen neuen EAS-Build.
 
+## Ergänzung · Datenbank-Stand und Korrektur
+
+- Einstellungen → **Datenbank-Stand**: zeigt je SQL-Update, ob es eingespielt ist (Probe auf Tabelle, Spalte oder Funktion), und nennt die fehlenden Dateien. So muss niemand raten, welche Datei noch fehlt.
+- Korrektur: Der **Fragenkatalog** (Einstellungen → Fragenkatalog) war nur per Adresse erreichbar und stand nicht in der Einstellungsliste; er steht jetzt dort.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

@@ -12,6 +12,8 @@ const GROUPS = [
   'qualifications',
   'defaults',
   'quote-texts',
+  'questionnaire',
+  'db-status',
 ] as const;
 const PATHS = {
   company: '/settings/company',
@@ -21,6 +23,7 @@ const PATHS = {
   defaults: '/settings/defaults',
   'quote-texts': '/settings/quote-texts',
   questionnaire: '/settings/questionnaire',
+  'db-status': '/settings/db-status',
 } as const;
 
 /** SC-57 Einstellungen: Einstieg in die Bereiche. */

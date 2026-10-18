@@ -304,6 +304,10 @@
       "questionnaire": {
         "title": "Fragenkatalog",
         "body": "Deine Fragen für den Anfrage-Chat"
+      },
+      "db-status": {
+        "title": "Datenbank-Stand",
+        "body": "Zeigt, welche SQL-Updates noch fehlen."
       }
     },
     "company": {
@@ -437,6 +441,16 @@
       "templatePerGuest": "Menge folgt der Gästezahl (pro Person)",
       "templateDelete": "Vorlage löschen",
       "templateInvalid": "Bitte Bezeichnung und einen gültigen Preis eingeben."
+    },
+    "db": {
+      "title": "Datenbank-Stand",
+      "body": "Jedes Update wird im Supabase SQL Editor einmal ausgeführt.",
+      "allOk": "Alle prüfbaren Updates sind eingespielt.",
+      "missing": "Es fehlen: {{files}}. Bitte die Dateien in dieser Reihenfolge im SQL Editor ausführen.",
+      "ok": "eingespielt",
+      "missingShort": "fehlt",
+      "unknown": "nicht prüfbar",
+      "recheck": "Erneut prüfen"
     }
   },
   "allergen": {

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppError, toAppError } from '@/lib/errors';
 import { newId } from '@/lib/uuid';
+
+import { isMissing, UPDATES } from './db-status';
 import { supabase } from '@/lib/supabase';
 
 import { useMembership } from '../company/api';
@@ -267,5 +269,36 @@ export function useRemoveLogo() {
       if (current) await client().storage.from('logos').remove([current]);
     },
     onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+// ---------- Datenbank-Stand ----------
+
+/** Prüft je SQL-Update, ob seine Tabelle, Spalte oder Funktion existiert (ohne Daten zu ändern). */
+export function useDbStatus() {
+  return useQuery({
+    queryKey: ['db-status'],
+    staleTime: 0,
+    gcTime: 0,
+    queryFn: async (): Promise<Record<string, boolean | null>> => {
+      const out: Record<string, boolean | null> = {};
+      for (const u of UPDATES) {
+        if (!u.probe) {
+          out[u.file] = null;
+          continue;
+        }
+        if (u.probe.kind === 'table') {
+          const { error } = await client()
+            .from(u.probe.table)
+            .select(u.probe.column ?? '*', { head: true })
+            .limit(1);
+          out[u.file] = !isMissing(error);
+        } else {
+          const { error } = await client().rpc(u.probe.name, u.probe.args);
+          out[u.file] = !isMissing(error);
+        }
+      }
+      return out;
+    },
   });
 }
