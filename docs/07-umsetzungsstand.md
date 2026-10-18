@@ -137,6 +137,31 @@ Einmal-Import der Excel-Liste des Gründers (braucht die Datei), Produktions-Sup
 | A-20 | Schreibweg Katalog | admin schreibt direkt in die Tabellen, Küche über RPC (03 §4.3) | **alle schreiben nur über die RPCs** | Prüfstatus der Allergene, Preisfelder und Zutatenlisten werden so einheitlich und atomar behandelt; stärker abgesichert als geplant |
 | A-21 | `menu_packages` | Küche liest Pakete über View, Gerichte des Pakets über `menu_package_dishes` | wie geplant, plus RPC `save_menu_package` (nur admin) | Pakete und ihre Gerichte werden atomar ersetzt |
 
+## M3 · Kunden, Aufträge, Kalender
+
+### Etappe 1 (gebaut): Datenbank
+
+- `supabase/migrations/20261023090000_m3_events.sql` (`customers`, `events`, `event_schedule_items`, `event_dietary_requirements`, `event_status_changes`; `private.is_allowed_event_transition()`, RPCs `set_event_status`, `set_invoice_details`, `copy_event`, Funktion `can_read_event`, View `kitchen_events`). Für das Dashboard: `supabase/remote-update-20261023090000.sql` im SQL Editor ausführen. 304 pgTAP-Tests laufen lokal, darunter alle 64 Statuspaare, Direktbestätigung mit Bestätigungsweg, keine Rückwärts-Übergänge, Rollen (Küche ohne Kundendaten, Aushilfe ohne Zugriff), Mandantentrennung, Lesemodus, Kopieren über die Zeitumstellung (25.10.2026, 28.03.2027) und über Mitternacht.
+
+### Etappe 2 (gebaut): Kunden und Aufträge in der App
+
+- **Domäne und Zeitlogik:** `_shared/domain/event-status.ts` (dieselbe Übergangstabelle wie in der Datenbank; ein Test hält beide gleich), `src/lib/berlin.ts` (Eingaben und Anzeige in Ortszeit, `berlinToIso`, Termine über Mitternacht, „heute“ nach Berliner Zeit) mit Tests über beide Zeitumstellungen.
+- **Kunden:** SC-35 Liste mit Suche ab 2 Zeichen, Filter und nächstem Auftrag; SC-36 Detail mit Aufträgen; SC-37 Formular mit Duplikatwarnung. Über „Mehr“ → „Kunden“.
+- **Aufträge:** Tab „Aufträge“ (SC-15: Suche, Anstehend/Vergangen/Archiv, Art); SC-16/SC-29 Schnellerfassung und Bearbeiten (Kunde suchen oder inline anlegen, Datum und Uhrzeit in Ortszeit, Ende nach Mitternacht, Titelvorschlag, Warnung bei Vergangenheit und mehreren Aufträgen am selben Tag, „Änderungen bis“ aus der Firmeneinstellung); SC-18/SC-19 Detail mit Übersicht, Statushistorie und Zeitplan (SC-26 mit Standardablauf); SC-31 Bestätigungsdialog vor jedem Statuswechsel (Pflichtangaben, Folgen, „nicht rückgängig“, „Abbrechen“ als Standard); SC-30 Kopieren (mehrere Termine, Startstatus Anfrage oder Bestätigt).
+- **Geprüft:** Typecheck, Lint, 102 Jest-Tests; im Browser gegen eine simulierte Datenbank als admin (Liste, Detail, Dialog, Abbrechen ändert nichts, Direktbestätigung verlangt den Bestätigungsweg, Standardablauf, Kopieren, Anlegen über Mitternacht) und als Küche (keine Kunden, keine internen Notizen, keine Statusaktionen).
+
+### Noch offen aus M3
+
+SC-14 Kalender (Monat, Woche, Liste), SC-12 Start („Heute und morgen“, „Zu erledigen“), SC-13 Heute und SC-25/SC-27 Küchen-Tab mit Sonderessen, Sammelaktion „Durchgeführt“, persistenter Abfrage-Cache mit „Offline – Stand: …“, Musterwahl aus Appllama Bereich B.
+
+### Abweichungen M3
+
+| # | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-22 | `set_event_status()` | vier Parameter (03 §4.7) | **sieben Parameter** (zusätzlich „optioniert bis“ und Rechnungsdaten) | „Termin vormerken“ und „abgerechnet“ brauchen ihre Pflichtangaben im selben Aufruf; `quoted` setzt erst der Angebotsversand (M5) |
+| A-23 | Endzustände schreibgeschützt | Aufträge nach `declined`/`cancelled` bleiben bearbeitbar | **nicht mehr änderbar** (RLS-Policy), nur `invoiced` behält Rechnungsdaten über `set_invoice_details()` | Passt zu „neuer Anlauf nur per Kopie“ (R2-4) |
+| A-24 | Uhrzeit-Eingabe | Datums-/Zeitwähler | **Textfelder** (TT.MM.JJJJ, HH:MM) | Native Wähler brauchen ein natives Modul und damit einen neuen Build; die Eingaben werden geprüft und in Berliner Ortszeit umgerechnet |
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

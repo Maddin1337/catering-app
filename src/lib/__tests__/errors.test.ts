@@ -28,6 +28,9 @@ describe('toAppError', () => {
       'invitation_expired',
     );
     expect(toAppError({ code: 'P0001', hint: 'member_limit' }).code).toBe('member_limit');
+    expect(toAppError({ code: 'P0001', hint: 'invalid_transition' }).code).toBe(
+      'invalid_transition',
+    );
     expect(toAppError({ code: '42501' }).code).toBe('forbidden');
     expect(toAppError({ code: '23505' }).code).toBe('duplicate');
   });

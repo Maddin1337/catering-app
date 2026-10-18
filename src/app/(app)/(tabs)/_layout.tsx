@@ -1,5 +1,13 @@
 import { Tabs } from 'expo-router';
-import { CalendarDays, ChefHat, ClipboardList, Ellipsis, Hand, House } from 'lucide-react-native';
+import {
+  CalendarDays,
+  ChefHat,
+  ClipboardList,
+  Ellipsis,
+  Hand,
+  House,
+  PartyPopper,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { useMembership } from '@/features/company/api';
@@ -9,8 +17,8 @@ type Role = 'admin' | 'kitchen' | 'staff';
 
 // Tabs je Rolle (docs/04 §1.2); die übrigen bleiben als Routen bestehen, aber ohne Tab.
 const TABS: Record<Role, string[]> = {
-  admin: ['start', 'calendar', 'more'],
-  kitchen: ['today', 'calendar', 'more'],
+  admin: ['start', 'events', 'calendar', 'more'],
+  kitchen: ['today', 'events', 'calendar', 'more'],
   staff: ['my-shifts', 'shift-board', 'more'],
 };
 
@@ -35,6 +43,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="start"
         options={{ href: visible('start'), title: t('tabs.start'), tabBarIcon: icon(House) }}
+      />
+      <Tabs.Screen
+        name="events"
+        options={{
+          href: visible('events'),
+          title: t('tabs.events'),
+          tabBarIcon: icon(PartyPopper),
+        }}
       />
       <Tabs.Screen
         name="today"

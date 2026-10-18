@@ -16,6 +16,14 @@ export type AppErrorCode =
   | 'read_only'
   | 'forbidden'
   | 'duplicate'
+  | 'event_not_found'
+  | 'option_required'
+  | 'channel_required'
+  | 'reason_required'
+  | 'invalid_transition'
+  | 'use_quote_send'
+  | 'invalid_dates'
+  | 'guest_sum_exceeded'
   | 'dish_not_found'
   | 'ingredient_not_found'
   | 'package_not_found'
@@ -64,6 +72,15 @@ export const messages: Record<AppErrorCode, string> = {
   read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
   forbidden: 'Dafür fehlt dir die Berechtigung.',
   duplicate: 'Diesen Eintrag gibt es schon.',
+  event_not_found: 'Diesen Auftrag gibt es nicht mehr.',
+  option_required: 'Bitte gib ein „Optioniert bis“ ab heute an.',
+  channel_required: 'Bitte wähle den Bestätigungsweg.',
+  reason_required: 'Bitte nenne einen Grund.',
+  invalid_transition:
+    'Dieser Statuswechsel ist nicht möglich. Für einen neuen Anlauf kopiere den Auftrag.',
+  use_quote_send: 'Der Status „Angebot versendet“ entsteht durch den Angebotsversand.',
+  invalid_dates: 'Bitte gib ein bis zehn Termine an.',
+  guest_sum_exceeded: 'Es gibt mehr Sonderessen als Gäste.',
   dish_not_found: 'Dieses Gericht gibt es nicht mehr.',
   ingredient_not_found: 'Diese Zutat gibt es nicht mehr.',
   package_not_found: 'Dieses Paket gibt es nicht mehr.',
@@ -121,6 +138,14 @@ export function toAppError(error: unknown): AppError {
     case 'package_not_found':
     case 'invalid_name':
     case 'unit_in_use':
+    case 'event_not_found':
+    case 'option_required':
+    case 'channel_required':
+    case 'reason_required':
+    case 'invalid_transition':
+    case 'use_quote_send':
+    case 'invalid_dates':
+    case 'guest_sum_exceeded':
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');

@@ -170,7 +170,8 @@
     "more": "Mehr",
     "today": "Heute",
     "myShifts": "Meine Schichten",
-    "shiftBoard": "Schichtbörse"
+    "shiftBoard": "Schichtbörse",
+    "events": "Aufträge"
   },
   "shell": {
     "soon": "Kommt in {{milestone}}.",
@@ -195,7 +196,9 @@
     "profileLink": "Mein Profil",
     "profileBody": "Name, Telefon, Konto löschen",
     "catalog": "Katalog",
-    "catalogBody": "Gerichte, Pakete und Zutaten"
+    "catalogBody": "Gerichte, Pakete und Zutaten",
+    "customers": "Kunden",
+    "customersBody": "Kontakte und ihre Aufträge"
   },
   "role": {
     "admin": "Admin",
@@ -557,6 +560,232 @@
       "cost": "Wareneinsatz pro Person: {{cost}}",
       "price": "Preis pro Person (netto, in Euro)",
       "margin": "Rohertrag pro Person: {{margin}} (Wareneinsatzquote {{quote}} %)"
+    }
+  },
+  "customers": {
+    "title": "Kunden",
+    "add": "Kunde anlegen",
+    "search": "Suchen (ab 2 Zeichen)",
+    "empty": "Noch keine Kunden. Kunden entstehen auch direkt bei einer Anfrage.",
+    "next": "Nächster Auftrag: {{date}}",
+    "type": {
+      "business": "Geschäftlich",
+      "private": "Privat"
+    },
+    "all": "Alle",
+    "form": {
+      "new": "Neuer Kunde",
+      "edit": "Kunde bearbeiten",
+      "type": "Art",
+      "name": "Name oder Firmenname",
+      "contact_person": "Ansprechpartner",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "billing_street": "Straße und Hausnummer (Rechnung)",
+      "billing_postal_code": "PLZ",
+      "billing_city": "Ort",
+      "vat_id": "USt-IdNr.",
+      "notes": "Interne Notiz",
+      "nameError": "Bitte gib einen Namen ein.",
+      "emailError": "Diese E-Mail-Adresse sieht nicht richtig aus.",
+      "duplicate": "Möglicher Duplikat: {{name}}. Prüfe, ob es derselbe Kunde ist.",
+      "openDuplicate": "Vorhandenen Kunden öffnen"
+    },
+    "detail": {
+      "title": "Kunde",
+      "events": "Aufträge",
+      "noEvents": "Noch keine Aufträge.",
+      "newEvent": "Neuer Auftrag",
+      "edit": "Bearbeiten",
+      "delete": "Kunde löschen",
+      "deleteTitle": "{{name}} löschen?",
+      "deleteBody": "Das geht nur, solange es keine Aufträge gibt.",
+      "call": "Anrufen",
+      "mail": "E-Mail schreiben",
+      "billing": "Rechnungsanschrift",
+      "notes": "Notiz"
+    }
+  },
+  "events": {
+    "title": "Aufträge",
+    "add": "Neue Anfrage",
+    "search": "Suchen (Titel, Kunde, Ort)",
+    "empty": "Noch keine Aufträge. Erfasse deine erste Anfrage.",
+    "noMatch": "Keine Treffer.",
+    "count_one": "{{count}} Auftrag",
+    "count_other": "{{count}} Aufträge",
+    "mode": {
+      "upcoming": "Anstehend",
+      "past": "Vergangen",
+      "archive": "Archiv"
+    },
+    "kind": {
+      "event_catering": "Event-Catering",
+      "business_lunch": "Business-Lunch"
+    },
+    "status": {
+      "inquiry": "Anfrage",
+      "quoted": "Angebot versendet",
+      "optioned": "Optioniert",
+      "confirmed": "Bestätigt",
+      "completed": "Durchgeführt",
+      "invoiced": "Abgerechnet",
+      "declined": "Abgelehnt",
+      "cancelled": "Abgesagt"
+    },
+    "badge": {
+      "optionExpires": "Option bis {{date}}"
+    },
+    "action": {
+      "optioned": "Termin vormerken",
+      "optionedExtend": "Option verlängern",
+      "confirmed": "Direkt bestätigen",
+      "completed": "Als durchgeführt markieren",
+      "invoiced": "Als abgerechnet markieren",
+      "declined": "Anfrage kommt nicht zustande",
+      "cancelled": "Stornieren"
+    },
+    "form": {
+      "new": "Neue Anfrage",
+      "edit": "Auftrag bearbeiten",
+      "customer": "Kunde",
+      "customerSearch": "Kunde suchen (ab 2 Zeichen)",
+      "customerNew": "Neuen Kunden anlegen",
+      "customerNewName": "Name des neuen Kunden",
+      "customerCreate": "„{{name}}“ anlegen",
+      "customerChange": "Kunde ändern",
+      "kind": "Art",
+      "date": "Datum (TT.MM.JJJJ)",
+      "start": "Beginn (HH:MM)",
+      "end": "Ende (HH:MM, optional)",
+      "endHint": "Endet das Event nach Mitternacht, trage die Uhrzeit des Folgetags ein, z. B. 02:00.",
+      "title": "Titel",
+      "titleHint": "Eingeplantes Personal sieht den Titel. Nimm keinen Kundennamen.",
+      "occasion": "Anlass (z. B. Hochzeit)",
+      "guests": "Gästezahl",
+      "venue": "Ort / Location",
+      "street": "Straße und Hausnummer",
+      "postal_code": "PLZ",
+      "city": "Ort",
+      "pickup": "Abholung statt Lieferung",
+      "onsiteName": "Ansprechpartner vor Ort",
+      "onsitePhone": "Telefon vor Ort",
+      "kitchenNotes": "Hinweise für die Küche",
+      "staffNotes": "Hinweise für das Personal",
+      "internalNotes": "Interne Notiz (nur Admins)",
+      "changesUntil": "Änderungen im Portal bis (TT.MM.JJJJ HH:MM, leer = kein Schluss)",
+      "save": "Speichern",
+      "errors": {
+        "customer": "Bitte wähle einen Kunden.",
+        "date": "Bitte gib ein Datum wie 23.10.2026 ein.",
+        "start": "Bitte gib eine Uhrzeit wie 12:00 ein.",
+        "end": "Bitte gib eine Uhrzeit wie 14:30 ein oder lass das Feld leer.",
+        "title": "Bitte gib einen Titel ein.",
+        "guests": "Bitte gib eine ganze Zahl ab 1 ein.",
+        "changesUntil": "Bitte gib Datum und Uhrzeit wie 20.10.2026 12:00 ein."
+      },
+      "warnPast": "Das Datum liegt in der Vergangenheit.",
+      "warnSameDay_one": "Am {{date}} gibt es schon {{count}} Auftrag.",
+      "warnSameDay_other": "Am {{date}} gibt es schon {{count}} Aufträge."
+    },
+    "detail": {
+      "title": "Auftrag",
+      "tabs": {
+        "overview": "Übersicht",
+        "schedule": "Zeitplan"
+      },
+      "customer": "Kunde",
+      "guests": "{{count}} Gäste",
+      "kind": "Art",
+      "occasion": "Anlass",
+      "venue": "Ort",
+      "pickup": "Abholung",
+      "onsite": "Vor Ort",
+      "kitchenNotes": "Hinweise Küche",
+      "staffNotes": "Hinweise Personal",
+      "internalNotes": "Interne Notiz",
+      "changesUntil": "Änderungen bis",
+      "optionUntil": "Optioniert bis",
+      "invoice": "Rechnung",
+      "history": "Statushistorie",
+      "showHistory": "Statushistorie anzeigen",
+      "hideHistory": "Statushistorie ausblenden",
+      "edit": "Bearbeiten",
+      "copy": "Kopieren",
+      "delete": "Fehleingabe löschen",
+      "deleteTitle": "„{{title}}“ löschen?",
+      "deleteBody": "Das ist nur für Fehleingaben gedacht. Eine Anfrage, die nicht zustande kommt, markierst du als „Anfrage kommt nicht zustande“.",
+      "actions": "Nächster Schritt",
+      "closed": "Dieser Auftrag ist abgeschlossen. Für einen neuen Anlauf kopiere ihn.",
+      "gone": "Diesen Auftrag gibt es nicht mehr.",
+      "map": "In Karten öffnen",
+      "call": "Anrufen",
+      "open": "Offen",
+      "historyEntry": "{{from}} → {{to}}"
+    },
+    "dialog": {
+      "title": "„{{title}}“: {{action}}?",
+      "cancel": "Abbrechen",
+      "irreversible": "Dieser Schritt kann nicht rückgängig gemacht werden.",
+      "optionDate": "Optioniert bis (TT.MM.JJJJ)",
+      "optionError": "Bitte gib ein Datum ab heute ein.",
+      "channel": "Wie wurde bestätigt?",
+      "channelError": "Bitte wähle einen Bestätigungsweg.",
+      "reason": "Grund",
+      "reasonError": "Bitte nenne einen Grund.",
+      "invoiceReference": "Rechnungsnummer (optional)",
+      "invoicedOn": "Rechnungsdatum (TT.MM.JJJJ, optional)",
+      "invoiceDateError": "Bitte gib ein Datum wie 23.10.2026 ein oder lass das Feld leer.",
+      "notYet": "Das Event hat noch nicht stattgefunden.",
+      "channels": {
+        "phone": "Telefon",
+        "email": "E-Mail",
+        "in_person": "Persönlich"
+      },
+      "consequences": {
+        "optioned": "Der Termin erscheint als Option im Kalender und ist für die Küche sichtbar.",
+        "optionedExtend": "Die Option gilt bis zum neuen Datum.",
+        "confirmed": "Der Termin ist verbindlich. Die Küche sieht den Auftrag.",
+        "completed": "Der Auftrag gilt als durchgeführt.",
+        "invoiced": "Der Auftrag wird schreibgeschützt. Nur Rechnungsnummer und -datum bleiben bearbeitbar.",
+        "declined": "Der Auftrag verschwindet aus den Standardansichten und liegt im Archiv.",
+        "cancelled": "Der Auftrag liegt im Archiv und ist nicht mehr änderbar. Ein neuer Anlauf geht nur über „Kopieren“."
+      }
+    },
+    "copy": {
+      "title": "Auftrag kopieren",
+      "body": "Der Zeitplan wird mit verschoben, die Uhrzeiten bleiben gleich.",
+      "dates": "Neue Termine (TT.MM.JJJJ, einer pro Zeile, höchstens 10)",
+      "sameWeekday": "Gleicher Wochentag nächste Woche",
+      "status": "Startstatus",
+      "startInquiry": "Anfrage",
+      "startConfirmed": "Bestätigt (Direktbestätigung)",
+      "dietary": "Sonderessen mitkopieren",
+      "dateError": "Bitte gib bis zu 10 Daten wie 30.10.2026 ein, eines pro Zeile.",
+      "submit": "Kopieren",
+      "done": "{{count}} Auftrag angelegt.",
+      "confirmTitle": "Kopie als „bestätigt“ anlegen?"
+    },
+    "schedule": {
+      "empty": "Noch kein Zeitplan.",
+      "default": "Standardablauf einfügen",
+      "add": "Eintrag hinzufügen",
+      "kind": {
+        "departure": "Abfahrt",
+        "delivery": "Anlieferung",
+        "setup": "Aufbau",
+        "service": "Ausgabe",
+        "teardown": "Abbau",
+        "other": "Sonstiges"
+      },
+      "label": "Bezeichnung (optional)",
+      "date": "Datum",
+      "start": "Beginn",
+      "end": "Ende (optional)",
+      "notes": "Notiz",
+      "save": "Speichern",
+      "delete": "Löschen",
+      "error": "Bitte gib Datum und Uhrzeit korrekt ein."
     }
   }
 }

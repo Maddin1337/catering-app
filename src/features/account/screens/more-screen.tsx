@@ -63,6 +63,13 @@ export function MoreScreen() {
             onPress={() => router.push('/team')}
           />
         ) : null}
+        {role === 'admin' ? (
+          <ActionCard
+            title={t('more.customers')}
+            body={t('more.customersBody')}
+            onPress={() => router.push('/customers')}
+          />
+        ) : null}
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
             title={t('more.catalog')}
