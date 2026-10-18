@@ -1,20 +1,35 @@
+import {
+  CircleDot,
+  Clock,
+  Hammer,
+  PackageCheck,
+  PackageOpen,
+  Plus,
+  Truck,
+  UtensilsCrossed,
+  Wand2,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
-import { ListRow } from '@/components/ui/list-row';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { TimeField } from '@/components/ui/time-field';
 import { berlinToIso, endIso, isoToBerlin } from '@/lib/berlin';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
-import { surfaceStyle } from '@/components/ui/surface';
-import { tokens } from '@/theme/tokens';
+import { Surface } from '@/components/ui/surface';
+import { tints, tokens, type Tint } from '@/theme/tokens';
 
 import { useDeleteScheduleItem, useSaveScheduleItem, useScheduleItems } from '../api';
 import { defaultSchedule } from '../schedule-default';
@@ -56,10 +71,93 @@ export function ScheduleTab({ event, isAdmin }: { event: EventRow; isAdmin: bool
 
   const error = items.error ?? save.error ?? del.error;
   const list = items.data ?? [];
+  // Datum nur zeigen, wenn der Ablauf über mehrere Tage geht.
+  const multiDay = new Set(list.map((i) => isoToBerlin(i.starts_at).date)).size > 1;
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={styles.tab}>
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
+      {list.length === 0 ? (
+        <EmptyState icon={Clock} tint="sky" text={t('events.schedule.empty')} />
+      ) : null}
+
+      {list.length > 0 ? (
+        <Surface style={styles.timeline}>
+          {list.map((i, n) => {
+            const look = KIND_LOOK[i.kind];
+            const last = n === list.length - 1;
+            return (
+              <Appear key={i.id} index={n}>
+                <PressableScale
+                  accessibilityRole={editable ? 'button' : undefined}
+                  accessibilityLabel={`${formatTime(i.starts_at)} ${t(`events.schedule.kind.${i.kind}`)}${i.label ? ` ${i.label}` : ''}`}
+                  disabled={!editable}
+                  onPress={() => setEditing({ mode: 'edit', item: i })}
+                  scale={0.985}
+                  pressedStyle={{ backgroundColor: tokens.color.bgSubtle }}
+                  style={styles.entry}
+                >
+                  <View style={styles.timeCol}>
+                    <Text variant="bodyStrong" tabular>
+                      {formatTime(i.starts_at)}
+                    </Text>
+                    {i.ends_at ? (
+                      <Text variant="small" color="textTertiary" tabular>
+                        {formatTime(i.ends_at)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.rail}>
+                    <View style={[styles.dot, { backgroundColor: tints[look.tint].bg }]}>
+                      <look.icon color={tints[look.tint].fg} size={16} strokeWidth={2.2} />
+                    </View>
+                    {!last ? <View style={styles.line} /> : null}
+                  </View>
+                  <View style={styles.entryText}>
+                    <Text variant="bodyStrong">
+                      {t(`events.schedule.kind.${i.kind}`)}
+                      {i.label ? ` · ${i.label}` : ''}
+                    </Text>
+                    {multiDay ? (
+                      <Text variant="small" color="textSecondary">
+                        {formatDate(i.starts_at)}
+                      </Text>
+                    ) : null}
+                    {i.notes ? (
+                      <Text variant="small" color="textSecondary">
+                        {i.notes}
+                      </Text>
+                    ) : null}
+                  </View>
+                </PressableScale>
+              </Appear>
+            );
+          })}
+        </Surface>
+      ) : null}
+
+      {editable ? (
+        <View style={styles.actions}>
+          <Button
+            label={t('events.schedule.add')}
+            icon={Plus}
+            variant="tonal"
+            style={styles.flex}
+            onPress={() => setEditing({ mode: 'new' })}
+          />
+          {list.length === 0 ? (
+            <Button
+              label={t('events.schedule.default')}
+              icon={Wand2}
+              variant="secondary"
+              style={styles.flex}
+              loading={seeding}
+              onPress={() => void seed()}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
       {editing ? (
         <ItemForm
           key={editing.mode === 'edit' ? editing.item.id : 'new'}
@@ -67,50 +165,23 @@ export function ScheduleTab({ event, isAdmin }: { event: EventRow; isAdmin: bool
           editing={editing}
           busy={save.isPending || del.isPending}
           onCancel={() => setEditing(null)}
-          onSave={(values) =>
+          onSave={(values, close) =>
             save.mutate(
               {
                 eventId: event.id,
                 id: editing.mode === 'edit' ? editing.item.id : undefined,
                 values,
               },
-              { onSuccess: () => setEditing(null) },
+              { onSuccess: () => close() },
             )
           }
           onDelete={
             editing.mode === 'edit'
-              ? () => del.mutate(editing.item.id, { onSuccess: () => setEditing(null) })
+              ? (close) => del.mutate(editing.item.id, { onSuccess: () => close() })
               : undefined
           }
         />
-      ) : (
-        <>
-          {list.length === 0 ? (
-            <Text variant="body" color="textSecondary">
-              {t('events.schedule.empty')}
-            </Text>
-          ) : null}
-          {list.map((i) => (
-            <ListRow
-              key={i.id}
-              title={`${t(`events.schedule.kind.${i.kind}`)}${i.label ? ` · ${i.label}` : ''}`}
-              subtitle={`${formatDate(i.starts_at)} · ${formatTime(i.starts_at)}${i.ends_at ? `–${formatTime(i.ends_at)}` : ''}${i.notes ? ` · ${i.notes}` : ''}`}
-              onPress={editable ? () => setEditing({ mode: 'edit', item: i }) : undefined}
-            />
-          ))}
-          {editable ? (
-            <Button label={t('events.schedule.add')} onPress={() => setEditing({ mode: 'new' })} />
-          ) : null}
-          {editable && list.length === 0 ? (
-            <Button
-              label={t('events.schedule.default')}
-              variant="secondary"
-              loading={seeding}
-              onPress={() => void seed()}
-            />
-          ) : null}
-        </>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -127,14 +198,17 @@ function ItemForm({
   editing: Editing;
   busy: boolean;
   onCancel: () => void;
-  onSave: (v: {
-    kind: ScheduleItem['kind'];
-    label: string | null;
-    starts_at: string;
-    ends_at: string | null;
-    notes: string | null;
-  }) => void;
-  onDelete?: () => void;
+  onSave: (
+    v: {
+      kind: ScheduleItem['kind'];
+      label: string | null;
+      starts_at: string;
+      ends_at: string | null;
+      notes: string | null;
+    },
+    close: () => void,
+  ) => void;
+  onDelete?: (close: () => void) => void;
 }) {
   const { t } = useTranslation();
   const item = editing.mode === 'edit' ? editing.item : null;
@@ -153,27 +227,43 @@ function ItemForm({
   const endOk = end || null;
   const invalid = !isoDate || !startOk;
 
-  const submit = () => {
+  const submit = (close: () => void) => {
     setTried(true);
     if (invalid || !isoDate || !startOk) return;
-    onSave({
-      kind,
-      label: label.trim() || null,
-      starts_at: berlinToIso(isoDate, startOk),
-      ends_at: endOk ? endIso(isoDate, startOk, endOk) : null,
-      notes: notes.trim() || null,
-    });
+    onSave(
+      {
+        kind,
+        label: label.trim() || null,
+        starts_at: berlinToIso(isoDate, startOk),
+        ends_at: endOk ? endIso(isoDate, startOk, endOk) : null,
+        notes: notes.trim() || null,
+      },
+      close,
+    );
   };
 
   return (
-    <View
-      style={{
-        gap: 12,
-        padding: tokens.space[3],
-        ...surfaceStyle(),
-      }}
+    <Sheet
+      title={item ? t('events.schedule.edit') : t('events.schedule.add')}
+      onClose={onCancel}
+      footer={(close) => (
+        <>
+          <Button
+            label={t('events.schedule.save')}
+            loading={busy}
+            onPress={() => submit(() => close())}
+          />
+          {onDelete ? (
+            <Button
+              label={t('events.schedule.delete')}
+              variant="danger"
+              onPress={() => onDelete(() => close())}
+            />
+          ) : null}
+        </>
+      )}
     >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <View style={styles.chips}>
         {SCHEDULE_KINDS.map((k) => (
           <Chip
             key={k}
@@ -190,30 +280,67 @@ function ItemForm({
         onChange={setDate}
         error={tried && !isoDate ? t('events.schedule.error') : undefined}
       />
-      <TimeField
-        label={t('events.schedule.start')}
-        value={start}
-        onChange={setStart}
-        error={tried && !startOk ? t('events.schedule.error') : undefined}
-      />
-      <TimeField
-        label={t('events.schedule.end')}
-        value={end}
-        onChange={setEnd}
-        optional
-        defaultHour={14}
-      />
+      <View style={styles.actions}>
+        <View style={styles.flex}>
+          <TimeField
+            label={t('events.schedule.start')}
+            value={start}
+            onChange={setStart}
+            error={tried && !startOk ? t('events.schedule.error') : undefined}
+          />
+        </View>
+        <View style={styles.flex}>
+          <TimeField
+            label={t('events.schedule.end')}
+            value={end}
+            onChange={setEnd}
+            optional
+            defaultHour={14}
+          />
+        </View>
+      </View>
       <TextField
         label={t('events.schedule.notes')}
         value={notes}
         onChangeText={setNotes}
         multiline
       />
-      <Button label={t('events.schedule.save')} loading={busy} onPress={submit} />
-      {onDelete ? (
-        <Button label={t('events.schedule.delete')} variant="danger" onPress={onDelete} />
-      ) : null}
-      <Button label={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </View>
+    </Sheet>
   );
 }
+
+// Symbol und Ton je Art des Eintrags: Die Zeitleiste lässt sich so auf einen Blick lesen.
+const KIND_LOOK: Record<ScheduleItem['kind'], { icon: LucideIcon; tint: Tint }> = {
+  departure: { icon: Truck, tint: 'indigo' },
+  delivery: { icon: PackageCheck, tint: 'sky' },
+  setup: { icon: Hammer, tint: 'amber' },
+  service: { icon: UtensilsCrossed, tint: 'teal' },
+  teardown: { icon: PackageOpen, tint: 'slate' },
+  other: { icon: CircleDot, tint: 'violet' },
+};
+
+const styles = StyleSheet.create({
+  tab: { gap: tokens.space[3] },
+  flex: { flex: 1 },
+  timeline: { paddingVertical: tokens.space[2], paddingHorizontal: 0, gap: 0, overflow: 'hidden' },
+  entry: {
+    flexDirection: 'row',
+    gap: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
+    minHeight: 64,
+  },
+  timeCol: { width: 52, paddingTop: tokens.space[2], alignItems: 'flex-end' },
+  rail: { width: 32, alignItems: 'center' },
+  dot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: tokens.space[1],
+  },
+  line: { flex: 1, width: 2, backgroundColor: tokens.color.border, marginVertical: 2 },
+  entryText: { flex: 1, gap: 2, paddingTop: tokens.space[2], paddingBottom: tokens.space[4] },
+  actions: { flexDirection: 'row', gap: tokens.space[2] },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space[2] },
+});

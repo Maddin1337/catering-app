@@ -39,6 +39,7 @@ import { useMembership } from '../../company/api';
 import { useExistingQuote } from '../../quotes/api';
 import { PortalStatus } from '../../quotes/components/portal-status';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
+import { useApplications, useSlots } from '../../shifts/api';
 import { StaffingTab } from '../../shifts/components/staffing-tab';
 import { whenLabel } from '../../start/components/next-event-card';
 import { daysUntil } from '../../start/overview';
@@ -114,6 +115,11 @@ export function EventDetailScreen() {
   const [tab, setTab] = useState<'overview' | 'schedule' | 'kitchen' | 'staff'>('overview');
   const [target, setTarget] = useState<EventStatus | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  // Offene Bewerbungen als Zahl am Reiter „Personal“ (dieselben Abfragen wie im Reiter, aus dem Cache).
+  const slots = useSlots(isAdmin ? id : undefined).data ?? [];
+  const pendingApps = (useApplications(slots.map((s) => s.id)).data ?? []).filter(
+    (a) => a.status === 'applied',
+  ).length;
 
   if (!event) {
     return (
@@ -271,7 +277,11 @@ export function EventDetailScreen() {
         items={(isAdmin
           ? (['overview', 'schedule', 'kitchen', 'staff'] as const)
           : (['overview', 'schedule', 'kitchen'] as const)
-        ).map((k) => ({ key: k, label: t(`events.detail.tabs.${k}`) }))}
+        ).map((k) => ({
+          key: k,
+          label: t(`events.detail.tabs.${k}`),
+          badge: k === 'staff' ? pendingApps : undefined,
+        }))}
         active={tab}
         onChange={setTab}
       />

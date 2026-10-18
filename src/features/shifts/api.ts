@@ -123,8 +123,34 @@ export type SlotInput = {
   notes: string;
 };
 
+/**
+ * Speichert eine Schicht. Mit `publish` geht sie gleich in die Schichtbörse (nur ab „optioniert“
+ * möglich); so entsteht für den Normalfall kein Entwurf mehr, auf den man achten muss.
+ */
 export const useSaveSlot = () =>
-  useShiftMutation((v: SlotInput) => rpc<string>('save_slot', { p: v }));
+  useShiftMutation(async ({ publish, ...v }: SlotInput & { publish?: boolean }) => {
+    const id = await rpc<string>('save_slot', { p: v });
+    if (publish) await rpc<number>('publish_slots', { p_slot_ids: [id] });
+    return id;
+  });
+
+/**
+ * Veröffentlicht alle noch nicht veröffentlichten Schichten eines Auftrags, z. B. sobald er
+ * optioniert oder bestätigt wird. Liefert die Anzahl.
+ */
+export const usePublishEventDrafts = () =>
+  useShiftMutation(async (eventId: string) => {
+    const { data, error } = await client()
+      .from('shift_slots')
+      .select('id')
+      .eq('event_id', eventId)
+      .is('published_at', null)
+      .is('cancelled_at', null);
+    if (error) throw toAppError(error);
+    const ids = (data ?? []).map((r: { id: string }) => r.id);
+    if (ids.length === 0) return 0;
+    return rpc<number>('publish_slots', { p_slot_ids: ids });
+  });
 export const usePublishSlots = () =>
   useShiftMutation((ids: string[]) => rpc<number>('publish_slots', { p_slot_ids: ids }));
 export const useCancelSlot = () =>

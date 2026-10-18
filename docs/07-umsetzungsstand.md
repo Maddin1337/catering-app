@@ -369,6 +369,14 @@ Ziel: übersichtlicher, Aktionen in Daumenreichweite, moderne Übergänge. Detai
 - Die Startseite verzichtet auf die zwei Schnellaktions-Knöpfe (jetzt im „+“).
 - Prüfung: Typecheck, Lint, 233 Jest-Tests (neu: Aktionsmenü), Mobil-Prüfung in drei iPhone-Größen ohne Befund, iOS-Bundle baut. Auf einem echten iPhone noch nicht getestet (Haptik, Wischgesten, Übergänge).
 
+## Auftragsreiter übersichtlicher, Schichten ohne Entwurf (18.10.2026)
+
+- **Abweichung A-39 (US-42):** Eine neue Schicht ist kein Entwurf mehr. Ist der Auftrag optioniert oder bestätigt, wird sie beim Speichern sofort veröffentlicht. Vorher angelegte Schichten gehen automatisch in die Börse, sobald der Auftrag über den Statuswechsel optioniert oder bestätigt wird. Ältere Entwürfe zeigt der Reiter mit „Jetzt veröffentlichen“. Umgesetzt in der App (`useSaveSlot` mit `publish`, `usePublishEventDrafts`), ohne Datenbankänderung; die Regel „veröffentlichen erst ab optioniert“ prüft weiterhin `publish_slots()`.
+- **Reiter „Personal“:** Besetzungsübersicht (Fortschritt, Zähler Besetzt / Bewerbungen / Frei), Schichtkarten mit Datumskachel, Status („In der Schichtbörse“, „Ab Vormerkung in der Börse“), Plätzen als Kreise (besetzt mit Initialen → Ausplanen oder späte Absage; frei gestrichelt → Person einplanen), offenen Bewerbungen mit ✕/✓ und „⋯“ je Schicht (Bearbeiten, Einplanen, Absagen). Frühere Bewerbungen sind eingeklappt. Das Formular ist ein Blatt mit +/− für die Plätze; Treffpunkt, Dresscode und Hinweis liegen unter „Details“. Offene Bewerbungen stehen als Zahl am Reiter.
+- **Zeitplan:** Zeitleiste mit Uhrzeit, farbigem Symbol je Art (Abfahrt, Anlieferung, Aufbau, Ausgabe, Abbau) und Notiz; Formular als Blatt.
+- **Küche:** Hinweise der Küche als gelbe Notiz, Sonderessen mit Zähler und Anteil an den Gästen, Einträge mit Anzahl-Kachel, Allergenen und „kurzfristig“; Formular als Blatt mit +/− für die Personen.
+- Vorbilder aus Appllama: Partiful (Zähler-Kreise, Werkzeugleiste, Aktionsblatt), Supershift (Schichtliste mit „Schicht hinzufügen“), TimeTree (Ablauf). Neue Bausteine: `Stepper`, `IconButton` mit `tone`, `SegmentedTabs` mit `badge`. Logik in `src/features/shifts/staffing.ts` (getestet).
+
 ## Datenbank des Pilotprojekts auf dem neuesten Stand (18.10.2026)
 
 Über den Supabase-Konnektor eingespielt: Updates 2 bis 17 (`20261022090000` bis `20261106090000`). Update 1 war schon vorhanden. Geprüft per `supabase/check-updates.sql` (alle OK) und per Abgleich mit einer lokal aus allen Migrationen aufgebauten Datenbank: Spalten, Einschränkungen, Tabellen- und Spaltenrechte, alle Funktionen (Inhalt, Rechte, `security definer`), Regeln (auch Storage), Trigger und Ansichten sind identisch.

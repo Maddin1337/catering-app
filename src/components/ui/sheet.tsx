@@ -41,7 +41,7 @@ export function Sheet({
   /** Inhalt; als Funktion bekommt er `close`, um animiert zu schließen und danach zu handeln. */
   children: ReactNode | ((close: (then?: () => void) => void) => ReactNode);
   /** Fester Bereich unter dem scrollenden Inhalt (z. B. „Übernehmen“). */
-  footer?: ReactNode;
+  footer?: ReactNode | ((close: (then?: () => void) => void) => ReactNode);
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -108,7 +108,11 @@ export function Sheet({
           >
             {typeof children === 'function' ? children(close) : children}
           </ScrollView>
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
+          {footer ? (
+            <View style={styles.footer}>
+              {typeof footer === 'function' ? footer(close) : footer}
+            </View>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>

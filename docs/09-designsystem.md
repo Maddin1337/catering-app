@@ -109,6 +109,13 @@ Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview
 - **Kunden und Team:** `Avatar` mit Initialen auf Pastellgrund (Ton aus dem Namen) in `ListRow`; Suche überall als `SearchField`.
 - **Datumsauswahl:** Monatspfeile als `IconButton`.
 
+## Auftragsreiter (Personal, Zeitplan, Küche)
+
+- **Personal:** oben „Besetzung“ (Fortschrittsbalken, drei Zähler-Kreise wie bei Partiful: Besetzt, Bewerbungen, Frei), darunter Schichtkarten. Plätze sind Kreise: besetzt mit Initialen (antippen → Ausplanen / späte Absage), frei gestrichelt mit „+“ (antippen → Person einplanen). Offene Bewerbungen mit runden ✕ (rosa) und ✓ (Petrol). Seltenes hinter „⋯“ je Karte. Neue Schichten über die gestrichelte Zeile „Schicht anlegen“ (Supershift-Muster).
+- **Zeitplan:** Zeitleiste – Uhrzeit links, farbige Symbolpunkte auf einer Linie, Art und Notiz rechts.
+- **Küche:** gelbe Hinweis-Notiz, Zählerkarte Sonderessen, Einträge mit Anzahl-Kachel.
+- Alle Formulare der Reiter sind Blätter von unten; Zahlen werden mit `Stepper` (− / +) gesetzt.
+
 ## Auftragsdetail und Formulare
 
 - **Auftragsdetail:** Zusammenfassungskarte (Status, „in n Tagen“, Termin, Kunde, Gäste, Adresse als Kartenlink, Optionsfrist), Angaben als gruppierte Karten mit Trennlinien (`FieldGroup`), Angebotskarte mit Nummer, Summe, Portal-Status und den Aktionen. Bearbeiten oben rechts, Kopieren und Seltenes im „⋯“-Menü, der nächste Status fest unten (siehe Tabelle oben).

@@ -885,7 +885,8 @@
       "notes": "Notiz",
       "save": "Speichern",
       "delete": "Löschen",
-      "error": "Bitte wähle Datum und Uhrzeit."
+      "error": "Bitte wähle Datum und Uhrzeit.",
+      "edit": "Eintrag bearbeiten"
     },
     "kitchen": {
       "title": "Sonderessen und Allergien",
@@ -912,7 +913,8 @@
       "substituteAdd": "Ersatzgericht hinzufügen",
       "substituteFrom": "Welches Gericht wird ersetzt?",
       "substituteTo": "Durch welches Gericht?",
-      "substituteNoDishes": "Im Angebot dieses Auftrags stehen noch keine Gerichte."
+      "substituteNoDishes": "Im Angebot dieses Auftrags stehen noch keine Gerichte.",
+      "edit": "Sonderessen bearbeiten"
     },
     "addQuick": "Schnelles Formular",
     "addChat": "Anfrage im Chat erfassen"
@@ -1511,7 +1513,34 @@
         "free": "Freie Schichten"
       }
     },
-    "adminCancelled": "Vom Mitarbeiter abgesagt"
+    "adminCancelled": "Vom Mitarbeiter abgesagt",
+    "overview": "Besetzung",
+    "filledOf": "{{filled}} von {{seats}} Plätzen besetzt",
+    "noSeats": "Noch keine Plätze geplant",
+    "countFilled": "Besetzt",
+    "countPending": "Bewerbungen",
+    "countFree": "Frei",
+    "state": {
+      "published": "In der Schichtbörse",
+      "draft": "Noch nicht in der Börse",
+      "waiting": "Ab Vormerkung in der Börse",
+      "cancelled": "Abgesagt"
+    },
+    "draftsBanner_one": "{{count}} Schicht steht noch nicht in der Schichtbörse.",
+    "draftsBanner_other": "{{count}} Schichten stehen noch nicht in der Schichtbörse.",
+    "publishNow": "Jetzt veröffentlichen",
+    "waitingHint": "Neue Schichten gehen automatisch in die Schichtbörse, sobald der Termin vorgemerkt oder bestätigt ist.",
+    "freeSeat": "Freier Platz: Person einplanen",
+    "slotActions": "Aktionen für {{title}}",
+    "seatActions": "{{name}}",
+    "savedPublished": "Gespeichert und in der Schichtbörse.",
+    "savedWaiting": "Gespeichert. Geht in die Börse, sobald der Termin vorgemerkt ist.",
+    "pastApplications": "Frühere Bewerbungen ({{count}})",
+    "acceptA11y": "{{name}} zusagen",
+    "rejectA11y": "{{name}} absagen",
+    "fewer": "Weniger",
+    "more": "Mehr",
+    "details": "Details"
   },
   "create": {
     "title": "Was möchtest du anlegen?",

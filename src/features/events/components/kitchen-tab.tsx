@@ -1,18 +1,29 @@
+import { ChevronRight, Plus, Salad, StickyNote } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import { AnimatedNumber } from '@/components/ui/animated-number';
+import { Appear } from '@/components/ui/appear';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Pill } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Sheet } from '@/components/ui/sheet';
+import { Stepper } from '@/components/ui/stepper';
 import { PickerSheet } from '@/components/ui/picker-sheet';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { toAppError } from '@/lib/errors';
-import { surfaceStyle } from '@/components/ui/surface';
-import { tokens } from '@/theme/tokens';
+import { Surface } from '@/components/ui/surface';
+import { transition } from '@/components/ui/transition';
+import { tints, tokens } from '@/theme/tokens';
 
 import { useDishes, usePackageDishLines } from '../../catalog/api';
 import { AllergenCodes } from '../../catalog/components/allergen-codes';
@@ -34,23 +45,116 @@ export function KitchenTab({ event }: { event: EventRow }) {
   const error = list.error ?? save.error ?? del.error;
   const writable = !['declined', 'invoiced'].includes(event.status);
 
+  const guests = event.guest_count ?? 0;
+
   return (
-    <View style={{ gap: 12 }}>
+    <View style={styles.tab}>
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       {event.kitchen_notes ? (
-        <View style={{ gap: 2 }}>
-          <Text variant="small" color="textSecondary">
-            {t('events.detail.kitchenNotes')}
-          </Text>
+        <Surface style={styles.note}>
+          <View style={styles.noteHead}>
+            <StickyNote color={tints.amber.fg} size={18} strokeWidth={2.2} />
+            <Text variant="caption" style={{ color: tints.amber.fg }}>
+              {t('events.detail.kitchenNotes').toUpperCase()}
+            </Text>
+          </View>
           <Text variant="body">{event.kitchen_notes}</Text>
+        </Surface>
+      ) : null}
+
+      <Surface style={styles.summary}>
+        <View style={styles.summaryHead}>
+          <View style={styles.flex}>
+            <Text variant="title2">{t('events.kitchen.title')}</Text>
+            {guests > 0 ? (
+              <Text variant="small" color="textSecondary">
+                {t('events.kitchen.sum', { count: total, guests })}
+              </Text>
+            ) : null}
+          </View>
+          <View style={[styles.bubble, { backgroundColor: tints.rose.bg }]}>
+            <AnimatedNumber
+              value={total}
+              variant="title1"
+              tabular
+              style={{ color: tints.rose.fg }}
+            />
+          </View>
         </View>
+        {guests > 0 ? (
+          <View style={styles.track}>
+            <Animated.View
+              style={[
+                styles.bar,
+                { width: `${Math.min(100, Math.round((total / guests) * 100))}%` },
+                transition('width', tokens.motion.slow),
+              ]}
+            />
+          </View>
+        ) : null}
+      </Surface>
+
+      {rows.length === 0 ? (
+        <EmptyState icon={Salad} tint="rose" text={t('events.kitchen.empty')} />
+      ) : (
+        <Surface padded={false} style={styles.list}>
+          {rows.map((r, i) => (
+            <Appear key={r.id} index={i}>
+              <PressableScale
+                accessibilityRole={writable ? 'button' : undefined}
+                disabled={!writable}
+                onPress={() => setEditing({ mode: 'edit', row: r })}
+                scale={0.985}
+                pressedStyle={{ backgroundColor: tokens.color.bgSubtle }}
+                style={[styles.row, i > 0 && styles.divider]}
+              >
+                <View
+                  style={[styles.count, { backgroundColor: tints[r.diet ? 'teal' : 'rose'].bg }]}
+                >
+                  <Text
+                    variant="bodyStrong"
+                    tabular
+                    style={{ color: tints[r.diet ? 'teal' : 'rose'].fg }}
+                  >
+                    {`${r.person_count}×`}
+                  </Text>
+                </View>
+                <View style={styles.flexGap}>
+                  <Text variant="bodyStrong">
+                    {r.diet ? t(`diet.${r.diet}`) : t('events.kitchen.allergy')}
+                  </Text>
+                  {[r.guest_name, r.table_label, r.note].some(Boolean) ? (
+                    <Text variant="small" color="textSecondary">
+                      {[r.guest_name, r.table_label, r.note].filter(Boolean).join(' · ')}
+                    </Text>
+                  ) : null}
+                  {r.avoid_allergens.length > 0 || r.is_short_notice ? (
+                    <View style={styles.tags}>
+                      <AllergenCodes allergens={r.avoid_allergens} />
+                      {r.is_short_notice ? (
+                        <Pill label={t('events.kitchen.shortNotice')} tone="danger" />
+                      ) : null}
+                    </View>
+                  ) : null}
+                </View>
+                {writable ? (
+                  <ChevronRight color={tokens.color.textTertiary} size={18} strokeWidth={2.2} />
+                ) : null}
+              </PressableScale>
+            </Appear>
+          ))}
+        </Surface>
+      )}
+
+      {writable ? (
+        <Button
+          label={t('events.kitchen.add')}
+          icon={Plus}
+          variant="tonal"
+          onPress={() => setEditing({ mode: 'new' })}
+        />
       ) : null}
-      <Text variant="title2">{t('events.kitchen.title')}</Text>
-      {event.guest_count ? (
-        <Text variant="small" color="textSecondary">
-          {t('events.kitchen.sum', { count: total, guests: event.guest_count })}
-        </Text>
-      ) : null}
+
       {editing ? (
         <DietaryForm
           key={editing.mode === 'edit' ? editing.row.id : 'new'}
@@ -58,53 +162,23 @@ export function KitchenTab({ event }: { event: EventRow }) {
           busy={save.isPending || del.isPending}
           onCancel={() => setEditing(null)}
           eventId={event.id}
-          onSave={(values) =>
+          onSave={(values, close) =>
             save.mutate(
               {
                 eventId: event.id,
                 id: editing.mode === 'edit' ? editing.row.id : undefined,
                 values,
               },
-              { onSuccess: () => setEditing(null) },
+              { onSuccess: () => close() },
             )
           }
           onDelete={
             editing.mode === 'edit'
-              ? () => del.mutate(editing.row.id, { onSuccess: () => setEditing(null) })
+              ? (close) => del.mutate(editing.row.id, { onSuccess: () => close() })
               : undefined
           }
         />
-      ) : (
-        <>
-          {rows.length === 0 ? (
-            <Text variant="body" color="textSecondary">
-              {t('events.kitchen.empty')}
-            </Text>
-          ) : null}
-          {rows.map((r) => (
-            <View key={r.id} style={{ gap: 4 }}>
-              <ListRow
-                title={`${r.person_count}× ${r.diet ? t(`diet.${r.diet}`) : t('events.kitchen.allergy')}`}
-                subtitle={
-                  [r.guest_name, r.table_label, r.note].filter(Boolean).join(' · ') || undefined
-                }
-                right={
-                  r.is_short_notice ? (
-                    <Text variant="caption" color="danger">
-                      {t('events.kitchen.shortNotice')}
-                    </Text>
-                  ) : undefined
-                }
-                onPress={writable ? () => setEditing({ mode: 'edit', row: r }) : undefined}
-              />
-              <AllergenCodes allergens={r.avoid_allergens} />
-            </View>
-          ))}
-          {writable ? (
-            <Button label={t('events.kitchen.add')} onPress={() => setEditing({ mode: 'new' })} />
-          ) : null}
-        </>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -121,12 +195,12 @@ function DietaryForm({
   editing: Editing;
   busy: boolean;
   onCancel: () => void;
-  onSave: (v: DietaryInput) => void;
-  onDelete?: () => void;
+  onSave: (v: DietaryInput, close: () => void) => void;
+  onDelete?: (close: () => void) => void;
 }) {
   const { t } = useTranslation();
   const row = editing.mode === 'edit' ? editing.row : null;
-  const [count, setCount] = useState(row ? String(row.person_count) : '1');
+  const [count, setCount] = useState(row?.person_count ?? 1);
   const [diet, setDiet] = useState<Diet | null>(row?.diet ?? null);
   const [avoid, setAvoid] = useState<Allergen[]>(row?.avoid_allergens ?? []);
   const [guest, setGuest] = useState(row?.guest_name ?? '');
@@ -136,8 +210,7 @@ function DietaryForm({
   const [subs, setSubs] = useState(row?.substitutions ?? []);
   const [tried, setTried] = useState(false);
 
-  const n = /^\d+$/.test(count.trim()) ? Number(count) : 0;
-  const countError = n < 1 ? t('events.kitchen.countError') : undefined;
+  const n = count;
   const contentError =
     !diet && avoid.length === 0 && note.trim() === ''
       ? t('events.kitchen.contentError')
@@ -145,36 +218,47 @@ function DietaryForm({
   const toggle = <T,>(list: T[], v: T) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
 
-  const submit = () => {
+  const submit = (close: () => void) => {
     setTried(true);
-    if (countError || contentError) return;
-    onSave({
-      person_count: n,
-      diet,
-      avoid_allergens: avoid,
-      guest_name: guest.trim() || null,
-      table_label: table.trim() || null,
-      note: note.trim() || null,
-      source,
-      substitutions: subs,
-    });
+    if (contentError) return;
+    onSave(
+      {
+        person_count: n,
+        diet,
+        avoid_allergens: avoid,
+        guest_name: guest.trim() || null,
+        table_label: table.trim() || null,
+        note: note.trim() || null,
+        source,
+        substitutions: subs,
+      },
+      close,
+    );
   };
 
   return (
-    <View
-      style={{
-        gap: 12,
-        padding: tokens.space[3],
-        ...surfaceStyle(),
-      }}
+    <Sheet
+      title={row ? t('events.kitchen.edit') : t('events.kitchen.add')}
+      onClose={onCancel}
+      footer={(close) => (
+        <>
+          <Button label={t('common.save')} loading={busy} onPress={() => submit(() => close())} />
+          {onDelete ? (
+            <Button
+              label={t('events.schedule.delete')}
+              variant="danger"
+              onPress={() => onDelete(() => close())}
+            />
+          ) : null}
+        </>
+      )}
     >
-      <TextField
+      <Stepper
         label={t('events.kitchen.count')}
         value={count}
-        onChangeText={setCount}
-        error={tried ? countError : undefined}
-        inputMode="numeric"
-        keyboardType="number-pad"
+        onChange={setCount}
+        decreaseLabel={t('shifts.fewer')}
+        increaseLabel={t('shifts.more')}
       />
       <Text variant="small" color="textSecondary">
         {t('events.kitchen.diet')}
@@ -228,12 +312,7 @@ function DietaryForm({
           {contentError}
         </Text>
       ) : null}
-      <Button label={t('common.save')} loading={busy} onPress={submit} />
-      {onDelete ? (
-        <Button label={t('events.schedule.delete')} variant="danger" onPress={onDelete} />
-      ) : null}
-      <Button label={t('common.cancel')} variant="ghost" onPress={onCancel} />
-    </View>
+    </Sheet>
   );
 }
 
@@ -334,3 +413,45 @@ function Substitutions({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  tab: { gap: tokens.space[3] },
+  flex: { flex: 1 },
+  flexGap: { flex: 1, gap: 4 },
+  note: {
+    gap: tokens.space[1],
+    padding: tokens.space[4],
+    backgroundColor: tints.amber.bg,
+    borderColor: tints.amber.bg,
+  },
+  noteHead: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[2] },
+  summary: { gap: tokens.space[3], padding: tokens.space[4] },
+  summaryHead: { flexDirection: 'row', alignItems: 'center', gap: tokens.space[3] },
+  bubble: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  track: { height: 8, borderRadius: 4, backgroundColor: tokens.color.bgMuted, overflow: 'hidden' },
+  bar: { height: 8, borderRadius: 4, backgroundColor: tints.rose.fg },
+  list: { overflow: 'hidden' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.space[3],
+    paddingVertical: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
+    minHeight: 64,
+  },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.color.border },
+  count: {
+    width: 44,
+    height: 44,
+    borderRadius: tokens.radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space[2], alignItems: 'center' },
+});

@@ -40,7 +40,7 @@ Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt 
 6. **Küche:** Mehr → Küchenplanung. Zeitraum wählen, Produktion, Sonderessen und Einkauf prüfen. Bei einem Sonderessen unter „Küche“ im Auftrag ein Ersatzgericht eintragen.
 7. **Logo:** Einstellungen → Branding → Logo wählen. Es erscheint im PDF und im Portal.
 8. **Kalender-Abo:** Mehr → Profil → „Im Kalender abonnieren“ (iPhone/Mac: webcal-Link öffnet Kalender; sonst Link kopieren). Funktioniert erst, wenn die Web-App (Vercel) mit dem neuen Ordner `api/` ausgeliefert ist.
-9. **Personal:** Im Auftrag Tab „Personal“ → Schicht anlegen (Qualifikation wählen), veröffentlichen. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner.
+9. **Personal:** Im Auftrag Tab „Personal“ → „Schicht anlegen“ (Qualifikation wählen, Plätze mit +/−). Ist der Auftrag optioniert oder bestätigt, steht die Schicht sofort in der Schichtbörse; sonst geht sie automatisch hinein, sobald du den Termin vormerkst. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner.
 
 ## 3. Was bewusst noch fehlt
 

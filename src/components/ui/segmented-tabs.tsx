@@ -21,7 +21,8 @@ export function SegmentedTabs<K extends string>({
   active,
   onChange,
 }: {
-  items: readonly { key: K; label: string }[];
+  /** `badge` zeigt eine kleine Zahl am Eintrag (z. B. offene Bewerbungen). */
+  items: readonly { key: K; label: string; badge?: number }[];
   active: K;
   onChange: (key: K) => void;
 }) {
@@ -70,6 +71,14 @@ export function SegmentedTabs<K extends string>({
             >
               {item.label}
             </Text>
+            {/* Abzeichen in der Ecke, damit der Text auch bei vier Reitern ganz lesbar bleibt. */}
+            {item.badge ? (
+              <View style={styles.badge} accessibilityLabel={String(item.badge)}>
+                <Text variant="caption" color="onAccent" style={styles.badgeText}>
+                  {item.badge}
+                </Text>
+              </View>
+            ) : null}
           </PressableScale>
         );
       })}
@@ -101,5 +110,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: tokens.radius.full,
   },
-  label: { fontFamily: tokens.font.semibold },
+  label: { fontFamily: tokens.font.semibold, flexShrink: 1 },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.color.warning,
+  },
+  badgeText: { fontSize: 11, lineHeight: 14 },
 });

@@ -12,6 +12,7 @@ import { addDays, endOfBerlinDayIso, todayBerlin } from '@/lib/berlin';
 import { requirementsFor, type EventStatus } from '@/lib/event-status';
 import { toAppError } from '@/lib/errors';
 
+import { usePublishEventDrafts } from '../../shifts/api';
 import { useSetEventStatus } from '../api';
 import type { EventRow } from '../types';
 
@@ -32,6 +33,7 @@ export function StatusDialog({
 }) {
   const { t } = useTranslation();
   const set = useSetEventStatus();
+  const publishDrafts = usePublishEventDrafts();
   const needs = requirementsFor(event.status, target);
   const extend = event.status === 'optioned' && target === 'optioned';
   const actionKey = extend ? 'optionedExtend' : target;
@@ -70,7 +72,13 @@ export function StatusDialog({
         invoiceReference: invoiceRef.trim() || undefined,
         invoicedOn: invDateParsed ?? undefined,
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: () => {
+          // Ab „optioniert“ dürfen Schichten in die Börse: vorher angelegte gehen jetzt automatisch hinein.
+          if (target === 'optioned' || target === 'confirmed') publishDrafts.mutate(event.id);
+          onClose();
+        },
+      },
     );
   };
 
