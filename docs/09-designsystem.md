@@ -9,7 +9,7 @@ Gilt für Team-App und Kundenportal. Die Werte stehen in `src/theme/tokens.ts`, 
 - **Runde Formen:** Schaltflächen, Chips, Reiter und die Tab-Leiste sind Pillen (`radius.full`); Karten 22, Felder 16, Blätter 28.
 - **Eine Hauptaktion pro Ansicht:** `Button variant="primary"` (Petrol-Verlauf mit farbigem Schatten). `dark` (Tinte) für starke Zweitaktionen, `secondary` (weiß), `tonal`, `ghost`, `danger` (rosa Fläche, roter Text).
 - **Spürbares Tippen:** `PressableScale` federt beim Drücken leicht ein (Reanimated; folgt „Bewegung reduzieren“), `Button` löst auf dem Gerät ein leichtes Haptik-Signal aus (Web: keins).
-- **Schwebende Tab-Leiste:** `FloatingTabBar` – aktiver Tab als dunkle Pille mit Symbol und Beschriftung, übrige nur Symbol (Beschriftung bleibt als Zugänglichkeitsname). Die Leiste belegt Platz im Layout, es wird nichts verdeckt.
+- **Schlanke, schwebende Tab-Leiste:** `FloatingTabBar` – 58 px hoch, Symbol über kleiner Beschriftung (11 px), der aktive Tab liegt in einer weichen Petrol-Kapsel. Die Leiste belegt Platz im Layout, es wird nichts verdeckt; am unteren Rand rückt sie nah an die Home-Anzeige.
 - **Reiter auf Detailseiten:** `SegmentedTabs` (graue Spur, aktive weiße Pille) ersetzt die Unterstreich-Reiter (Auftrag, Team, Katalog).
 - **Leere Zustände:** `EmptyState` mit runder Symbol-Plakette; Einstiegskarten (`ActionCard`) mit pastellfarbener Plakette (`tints`).
 - **Hinweise:** `Banner` mit Symbol und getönter Fläche, ohne Rahmen. Auswahlblätter (`PickerSheet`) fahren von unten ein, mit Griff und abgedunkeltem Hintergrund (`color.scrim`).

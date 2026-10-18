@@ -1,7 +1,6 @@
 import type { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tokens } from '@/theme/tokens';
@@ -12,14 +11,14 @@ import { Text } from './text';
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 /**
- * Schwebende Pillen-Leiste: Der aktive Tab zeigt Symbol und Beschriftung auf dunkler Pille, die
- * übrigen nur das Symbol. Die Leiste nimmt Platz im Layout ein, damit nichts darunter verschwindet.
+ * Schlanke, schwebende Leiste: Symbol über kleiner Beschriftung, der aktive Tab liegt in einer
+ * weichen Kapsel. Die Leiste nimmt Platz im Layout ein, damit nichts darunter verschwindet.
  */
 export function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: TabBarProps) {
   const insets = useSafeAreaInsets();
   return (
     <View
-      style={[styles.outer, { paddingBottom: Math.max(insets.bottom, tokens.space[3]) }]}
+      style={[styles.outer, { paddingBottom: Math.max(insets.bottom - 12, tokens.space[2]) }]}
       pointerEvents="box-none"
     >
       <View style={styles.bar} accessibilityRole="tablist">
@@ -29,7 +28,7 @@ export function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: T
           if ((options as { href?: string | null }).href === null) return null;
           const focused = state.index === index;
           const label = options.title ?? route.name;
-          const color = focused ? tokens.color.onAccent : tokens.color.textTertiary;
+          const color = focused ? tokens.color.accent : tokens.color.textTertiary;
           const onPress = () => {
             const event = emitter.emit({
               type: 'tabPress',
@@ -39,27 +38,20 @@ export function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: T
             if (!focused && !event.defaultPrevented) navigateToTab(route.key);
           };
           return (
-            <Animated.View
+            <PressableScale
               key={route.key}
-              layout={LinearTransition.duration(tokens.motion.base)}
-              style={focused ? styles.slotOn : styles.slot}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: focused }}
+              onPress={onPress}
+              scale={0.92}
+              style={[styles.tab, focused && styles.tabOn]}
             >
-              <PressableScale
-                accessibilityRole="tab"
-                accessibilityLabel={label}
-                accessibilityState={{ selected: focused }}
-                onPress={onPress}
-                scale={0.92}
-                style={[styles.tab, focused && styles.tabOn]}
-              >
-                {options.tabBarIcon?.({ focused, color, size: 22 })}
-                {focused ? (
-                  <Text variant="small" color="onAccent" numberOfLines={1} style={styles.label}>
-                    {label}
-                  </Text>
-                ) : null}
-              </PressableScale>
-            </Animated.View>
+              {options.tabBarIcon?.({ focused, color, size: 22 })}
+              <Text variant="caption" numberOfLines={1} style={[styles.label, { color }]}>
+                {label}
+              </Text>
+            </PressableScale>
           );
         })}
       </View>
@@ -70,34 +62,31 @@ export function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: T
 const styles = StyleSheet.create({
   outer: {
     paddingHorizontal: tokens.space[4],
-    paddingTop: tokens.space[2],
+    paddingTop: tokens.space[1],
     alignItems: 'center',
     backgroundColor: tokens.color.canvas,
   },
   bar: {
     flexDirection: 'row',
     width: '100%',
-    maxWidth: 440,
-    padding: tokens.space[2],
-    gap: tokens.space[1],
+    maxWidth: 400,
+    padding: tokens.space[1],
+    gap: 2,
     borderRadius: tokens.radius.full,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: tokens.color.border,
-    boxShadow: tokens.shadow.float,
+    boxShadow: tokens.shadow.raised,
     ...Platform.select({ web: { backdropFilter: 'blur(12px)' } as object, default: {} }),
   },
-  slot: { flex: 1 },
-  slotOn: { flex: 2.2 },
   tab: {
+    flex: 1,
     minHeight: 48,
     borderRadius: tokens.radius.full,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: tokens.space[2],
-    paddingHorizontal: tokens.space[3],
+    gap: 2,
   },
-  tabOn: { backgroundColor: tokens.color.ink },
-  label: { fontFamily: tokens.font.semibold },
+  tabOn: { backgroundColor: tokens.color.accentSubtle },
+  label: { fontSize: 11, lineHeight: 13 },
 });
