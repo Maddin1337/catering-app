@@ -7,8 +7,10 @@ import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { formatCents } from '@/lib/money';
 import { tokens } from '@/theme/tokens';
 
+import type { ItemTemplate } from '../../settings/types';
 import { AllergenCodes } from '../../catalog/components/allergen-codes';
 import type { Dish, MenuPackage } from '../../catalog/types';
 import { ITEM_TYPES, type ItemType } from '../types';
@@ -17,6 +19,8 @@ import { ITEM_TYPES, type ItemType } from '../types';
 export function AddItem({
   dishes,
   packages,
+  templates,
+  onTemplate,
   onBlank,
   onHeading,
   onDish,
@@ -25,6 +29,8 @@ export function AddItem({
 }: {
   dishes: Dish[];
   packages: MenuPackage[];
+  templates: ItemTemplate[];
+  onTemplate: (tpl: ItemTemplate) => void;
   onBlank: (type: ItemType) => void;
   onHeading: () => void;
   onDish: (d: Dish) => void;
@@ -61,6 +67,21 @@ export function AddItem({
         ))}
         <Chip label={t('quote.add.heading')} onPress={onHeading} />
       </View>
+      {templates.length > 0 ? (
+        <View style={{ gap: 8 }}>
+          <Text variant="small" color="textSecondary">
+            {t('quote.add.templates')}
+          </Text>
+          {templates.map((tpl, i) => (
+            <ListRow
+              key={`${tpl.name}-${i}`}
+              title={tpl.name}
+              subtitle={`${t(`quote.type.${tpl.type}`)} · ${formatCents(tpl.unit_price_cents)} / ${tpl.unit_label}`}
+              onPress={() => onTemplate(tpl)}
+            />
+          ))}
+        </View>
+      ) : null}
       {type === 'package' || type === 'dish' ? (
         <View style={{ gap: 8 }}>
           <TextField

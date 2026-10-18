@@ -2,6 +2,7 @@ import { calculate, type CalcResult } from '@/lib/calc';
 import { newId } from '@/lib/uuid';
 
 import type { TaxRate } from '../company/types';
+import type { ItemTemplate } from '../settings/types';
 import type { EditorItem, ItemType, QuoteHeader, StoredItem } from './types';
 
 /** Steuerkategorie je Positionstyp (docs/02 §3.5); die Position darf einen anderen Satz wählen. */
@@ -65,6 +66,19 @@ export function blankItem(
     is_selected: true,
     customer_can_edit_quantity: false,
     is_heading: !!opts.heading,
+  };
+}
+
+/** Position aus einer Firmenvorlage (Servicekraft, Anfahrt, Getränkepauschale …). */
+export function itemFromTemplate(tpl: ItemTemplate, rates: TaxRate[]): EditorItem {
+  const base = blankItem(tpl.type, rates);
+  return {
+    ...base,
+    name: tpl.name,
+    unit_label: tpl.unit_label || base.unit_label,
+    unit_price_cents: tpl.unit_price_cents,
+    quantity_mode: tpl.quantity_mode,
+    hours: tpl.type === 'service' ? (tpl.hours ?? base.hours) : null,
   };
 }
 

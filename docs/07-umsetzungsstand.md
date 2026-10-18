@@ -192,9 +192,14 @@ Angebote entstehen als Entwurf je Auftrag (docs/02 §3, SC-32/33). Versand, Schn
 - **App:** Editor mit Positionen (Paket, Gericht, Personal, Freitext, Überschrift), Gesamtrabatt, Netto/Brutto-Anzeige, Summenblock mit USt je Satz, Warnungen, Autosave (1,5 s Verzögerung) und Referenzfeld. Einstieg über die Schaltfläche „Angebot“ im Auftrag.
 - **Geprüft:** Typecheck, Lint, 160 Jest-Tests; im Browser mit Handy-Profil gegen eine simulierte Datenbank: Paket und Personal hinzufügen, 5 % Rabatt, Summen und Speicher-Payload stimmen.
 
+### Ergänzt: Positionsvorlagen und Kopie
+
+- **SC-63:** Unter Einstellungen → Angebotstexte lassen sich Positionsvorlagen (Servicekraft mit Stunden, Anfahrt, Getränkepauschale …) anlegen, ändern und löschen (`companies.quote_item_templates`, keine Migration nötig). Im Editor erscheinen sie in „Position hinzufügen“ mit einem Tipp.
+- **Kopie:** `supabase/migrations/20261026090000_m4_copy_quote.sql` ersetzt `copy_event()`: Das Angebot wird als neuer Entwurf mitkopiert (Revision 0, neue Nummer, Gültigkeit ab heute, ohne Kundenreferenz). Für das Dashboard: `supabase/remote-update-20261026090000.sql`. 365 pgTAP-Tests laufen lokal, auch mit dem Gesamtbundle.
+
 ### Noch offen
 
-Angebotstexte und Vorlagen (SC-63), Kopie von Angeboten beim Kopieren eines Auftrags, Versand mit Schnappschuss/PDF/Portal (M5).
+Versand mit Schnappschuss, PDF und Portal (M5).
 
 ## Nicht in M0 gebaut (bewusst)
 

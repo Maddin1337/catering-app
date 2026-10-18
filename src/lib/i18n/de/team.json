@@ -418,7 +418,19 @@
       "quote_terms_text": "Bedingungen",
       "quote_terms_text_hint": "Zahlungsziel, Stornoregeln, Lieferbedingungen.",
       "quote_closing_text": "Schluss",
-      "quote_closing_text_hint": "Grußformel und Hinweis auf Rückfragen."
+      "quote_closing_text_hint": "Grußformel und Hinweis auf Rückfragen.",
+      "templatesTitle": "Positionsvorlagen",
+      "templatesBody": "Häufige Zusatzpositionen, die du im Angebot mit einem Tippen einfügst.",
+      "templatesEmpty": "Noch keine Vorlagen.",
+      "templateAdd": "Vorlage anlegen",
+      "templateEdit": "Vorlage bearbeiten",
+      "templateName": "Bezeichnung",
+      "templateUnit": "Einheit",
+      "templatePrice": "Preis je Einheit in €",
+      "templateHours": "Stunden je Person",
+      "templatePerGuest": "Menge folgt der Gästezahl (pro Person)",
+      "templateDelete": "Vorlage löschen",
+      "templateInvalid": "Bitte Bezeichnung und einen gültigen Preis eingeben."
     }
   },
   "allergen": {
@@ -1064,7 +1076,8 @@
       "hint": "Wähle die Art der Position.",
       "heading": "Überschrift",
       "free": "Freie {{type}}-Position",
-      "create": "{{type}} hinzufügen"
+      "create": "{{type}} hinzufügen",
+      "templates": "Aus deinen Vorlagen"
     },
     "item": {
       "name": "Bezeichnung",

@@ -31,12 +31,14 @@ import { useTaxRates } from '../../company/api';
 import type { TaxRate } from '../../company/types';
 import { useEvent } from '../../events/api';
 import { useCompanySettings } from '../../settings/api';
+import type { ItemTemplate } from '../../settings/types';
 import { useQuoteForEditing, useSaveQuote } from '../api';
 import { AddItem } from '../components/add-item';
 import { ItemForm } from '../components/item-form';
 import { TotalsBlock } from '../components/totals-block';
 import {
   blankItem,
+  itemFromTemplate,
   buildSavePayload,
   costTotal,
   effectiveQuantity,
@@ -137,6 +139,7 @@ export function QuoteEditorScreen() {
       eventTitle={event.title}
       guests={event.guest_count}
       rates={rates.data}
+      templates={settings.data.quote_item_templates ?? []}
       entryMode={settings.data.price_entry_mode}
       rounding={settings.data.price_rounding_cents}
       dishes={dishes.data}
@@ -152,6 +155,7 @@ function Editor({
   eventTitle,
   guests,
   rates,
+  templates,
   entryMode,
   rounding,
   dishes,
@@ -163,6 +167,7 @@ function Editor({
   eventTitle: string;
   guests: number | null;
   rates: TaxRate[];
+  templates: ItemTemplate[];
   entryMode: 'net' | 'gross';
   rounding: number;
   dishes: Dish[];
@@ -494,6 +499,8 @@ function Editor({
           <AddItem
             dishes={dishes}
             packages={packages}
+            templates={templates}
+            onTemplate={(tpl) => addItem(itemFromTemplate(tpl, rates))}
             onClose={() => setAdding(false)}
             onBlank={(type: ItemType) => addItem(blankItem(type, rates))}
             onHeading={() => addItem({ ...blankItem('custom', rates, { heading: true }) })}

@@ -9,6 +9,7 @@ import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 
+import { ItemTemplates } from '../components/item-templates';
 import { useCompanySettings, useUpdateCompanySettings } from '../api';
 
 const KEYS = ['quote_intro_text', 'quote_terms_text', 'quote_closing_text'] as const;
@@ -65,6 +66,11 @@ export function QuoteTextsScreen() {
         disabled={Object.keys(draft).length === 0}
         loading={update.isPending}
         onPress={save}
+      />
+      <ItemTemplates
+        value={settings.data?.quote_item_templates ?? []}
+        saving={update.isPending}
+        onChange={(next) => update.mutate({ quote_item_templates: next })}
       />
     </Screen>
   );

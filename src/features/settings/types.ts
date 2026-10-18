@@ -27,6 +27,17 @@ export type CompanySettings = {
   quote_intro_text: string | null;
   quote_terms_text: string | null;
   quote_closing_text: string | null;
+  quote_item_templates: ItemTemplate[];
+};
+
+/** Positionsvorlage für Zusatzpositionen (companies.quote_item_templates). */
+export type ItemTemplate = {
+  type: 'service' | 'equipment' | 'travel' | 'beverage' | 'custom';
+  name: string;
+  unit_label: string;
+  unit_price_cents: number;
+  quantity_mode: 'fixed' | 'per_guest';
+  hours: number | null;
 };
 
 export type TaxCategory = 'food' | 'beverage' | 'service' | 'equipment' | 'travel' | 'other';
