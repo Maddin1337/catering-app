@@ -29,7 +29,8 @@ export function ItemSheet({
   entryLabel: string;
   guests: number | null;
   onSave: (item: EditorItem) => void;
-  onDuplicate: () => void;
+  /** Bekommt die Position mit den gerade getippten Änderungen (soweit gültig). */
+  onDuplicate: (current: EditorItem) => void;
   onRemove: () => void;
   onClose: () => void;
 }) {
@@ -67,7 +68,10 @@ export function ItemSheet({
               icon={Copy}
               variant="secondary"
               style={styles.action}
-              onPress={() => close(onDuplicate)}
+              onPress={() => {
+                const current = buildItem(item, draft) ?? item;
+                close(() => onDuplicate(current));
+              }}
             />
             <Button
               label={t('quote.item.remove')}

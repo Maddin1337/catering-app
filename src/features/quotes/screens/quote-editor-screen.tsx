@@ -483,12 +483,7 @@ function Editor({
             icon={Calculator}
             tint="teal"
             title={t('quote.calculation')}
-            subtitle={[
-              summary.display,
-              cost.incomplete ? t('quote.settings.costIncompleteShort') : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
+            subtitle={summary.display}
             value={summary.pricing}
             onPress={() => setSheet('pricing')}
           />
@@ -554,11 +549,16 @@ function Editor({
           entryLabel={entryLabel}
           guests={guests}
           onSave={(v) => setItems((items) => items.map((x) => (x.key === v.key ? v : x)))}
-          onDuplicate={() =>
+          onDuplicate={(current) =>
             setItems((items) => {
-              const i = items.findIndex((x) => x.key === editingItem.key);
-              const copy = { ...editingItem, key: newId() };
-              return [...items.slice(0, i + 1), copy, ...items.slice(i + 1)];
+              const i = items.findIndex((x) => x.key === current.key);
+              // Eine Kopie in einer Wahlgruppe ist eine weitere Alternative, nicht die gewählte.
+              const copy = {
+                ...current,
+                key: newId(),
+                is_selected: current.choice_group.trim() ? false : current.is_selected,
+              };
+              return [...items.slice(0, i).concat(current), copy, ...items.slice(i + 1)];
             })
           }
           onRemove={() => setItems((items) => items.filter((x) => x.key !== editingItem.key))}

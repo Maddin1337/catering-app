@@ -1256,14 +1256,16 @@
       "pricePer": "{{price}} / {{unit}}",
       "quick": "„{{name}}“ direkt hinzufügen",
       "without": "Ohne Katalog",
-      "freeHint": "Personal, Getränke, Equipment, Anfahrt oder Sonstiges",
+      "freeHint": "Personal, Getränke, Equipment, Anfahrt, Gericht oder Sonstiges",
       "headingHint": "Gliedert das Angebot, z. B. „Vorspeisen“",
       "kindHint": {
         "service": "Servicekräfte, Köche – mit Stunden",
         "beverage": "Getränkepauschale, Wein, Kaffee",
         "equipment": "Geschirr, Mobiliar, Technik",
         "travel": "Lieferung, Fahrtkosten",
-        "custom": "Alles andere"
+        "custom": "Alles andere",
+        "dish": "Einzelnes Gericht ohne Katalogeintrag",
+        "package": "Menü oder Buffet ohne Katalogeintrag"
       }
     },
     "item": {

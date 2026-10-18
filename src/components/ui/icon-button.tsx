@@ -49,6 +49,8 @@ export function IconButton({
 const styles = StyleSheet.create({
   button: {
     width: 44,
+    // Neben Elementen, die sich ausdehnen, nicht unter 44 dp gestaucht werden.
+    flexShrink: 0,
     height: 44,
     borderRadius: tokens.radius.full,
     alignItems: 'center',

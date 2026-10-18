@@ -89,7 +89,14 @@ export function ItemFields({
             { key: 'fixed', label: t('quote.item.fixed') },
           ]}
           active={draft.perGuest ? 'guest' : 'fixed'}
-          onChange={(k) => onChange({ perGuest: k === 'guest' })}
+          onChange={(k) =>
+            // Von „pro Gast“ zu fester Anzahl: mit der Gästezahl weitermachen statt mit 1.
+            onChange(
+              k === 'fixed' && draft.perGuest && guests
+                ? { perGuest: false, qty: String(guests) }
+                : { perGuest: k === 'guest' },
+            )
+          }
         />
         {draft.perGuest ? (
           <Text variant="small" color="textTertiary">
@@ -189,6 +196,11 @@ export function ItemFields({
                   onPress={() => onChange({ taxId: r.id })}
                 />
               ))}
+              <Chip
+                label={t('quote.item.noTax')}
+                selected={draft.taxId === ''}
+                onPress={() => onChange({ taxId: '' })}
+              />
             </View>
           </View>
           <TextField

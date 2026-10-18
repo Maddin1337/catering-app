@@ -7,6 +7,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { surfaceStyle } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { formatCents } from '@/lib/money';
+import { bpToPercentString } from '@/lib/percent';
 import { tints, tokens } from '@/theme/tokens';
 
 import type { EditorItem } from '../types';
@@ -92,7 +93,9 @@ export function ItemCard({
       : null;
   const meta = [
     [quantityLabel, hours, price].filter(Boolean).join(' × '),
-    item.discount_bp ? t('quote.list.discount', { value: item.discount_bp / 100 }) : null,
+    item.discount_bp
+      ? t('quote.list.discount', { value: bpToPercentString(item.discount_bp) })
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');

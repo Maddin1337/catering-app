@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -80,7 +82,11 @@ export function Sheet({
 
   return (
     <Modal transparent animationType="none" statusBarTranslucent onRequestClose={() => close()}>
-      <View style={styles.root}>
+      {/* Auf dem iPhone schiebt die Tastatur das Blatt hoch, statt Felder und Knopf zu verdecken. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.root}
+      >
         <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}>
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -114,7 +120,7 @@ export function Sheet({
             </View>
           ) : null}
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,7 +1,8 @@
-import { ChevronLeft, Heading, PenLine, Plus } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import { Check, ChevronLeft, Heading, PenLine, Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import { SearchField } from '@/components/ui/search-field';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
-import { showToast } from '@/components/ui/toast';
 import { formatCents } from '@/lib/money';
 import { tints, tokens } from '@/theme/tokens';
 
@@ -31,7 +31,15 @@ type Step =
   | { name: 'kind' }
   | { name: 'details'; item: EditorItem; from: 'catalog' | 'kind' };
 
-const FREE_TYPES: ItemType[] = ['service', 'beverage', 'equipment', 'travel', 'custom'];
+const FREE_TYPES: ItemType[] = [
+  'service',
+  'beverage',
+  'equipment',
+  'travel',
+  'dish',
+  'package',
+  'custom',
+];
 
 /**
  * „Position hinzufügen“ als Blatt in Schritten:
@@ -88,6 +96,8 @@ export function AddItemSheet({
   const [source, setSource] = useState<Source>(sources[0] ?? 'package');
   const [query, setQuery] = useState('');
   const [added, setAdded] = useState(0);
+  // Zuletzt per „+“ hinzugefügt: Der Knopf zeigt kurz einen Haken (ein Toast läge hinter dem Blatt).
+  const [justAdded, setJustAdded] = useState<string | null>(null);
   const [draft, setDraft] = useState<ItemDraft | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -96,10 +106,14 @@ export function AddItemSheet({
     setTried(false);
     setStep({ name: 'details', item, from });
   };
-  const quickAdd = (item: EditorItem) => {
+  const quickAdd = (key: string, item: EditorItem) => {
     onAdd(item);
     setAdded((n) => n + 1);
-    showToast(t('quote.add.added', { name: item.name }));
+    setJustAdded(key);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    AccessibilityInfo.announceForAccessibility(t('quote.add.added', { name: item.name }));
+    setTimeout(() => setJustAdded((k) => (k === key ? null : k)), 1400);
   };
 
   const q = query.trim().toLowerCase();
@@ -259,10 +273,10 @@ export function AddItemSheet({
                       </View>
                     </PressableScale>
                     <IconButton
-                      icon={Plus}
+                      icon={justAdded === r.key ? Check : Plus}
                       tone="accent"
                       label={t('quote.add.quick', { name: r.title })}
-                      onPress={() => quickAdd(r.item())}
+                      onPress={() => quickAdd(r.key, r.item())}
                     />
                   </View>
                 );
