@@ -79,3 +79,19 @@ export function useDeleteCustomer() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
   });
 }
+
+/** Legt mehrere Kunden auf einmal an (Import aus Excel). */
+export function useImportCustomers() {
+  const queryClient = useQueryClient();
+  const companyId = useMembership().data?.company_id;
+  return useMutation({
+    mutationFn: async (rows: CustomerInput[]): Promise<number> => {
+      const { error } = await client()
+        .from('customers')
+        .insert(rows.map((r) => ({ company_id: companyId!, ...clean(r) })));
+      if (error) throw toAppError(error);
+      return rows.length;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['customers'] }),
+  });
+}

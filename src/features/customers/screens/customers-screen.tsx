@@ -48,6 +48,11 @@ export function CustomersScreen() {
         <Banner tone="danger">{toAppError(customers.error).message}</Banner>
       ) : null}
       <Button label={t('customers.add')} onPress={() => router.push('/customers/new')} />
+      <Button
+        label={t('customers.import.open')}
+        variant="secondary"
+        onPress={() => router.push('/customers/import')}
+      />
       <TextField
         label={t('customers.search')}
         value={query}

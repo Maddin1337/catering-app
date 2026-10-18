@@ -334,6 +334,12 @@ Gefunden und behoben: kein `viewport-fit=cover` (sichere Bereiche, neues `src/ap
 
 Bekannte iOS-Eigenheiten der Web-App: Safari löscht Daten von Websites nach 7 Tagen ohne Nutzung (erneut anmelden); „E-Mail vorbereiten“ und PDF öffnen sich in Safari über Tipp auf die Schaltfläche (Pop-up-Regeln).
 
+## Ergänzung · Kundenimport aus Excel
+
+Kunden → „Aus Excel importieren“: Zellen aus Excel kopieren und einfügen (Tabulator, Semikolon oder Komma; Überschriften wie Firma, Ansprechpartner, E-Mail, Telefon, Straße, PLZ, Ort werden erkannt, sonst feste Reihenfolge). Vorschau mit Zählung, Hinweise für Zeilen ohne Name und Duplikate (im Bestand und in der Tabelle), dann ein Klick. Keine Migration nötig. Für Aufträge und Gerichte gibt es noch keinen Import (dafür fehlt die Excel-Datei des Pilotbetriebs).
+
+Außerdem ein neuer Test `m9_app_writes` (alle direkten Schreibzugriffe der App gegen Spaltenrechte und Richtlinien) und eine einmalige Prüfung aller Leseabfragen (`select`) der App gegen das echte Schema in allen drei Rollen: keine falschen Spaltennamen; alle Funktionsaufrufe (`rpc`) stimmen in den Parameternamen.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

@@ -538,7 +538,7 @@ const urls = {
     '/events/e1/copy',
     '/customers',
     '/customers/c1',
-    '/customers/new',
+    '/customers/new','/customers/import',
     '/dishes',
     '/dishes/new',
     '/dishes/d1',

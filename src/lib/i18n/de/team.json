@@ -653,6 +653,24 @@
       "mail": "E-Mail schreiben",
       "billing": "Rechnungsanschrift",
       "notes": "Notiz"
+    },
+    "import": {
+      "open": "Aus Excel importieren",
+      "title": "Kunden importieren",
+      "body": "Kopiere in Excel die Zellen (mit Überschriften wie Firma, Ansprechpartner, E-Mail, Telefon, Straße, PLZ, Ort) und füge sie hier ein.",
+      "field": "Eingefügte Tabelle",
+      "hint": "Auch CSV-Text mit Semikolon oder Komma geht. Ohne Überschriften gilt die Reihenfolge Name, Ansprechpartner, E-Mail, Telefon, Straße, PLZ, Ort.",
+      "preview": "Vorschau",
+      "counts": "{{ok}} Kunden werden angelegt, {{problems}} Zeilen werden übersprungen.",
+      "more": "… und {{count}} weitere",
+      "problem": "Zeile {{line}} ({{name}}): {{reason}}",
+      "reason": {
+        "no_name": "kein Name",
+        "duplicate_existing": "gibt es schon",
+        "duplicate_in_file": "doppelt in der Tabelle"
+      },
+      "submit": "{{count}} Kunden importieren",
+      "done": "{{count}} Kunden importiert."
     }
   },
   "events": {
