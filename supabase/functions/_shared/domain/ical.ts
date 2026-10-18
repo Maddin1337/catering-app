@@ -12,7 +12,11 @@ export type IcalEntry = {
   updated_at?: string | null;
 };
 
-const utc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+const utc = (iso: string) =>
+  new Date(iso)
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '');
 
 /** Text-Escape nach RFC 5545 §3.3.11. */
 export function escapeText(v: string): string {
