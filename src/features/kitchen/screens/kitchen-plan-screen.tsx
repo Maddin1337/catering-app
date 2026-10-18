@@ -25,9 +25,8 @@ import {
 } from '../../catalog/api';
 import { AllergenCodes } from '../../catalog/components/allergen-codes';
 import { useMembership } from '../../company/api';
-import { useEvents } from '../../events/api';
 import { useCompanySettings } from '../../settings/api';
-import { useKitchenDietary, useKitchenLines } from '../api';
+import { useKitchenDietary, useKitchenEvents, useKitchenLines } from '../api';
 import { buildPlan, type Plan } from '../plan';
 
 type Tab = 'production' | 'special' | 'shopping';
@@ -39,7 +38,7 @@ export function KitchenPlanScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const role = useMembership().data?.role;
-  const events = useEvents();
+  const events = useKitchenEvents();
   const lines = useKitchenLines();
   const dietary = useKitchenDietary();
   const dishes = useDishes();
@@ -86,8 +85,8 @@ export function KitchenPlanScreen() {
         status: e.status,
         starts_at: e.starts_at,
         guest_count: e.guest_count,
-        basis: basis.get(e.id) ?? 'live',
-        has_open_change: false,
+        basis: basis.get(e.id) ?? e.basis,
+        has_open_change: e.has_open_change,
       })),
       lines: lines.data!.map((l) => ({
         eventId: l.event_id,
@@ -172,6 +171,7 @@ export function KitchenPlanScreen() {
                   {e.title}
                   {e.guest_count ? ` · ${t('kitchenPlan.guests', { count: e.guest_count })}` : ''}
                   {e.basis === 'snapshot' ? ` · ${t('kitchenPlan.provisional')}` : ''}
+                  {e.has_open_change ? ` · ${t('kitchenPlan.openChange')}` : ''}
                 </Text>
               ))}
               {day.withoutLines.map((e) => (
@@ -222,7 +222,10 @@ export function KitchenPlanScreen() {
               <Text variant="title2">{event.title}</Text>
               {entries.map((en) => (
                 <View
-                  key={`${en.row.event_id}-${en.row.note}-${en.row.person_count}-${en.row.diet}`}
+                  key={
+                    en.row.id ??
+                    `${en.row.event_id}-${en.row.note}-${en.row.person_count}-${en.row.diet}`
+                  }
                   style={{ gap: 4 }}
                 >
                   <Text variant="bodyStrong">

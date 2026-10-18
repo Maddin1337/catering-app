@@ -112,10 +112,8 @@ export function PortalScreen() {
   const canChange = ['quoted', 'optioned', 'confirmed'].includes(status) && !event.changes_locked;
   const closed = ['declined', 'cancelled', 'completed', 'invoiced'].includes(status);
 
-  const errorKey =
-    (accept.error ?? decline.error ?? change.error)
-      ? portalErrorKey(accept.error ?? decline.error ?? change.error)
-      : null;
+  const firstError = accept.error ?? decline.error ?? change.error ?? select.error;
+  const errorKey = firstError ? portalErrorKey(firstError) : null;
   const reset = () => {
     accept.reset();
     decline.reset();

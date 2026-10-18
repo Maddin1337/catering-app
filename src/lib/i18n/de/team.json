@@ -1403,6 +1403,7 @@
       "notes": "Hinweise",
       "pending": "Du bekommst Bescheid, sobald zugesagt ist.",
       "moreBody": "Deine Bewerbungen und zugesagten Einsätze."
-    }
+    },
+    "adminCancelled": "Vom Mitarbeiter abgesagt"
   }
 }

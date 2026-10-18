@@ -15,6 +15,7 @@ import { costRatioBp, suggestPriceCents } from '@/lib/costing';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
 import { centsToEuroInput, parseEuroToCents } from '@/lib/money-input';
+import { unitPriceOnCalcSide } from '@/lib/calc';
 import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
 
 import {
@@ -190,6 +191,7 @@ function Editor({
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Record<string, unknown> | null>(null);
+  const inflight = useRef<Promise<boolean> | null>(null);
   const seconds = useRef(0);
   const lastChange = useRef<number | null>(null);
 
@@ -225,24 +227,33 @@ function Editor({
     return { p, s, calc, cost };
   };
 
-  /** Speichert den wartenden Stand sofort; `true`, wenn nichts mehr aussteht. */
+  /** Speichert den wartenden Stand sofort; `true`, wenn nichts mehr aussteht. Speichervorgänge laufen nacheinander. */
   const flush = async (): Promise<boolean> => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
+    while (inflight.current) await inflight.current;
     const payload = pending.current;
     if (!payload) return true;
     pending.current = null;
     const sent = seconds.current;
     setStatus('saving');
-    try {
-      await save.mutateAsync({ ...payload, editor_seconds: sent });
-      seconds.current = Math.max(0, seconds.current - sent);
-      setStatus('saved');
-      return true;
-    } catch {
-      setStatus('error');
-      return false;
-    }
+    const run = (async () => {
+      try {
+        await save.mutateAsync({ ...payload, editor_seconds: sent });
+        seconds.current = Math.max(0, seconds.current - sent);
+        setStatus(pending.current ? 'saving' : 'saved');
+        return true;
+      } catch {
+        // der Stand geht nicht verloren: beim nächsten Speichern (oder vor dem Versand) wird er erneut gesendet
+        pending.current ??= payload;
+        setStatus('error');
+        return false;
+      }
+    })();
+    inflight.current = run;
+    const ok = await run;
+    inflight.current = null;
+    return ok;
   };
 
   const change = (fn: (d: Doc) => Doc) => {
@@ -283,7 +294,7 @@ function Editor({
   };
 
   const { p: parsedValues, calc, cost } = compute(doc);
-  const warnings = quoteWarnings(doc.items, guests, calc, cost.incomplete);
+  const warnings = quoteWarnings(doc.items, guests, calc, cost.incomplete, rates);
   const lineById = new Map(calc.lines.map((l) => [l.id, l]));
   const entryLabel = entryMode === 'net' ? t('quote.net') : t('quote.gross');
   const markupBp = parsedValues.markup ?? header.markup_bp;
@@ -466,7 +477,7 @@ function Editor({
                   it.is_heading
                     ? t('quote.heading')
                     : [
-                        `${String(qty).replace('.', ',')} × ${formatCents(line?.unitPriceDisplayCents ?? it.unit_price_cents ?? 0)}${it.type === 'service' && it.hours ? ` × ${String(it.hours).replace('.', ',')} h` : ''}`,
+                        `${String(qty).replace('.', ',')} × ${formatCents(line?.unitPriceDisplayCents ?? unitPriceOnCalcSide(it.unit_price_cents ?? 0, rates.find((r) => r.id === it.tax_rate_id)?.rate_bp ?? 0, entryMode, doc.price_display))}${it.type === 'service' && it.hours ? ` × ${String(it.hours).replace('.', ',')} h` : ''}`,
                         it.choice_group
                           ? `${t('quote.group')}: ${it.choice_group}${it.is_selected ? '' : ` (${t('quote.notSelected')})`}`
                           : null,

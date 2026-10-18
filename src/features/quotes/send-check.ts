@@ -35,7 +35,7 @@ export function sendChecklist(args: {
   const blockers: Blocker[] = [];
   const warnings: SendWarning[] = [];
   if (!OPEN_STATUSES.includes(args.eventStatus)) blockers.push('status_closed');
-  for (const w of quoteWarnings(args.items, args.guests, args.calc, false)) {
+  for (const w of quoteWarnings(args.items, args.guests, args.calc, false, args.rates)) {
     if (
       w === 'no_items' ||
       w === 'no_guests' ||

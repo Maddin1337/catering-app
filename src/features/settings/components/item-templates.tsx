@@ -97,7 +97,7 @@ export function templateFromDraft(d: Draft): ItemTemplate | null {
   let hours: number | null = null;
   if (d.type === 'service') {
     const h = parseQuantityToHundredths(d.hours);
-    if (h === null) return null;
+    if (h === null || h % 25 !== 0) return null; // nur Viertelstunden
     hours = h / 100;
   }
   return {

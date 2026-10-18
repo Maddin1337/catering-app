@@ -53,7 +53,8 @@ export function QuoteSendScreen() {
   const dishes = useDishes().data;
   const packages = usePackages().data;
   const packageLines = usePackageDishLines().data;
-  const customers = useCustomers().data;
+  const customersQuery = useCustomers();
+  const customers = customersQuery.data;
   const revisions = useRevisions(quote.data?.header.id);
   const send = useSendQuote();
   const issue = useIssueToken();
@@ -66,14 +67,23 @@ export function QuoteSendScreen() {
   const back = () => router.replace({ pathname: '/events/[id]', params: { id } });
   const title = t('quoteSend.title');
 
-  if (quote.error) {
+  if (quote.error || customersQuery.error) {
     return (
       <Screen title={title} onBack={back} backLabel={t('quoteSend.back')}>
-        <Banner tone="danger">{toAppError(quote.error).message}</Banner>
+        <Banner tone="danger">{toAppError(quote.error ?? customersQuery.error).message}</Banner>
       </Screen>
     );
   }
-  if (!event || !quote.data || !rates || !settings || !dishes || !packages || !packageLines) {
+  if (
+    !event ||
+    !quote.data ||
+    !rates ||
+    !settings ||
+    !dishes ||
+    !packages ||
+    !packageLines ||
+    !customers
+  ) {
     return (
       <Screen title={title} onBack={back} backLabel={t('quoteSend.back')}>
         <Text>

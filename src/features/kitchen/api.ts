@@ -51,11 +51,42 @@ export function useKitchenDietary() {
       const { data, error } = await client()
         .from('event_dietary_requirements')
         .select(
-          'event_id, person_count, diet, avoid_allergens, note, table_label, guest_name, substitutions',
+          'id, event_id, person_count, diet, avoid_allergens, note, table_label, guest_name, substitutions',
         )
         .order('created_at');
       if (error) throw toAppError(error);
       return (data ?? []) as unknown as DietaryRowInput[];
+    },
+  });
+}
+
+export type KitchenEventRow = {
+  id: string;
+  title: string;
+  status: string;
+  starts_at: string;
+  /** verbindliche Gästezahl (aus der angenommenen Fassung, sonst Entwurf) */
+  guest_count: number | null;
+  draft_guest_count: number | null;
+  basis: 'binding' | 'snapshot' | 'live';
+  has_open_change: boolean;
+};
+
+/** Aufträge für die Küchenplanung aus der View `kitchen_events` (verbindliche Gästezahl, Kennzeichen „Änderung offen“). */
+export function useKitchenEvents() {
+  const m = useMembership().data;
+  return useQuery({
+    queryKey: ['kitchen', 'events', m?.company_id],
+    enabled: m?.role === 'admin' || m?.role === 'kitchen',
+    queryFn: async (): Promise<KitchenEventRow[]> => {
+      const { data, error } = await client()
+        .from('kitchen_events')
+        .select(
+          'id, title, status, starts_at, guest_count, draft_guest_count, basis, has_open_change',
+        )
+        .order('starts_at');
+      if (error) throw toAppError(error);
+      return (data ?? []) as KitchenEventRow[];
     },
   });
 }

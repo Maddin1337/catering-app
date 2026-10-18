@@ -27,6 +27,11 @@ describe('templateFromDraft', () => {
     expect(templateFromDraft({ ...base, hours: '' })).toBeNull();
   });
 
+  it('lehnt Stunden ab, die keine Viertelstunden sind', () => {
+    expect(templateFromDraft({ ...base, hours: '6,3' })).toBeNull();
+    expect(templateFromDraft({ ...base, hours: '6,25' })).not.toBeNull();
+  });
+
   it('ignoriert Stunden außerhalb von Personal und füllt die Einheit', () => {
     expect(
       templateFromDraft({ ...base, type: 'travel', unit: '', hours: '', perGuest: true }),

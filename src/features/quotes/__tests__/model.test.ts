@@ -150,3 +150,15 @@ describe('Speichern', () => {
     expect(payload.editor_seconds).toBe(42);
   });
 });
+
+describe('Warnungen: Steuersatz', () => {
+  it('meldet einen inzwischen archivierten Steuersatz wie einen fehlenden', () => {
+    const item = { ...blankItem('dish', rates), tax_rate_id: 'archiviert', unit_price_cents: 100 };
+    const calc = runCalc([item], rates, 10, settings);
+    expect(quoteWarnings([item], 10, calc, false, rates)).toContain('missing_tax');
+    const ok = { ...item, tax_rate_id: 'food' };
+    expect(quoteWarnings([ok], 10, runCalc([ok], rates, 10, settings), false, rates)).not.toContain(
+      'missing_tax',
+    );
+  });
+});

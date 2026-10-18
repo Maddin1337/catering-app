@@ -25,6 +25,7 @@ export type PlanEvent = {
 };
 
 export type DietaryRowInput = {
+  id?: string;
   event_id: string;
   person_count: number;
   diet: Diet | null;

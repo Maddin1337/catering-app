@@ -225,7 +225,13 @@ function ApplicationRow({
           {name}
         </Text>
         <Text variant="small" color="textSecondary">
-          {app.late_cancellation ? t('shifts.lateCancelled') : t(`shifts.status.${app.status}`)}
+          {app.late_cancellation
+            ? t('shifts.lateCancelled')
+            : t(
+                app.status === 'cancelled_by_staff'
+                  ? 'shifts.adminCancelled'
+                  : `shifts.status.${app.status}`,
+              )}
         </Text>
       </View>
       {app.comment ? (

@@ -182,12 +182,16 @@ export function quoteWarnings(
   guests: number | null,
   calc: CalcResult,
   incomplete: boolean,
+  rates?: TaxRate[],
 ): Warning[] {
   const w: Warning[] = [];
   const priced = items.filter((i) => !i.is_heading);
   if (priced.length === 0) w.push('no_items');
   if (!guests && priced.some((i) => i.quantity_mode === 'per_guest')) w.push('no_guests');
-  if (priced.some((i) => !i.tax_rate_id)) w.push('missing_tax');
+  // fehlender oder inzwischen archivierter Steuersatz (sonst würde er stillschweigend als 0 % gerechnet)
+  const known = rates ? new Set(rates.map((r) => r.id)) : null;
+  if (priced.some((i) => !i.tax_rate_id || (known && !known.has(i.tax_rate_id))))
+    w.push('missing_tax');
   if (incomplete) w.push('cost_incomplete');
   if (calc.errors.includes('discount_exceeds_total')) w.push('discount_exceeds');
   // genau eine Alternative je Wahlgruppe gewählt
