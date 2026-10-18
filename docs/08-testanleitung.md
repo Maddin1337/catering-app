@@ -26,6 +26,8 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 16 | `remote-update-20261105090000.sql` | Kalender-Abo |
 | 17 | `remote-update-20261106090000.sql` | Umsatzübersicht auf der Startseite |
 
+**Welche Updates fehlen?** Den Inhalt von `supabase/check-updates.sql` im SQL Editor ausführen: Die Abfrage ändert nichts und zeigt je Update „OK“ oder „FEHLT“. Nur die Zeilen mit FEHLT einspielen, der Reihe nach.
+
 Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien. **Einstellungen → Datenbank-Stand** zeigt, welche.
 
 ## 2. Rundgang
