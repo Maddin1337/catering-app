@@ -869,7 +869,8 @@
     "noEvents": "Keine Aufträge.",
     "continuation": "Fortsetzung",
     "eventCount_one": "{{count}} Auftrag",
-    "eventCount_other": "{{count}} Aufträge"
+    "eventCount_other": "{{count}} Aufträge",
+    "week": "Woche"
   },
   "start": {
     "title": "Start",

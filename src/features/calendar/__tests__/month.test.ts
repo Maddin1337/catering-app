@@ -1,5 +1,5 @@
 import type { EventRow } from '../../events/types';
-import { eventsOnDay, monthGrid, shiftMonth } from '../month';
+import { weekDays, eventsOnDay, monthGrid, shiftMonth } from '../month';
 
 describe('Monatsraster', () => {
   it('beginnt am Montag und hat volle Wochen (Oktober 2026)', () => {
@@ -89,5 +89,24 @@ describe('Aufträge pro Tag', () => {
       ev('abgelehnt', '2026-11-14T10:00:00Z', null, 'declined'),
     ];
     expect(eventsOnDay(list, '2026-11-14').map((d) => d.event.id)).toEqual(['frueh', 'spaet']);
+  });
+});
+
+describe('weekDays', () => {
+  it('liefert Montag bis Sonntag der Woche', () => {
+    // 21.10.2026 ist ein Mittwoch
+    expect(weekDays('2026-10-21')).toEqual([
+      '2026-10-19',
+      '2026-10-20',
+      '2026-10-21',
+      '2026-10-22',
+      '2026-10-23',
+      '2026-10-24',
+      '2026-10-25',
+    ]);
+  });
+  it('behandelt Sonntag als letzten Tag der Woche und Monatswechsel', () => {
+    expect(weekDays('2026-11-01')[0]).toBe('2026-10-26');
+    expect(weekDays('2026-11-01')[6]).toBe('2026-11-01');
   });
 });

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { formatGermanDate, todayBerlin, weekday } from '@/lib/berlin';
+import { addDays, formatGermanDate, todayBerlin, weekday } from '@/lib/berlin';
 import { formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { eventStatusStyle, tokens } from '@/theme/tokens';
@@ -17,7 +17,7 @@ import { useEvents } from '../../events/api';
 import { StatusBadge } from '../../events/components/status-badge';
 import { filterEvents } from '../../events/filter';
 import type { EventKind } from '../../events/types';
-import { eventsOnDay, monthGrid, shiftMonth } from '../month';
+import { eventsOnDay, monthGrid, shiftMonth, weekDays } from '../month';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
@@ -27,7 +27,7 @@ export function CalendarScreen() {
   const router = useRouter();
   const events = useEvents();
   const today = todayBerlin();
-  const [view, setView] = useState<'month' | 'list'>('month');
+  const [view, setView] = useState<'month' | 'week' | 'list'>('month');
   const [ym, setYm] = useState(() => ({
     year: Number(today.slice(0, 4)),
     month: Number(today.slice(5, 7)),
@@ -37,6 +37,7 @@ export function CalendarScreen() {
 
   const all = (events.data ?? []).filter((e) => !kind || e.kind === kind);
   const weeks = monthGrid(ym.year, ym.month);
+  const week = weekDays(selected);
   const dayEntries = eventsOnDay(all, selected);
   const upcoming = filterEvents(all, { query: '', mode: 'upcoming', kind: null }, today);
   const monthName = new Date(Date.UTC(ym.year, ym.month - 1, 1)).toLocaleString('de-DE', {
@@ -57,6 +58,11 @@ export function CalendarScreen() {
           onPress={() => setView('month')}
         />
         <Chip
+          label={t('calendar.week')}
+          selected={view === 'week'}
+          onPress={() => setView('week')}
+        />
+        <Chip
           label={t('calendar.list')}
           selected={view === 'list'}
           onPress={() => setView('list')}
@@ -71,7 +77,69 @@ export function CalendarScreen() {
         ))}
       </View>
 
-      {view === 'month' ? (
+      {view === 'week' ? (
+        <>
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <Button
+              label="‹"
+              variant="ghost"
+              onPress={() => setSelected((d) => addDays(d, -7))}
+              accessibilityLabel={t('calendar.prev')}
+            />
+            <Text variant="title2" accessibilityRole="header">
+              {formatGermanDate(week[0]!)} – {formatGermanDate(week[6]!)}
+            </Text>
+            <Button
+              label="›"
+              variant="ghost"
+              onPress={() => setSelected((d) => addDays(d, 7))}
+              accessibilityLabel={t('calendar.next')}
+            />
+          </View>
+          <View style={{ gap: 12 }}>
+            {week.map((date, i) => {
+              const entries = eventsOnDay(all, date);
+              return (
+                <View key={date} style={{ gap: 6 }}>
+                  <Text variant="bodyStrong" color={date === today ? 'accent' : 'text'}>
+                    {WEEKDAYS[i]}, {formatGermanDate(date)}
+                  </Text>
+                  {entries.length === 0 ? (
+                    <Text variant="small" color="textTertiary">
+                      {t('calendar.noEvents')}
+                    </Text>
+                  ) : null}
+                  {entries.map(({ event, continuation }) => (
+                    <Pressable
+                      key={event.id}
+                      accessibilityRole="button"
+                      onPress={() => open(event.id)}
+                      style={({ pressed }) => ({
+                        gap: 4,
+                        padding: tokens.space[3],
+                        borderWidth: 1,
+                        borderColor: tokens.color.border,
+                        borderRadius: tokens.radius.md,
+                        backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                      })}
+                    >
+                      <Text variant="small" color="textSecondary">
+                        {continuation
+                          ? t('calendar.continuation')
+                          : `${formatTime(event.starts_at)}${event.ends_at ? `–${formatTime(event.ends_at)}` : ''}`}
+                      </Text>
+                      <Text variant="bodyStrong">{event.title}</Text>
+                      <StatusBadge status={event.status} />
+                    </Pressable>
+                  ))}
+                </View>
+              );
+            })}
+          </View>
+        </>
+      ) : view === 'month' ? (
         <>
           <View
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}

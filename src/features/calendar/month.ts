@@ -1,4 +1,4 @@
-import { isoToBerlin } from '@/lib/berlin';
+import { addDays, isoToBerlin, weekday } from '@/lib/berlin';
 import { monthGrid, shiftMonth } from '@/lib/month-grid';
 
 import type { EventRow } from '../events/types';
@@ -32,4 +32,10 @@ export function eventsOnDay(events: EventRow[], isoDate: string): DayEntry[] {
     }
   }
   return out.sort((a, b) => a.event.starts_at.localeCompare(b.event.starts_at));
+}
+
+/** Die sieben Tage (Montag bis Sonntag) der Woche, in der `isoDate` liegt. */
+export function weekDays(isoDate: string): string[] {
+  const monday = addDays(isoDate, -((weekday(isoDate) + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }

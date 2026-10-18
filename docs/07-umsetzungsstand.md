@@ -160,7 +160,7 @@ Einmal-Import der Excel-Liste des Gründers (braucht die Datei), Produktions-Sup
 
 ### Noch offen aus M3
 
-Wochenansicht im Web (SC-14), persistenter Abfrage-Cache mit „Offline – Stand: …“ (braucht ein natives Speichermodul und damit einen neuen Build, zusammen mit Logo-Upload), Ersatzgerichte bei Sonderessen, Produktionsliste im Tab Küche (kommt mit den Angeboten, M4/M5), Musterwahl aus Appllama Bereich B, Aufträge des Pilotbetriebs übertragen (Excel).
+persistenter Abfrage-Cache mit „Offline – Stand: …“ (braucht ein natives Speichermodul und damit einen neuen Build, zusammen mit Logo-Upload), Ersatzgerichte bei Sonderessen, Produktionsliste im Tab Küche (kommt mit den Angeboten, M4/M5), Musterwahl aus Appllama Bereich B, Aufträge des Pilotbetriebs übertragen (Excel).
 
 ### Abweichungen M3
 
