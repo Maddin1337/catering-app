@@ -239,6 +239,24 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 
 `binding_snapshot` für die Küche nach Annahme, Wahlgruppen und Sonderessen im Portal, Benachrichtigungsliste und Start-Karten „offene Änderungswünsche“, Jobs (Option-Erinnerung, Angebotsablauf), Annahme-PDF.
 
+## M8 (Kern) · Küchenplanung
+
+- **Datenbank:** `supabase/migrations/20261029090000_m8_kitchen_lines.sql`: `kitchen_events` nimmt Gästezahl und Kennzeichen „Änderung offen“ aus dem verbindlichen Stand (Entwurfszahl daneben); neue View `kitchen_event_lines` (Gerichte und Pakete je Auftrag aus der verbindlichen Fassung, ohne Preise, Live-Stand bei Revision 0). Für das Dashboard: `supabase/remote-update-20261029090000.sql`. 442 pgTAP-Tests laufen lokal, auch mit dem Gesamtbundle.
+- **Domäne:** `_shared/domain/kitchen.ts`: Produktionsliste (Pakete mit Portionsfaktor, Einzelgerichte, Ersatzgerichte der Sonderessen), Einkaufsliste mit Puffer (ganzzahlig mit BigInt, Anzeige in g/kg, ml/l, Stück nach 02 §8.3, aufgerundet) und Prüfung Sonderessen gegen Gerichte. Das Rechenbeispiel 02 §8.5 (83/60/32 Portionen; 15,7 kg Rinderschulter …) ist als Test hinterlegt.
+- **App:** `/kitchen` (Tab „Mehr“ → Küchenplanung, für admin und Küche): Zeitraum (von–bis, Standard 7 Tage), Optionen zuschaltbar, Tabs Produktion (je Tag, je Auftrag aufgeschlüsselt, Allergen-Codes, „vorläufig“, Aufträge ohne Positionen), Sonderessen (Konflikte rot, Ersatzgericht, „Küche entscheidet“), Einkauf (Puffer änderbar, nach Warengruppe, Abhaken lokal, Liste teilen).
+- **Geprüft:** Typecheck, Lint, Jest, pgTAP; im Browser mit Handy-Profil gegen eine simulierte Datenbank: Rechenbeispiel aus 02 §8.5 Zahl für Zahl.
+
+### Abweichungen M8
+
+| Nr. | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-32 | Verbindlicher Stand | Spalte `binding_snapshot` | aus den Revisionen abgeleitet: zuletzt angenommene Fassung, bei „Zur Info“ an einen bestätigten Auftrag die neueste, sonst die neueste (vorläufig), ohne Angebot der Live-Stand | keine doppelte Speicherung; gleiche Wirkung |
+| A-33 | Menüwahl | `portal_selection` fließt ein | entfällt, solange es im Portal keine Wahlgruppen gibt (A-29) | siehe A-29 |
+
+### Noch offen
+
+Ersatzgerichte im Formular der Sonderessen (die Liste wertet sie aus, erfassen lassen sie sich noch nicht), Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

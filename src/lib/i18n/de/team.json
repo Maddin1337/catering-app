@@ -1219,5 +1219,49 @@
       "change": "Änderungswunsch von {{name}} ({{date}}): Gästezahl {{guests}}. {{text}}",
       "resolve": "Änderungswunsch erledigt"
     }
+  },
+  "kitchenPlan": {
+    "title": "Küchenplanung",
+    "more": "Küchenplanung",
+    "moreBody": "Produktion, Sonderessen und Einkauf für einen Zeitraum.",
+    "from": "Von",
+    "to": "Bis",
+    "options": "Auch Optionen einrechnen",
+    "tab": {
+      "production": "Produktion",
+      "special": "Sonderessen",
+      "shopping": "Einkauf"
+    },
+    "empty": "Keine bestätigten Aufträge in diesem Zeitraum.",
+    "noLines": "Keine Positionen im Angebot: {{title}}",
+    "provisional": "vorläufig – Annahme steht aus",
+    "openChange": "Änderung offen",
+    "portions": "{{count}} Portionen",
+    "byEvent": "{{title}}: {{count}}",
+    "guests": "{{count}} Gäste",
+    "specialNone": "Keine Sonderessen in diesem Zeitraum.",
+    "persons": "{{count}} ×",
+    "unsuitable": "Nicht geeignet: {{name}}",
+    "contains": "enthält {{list}}",
+    "notDiet": "nicht {{diet}}",
+    "substitute": "{{to}} statt {{from}}",
+    "substituteConflict": "Ersatz {{to}} passt nicht!",
+    "chefDecides": "Küche entscheidet",
+    "buffer": "Puffer in Prozent",
+    "bufferHint": "Gilt nur für den Einkauf, nie für die Produktion.",
+    "shopNone": "Nichts einzukaufen.",
+    "withoutIngredients": "Ohne Zutatenangaben",
+    "noGroup": "Ohne Warengruppe",
+    "share": "Liste teilen",
+    "copied": "Liste kopiert.",
+    "shareFailed": "Teilen hat nicht geklappt.",
+    "unit": {
+      "g": "g",
+      "kg": "kg",
+      "ml": "ml",
+      "l": "l",
+      "piece": "Stück"
+    },
+    "reviewWarning": "Allergene nicht geprüft"
   }
 }

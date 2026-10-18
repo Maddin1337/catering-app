@@ -72,6 +72,13 @@ export function MoreScreen() {
         ) : null}
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
+            title={t('kitchenPlan.more')}
+            body={t('kitchenPlan.moreBody')}
+            onPress={() => router.push('/kitchen')}
+          />
+        ) : null}
+        {role === 'admin' || role === 'kitchen' ? (
+          <ActionCard
             title={t('more.catalog')}
             body={t('more.catalogBody')}
             onPress={() => router.push('/dishes')}
