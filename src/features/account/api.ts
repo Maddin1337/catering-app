@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppError, toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
@@ -54,5 +54,30 @@ export function useDeleteAccount() {
         .catch(() => undefined);
     },
     onSettled: () => queryClient.clear(),
+  });
+}
+
+/** Persönlicher Kalender-Link (legt ihn beim ersten Mal an). */
+export function useIcalToken() {
+  const m = useMembership().data;
+  return useQuery({
+    queryKey: ['ical-token', m?.id],
+    enabled: !!m,
+    queryFn: async (): Promise<string> => {
+      const { data, error } = await client().rpc('get_ical_token', { p_reset: false });
+      if (error) throw toAppError(error);
+      return data as string;
+    },
+  });
+}
+
+export function useResetIcalToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await client().rpc('get_ical_token', { p_reset: true });
+      if (error) throw toAppError(error);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ical-token'] }),
   });
 }

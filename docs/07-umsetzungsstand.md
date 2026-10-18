@@ -266,7 +266,7 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 
 ### Noch offen
 
-Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
+Push an die Küche, Offline-Speicher, Druckansicht, `log_usage_event` (K-10), Einkaufsliste als CSV.
 
 ## M7 (Kern) · Schichtbörse
 
@@ -318,6 +318,13 @@ Bewusst nicht geändert: Die Gültigkeit („gültig bis“) gilt weiter live, d
 ## Ergänzung · Annahme durch das Team
 
 `supabase/migrations/20261104090000_admin_acceptance.sql` (`remote-update-20261104090000.sql`): Wird ein Auftrag aus „Angebot versendet“ oder „Optioniert“ auf „Bestätigt“ gesetzt (Telefon, E-Mail, persönlich), wird die versendete Fassung verbindlich und angenommen (Annahmeprotokoll mit Bestätigungsweg). Vorher blieb die Küche in diesem Fall bei „vorläufig“. 521 pgTAP-Tests.
+
+## Ergänzung · Kalender-Abo (iCal)
+
+- `supabase/migrations/20261105090000_ical.sql` (`remote-update-20261105090000.sql`): `calendar_tokens`, `get_ical_token()` (anzeigen/zurücksetzen), `ical_feed(token)` (anon). Admin und Küche sehen optionierte und bestätigte Aufträge ohne Kundendaten, Personal die eigenen zugesagten Schichten. 530 pgTAP-Tests.
+- `api/ical.ts` (Vercel-Funktion, `/api/ical?token=…`) baut mit `_shared/domain/ical.ts` (RFC 5545: UTC, Escape, Faltung) die Datei. Profil → Kalender-Abo zeigt den Link mit „Abonnieren“, „Kopieren“, „Zurücksetzen“.
+- Abweichung A-37: Vercel-Funktion statt Edge Function (kein Supabase-Function-Deployment möglich); der Token liegt im Klartext in `calendar_tokens` (nur das Mitglied selbst liest ihn), damit sich der Link wieder anzeigen lässt.
+- Nicht getestet gegen die echte Vercel-Umgebung; Handler und Kalenderdatei sind per Unit-Test geprüft.
 
 ## Nicht in M0 gebaut (bewusst)
 

@@ -83,6 +83,11 @@ export const UPDATES: Update[] = [
     title: 'Annahme durch das Team macht die Fassung verbindlich',
     probe: null,
   },
+  {
+    file: '20261105090000',
+    title: 'Kalender-Abo',
+    probe: { kind: 'table', table: 'calendar_tokens' },
+  },
 ];
 
 /** Tabelle oder Funktion fehlt: Postgres 42P01/42703, PostgREST PGRST200–PGRST205 bzw. 404. */

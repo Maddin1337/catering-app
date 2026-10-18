@@ -14,7 +14,7 @@ select p.oid,
 select is(
   (select coalesce(array_agg(sig order by sig), '{}')
      from fns where has_function_privilege('anon', oid, 'execute')),
-  array['public.invitation_preview', 'public.portal_accept_quote', 'public.portal_decline_quote', 'public.portal_delete_dietary', 'public.portal_get', 'public.portal_request_change', 'public.portal_save_dietary', 'public.portal_select_choice'],
+  array['public.ical_feed', 'public.invitation_preview', 'public.portal_accept_quote', 'public.portal_decline_quote', 'public.portal_delete_dietary', 'public.portal_get', 'public.portal_request_change', 'public.portal_save_dietary', 'public.portal_select_choice'],
   'Für anon ist nur die Einladungs-Vorschau ausführbar (der Token ist das Geheimnis)'
 );
 
@@ -48,6 +48,8 @@ select is(
     'public.delete_my_account',
     'public.discard_quote_changes',
     'public.ensure_quote',
+    'public.get_ical_token',
+    'public.ical_feed',
     'public.invitation_preview',
     'public.issue_portal_token',
     'public.leave_company',

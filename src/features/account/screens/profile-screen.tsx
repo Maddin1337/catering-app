@@ -13,6 +13,7 @@ import { toAppError } from '@/lib/errors';
 
 import { useSession } from '../../auth/session-provider';
 import { useMembership } from '../../company/api';
+import { CalendarFeed } from '../components/calendar-feed';
 import { useDeleteAccount, useLeaveCompany, useUpdateProfile } from '../api';
 
 /** SC-68 Profil: Name und Telefon, Firma verlassen, Konto löschen. */
@@ -99,6 +100,7 @@ export function ProfileScreen() {
         loading={update.isPending}
         onPress={save}
       />
+      <CalendarFeed />
       <View style={{ gap: 8 }}>
         <Button
           label={t('profile.leave')}

@@ -272,7 +272,19 @@
     "leaveBody": "Du verlierst den Zugang zu dieser Firma. Dein Konto bleibt bestehen; mit einer neuen Einladung kannst du wieder beitreten.",
     "delete": "Konto löschen",
     "deleteTitle": "Konto endgültig löschen?",
-    "deleteBody": "Dein Zugang und deine persönlichen Daten werden gelöscht. Das lässt sich nicht rückgängig machen."
+    "deleteBody": "Dein Zugang und deine persönlichen Daten werden gelöscht. Das lässt sich nicht rückgängig machen.",
+    "calendar": {
+      "title": "Kalender-Abo",
+      "body": "Zeigt deine Aufträge bzw. Einsätze in Apple, Google oder Outlook Kalender, ohne Kundendaten.",
+      "subscribe": "Im Kalender abonnieren",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert.",
+      "reset": "Link zurücksetzen",
+      "resetTitle": "Link zurücksetzen?",
+      "resetBody": "Der bisherige Link funktioniert dann nicht mehr. Du musst den Kalender neu abonnieren.",
+      "resetAction": "Zurücksetzen",
+      "hint": "Wie oft sich der Kalender aktualisiert, bestimmt dein Kalenderdienst (oft nur alle paar Stunden). Den Link nicht weitergeben."
+    }
   },
   "settings": {
     "hub": {

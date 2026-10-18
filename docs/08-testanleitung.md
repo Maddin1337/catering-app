@@ -23,6 +23,7 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 13 | `remote-update-20261102090000.sql` | Sonderessen im Portal |
 | 14 | `remote-update-20261103090000.sql` | Korrekturen aus der Sicherheitsprüfung |
 | 15 | `remote-update-20261104090000.sql` | Annahme durch das Team macht die Fassung verbindlich |
+| 16 | `remote-update-20261105090000.sql` | Kalender-Abo |
 
 Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien. **Einstellungen → Datenbank-Stand** zeigt, welche.
 
@@ -35,12 +36,13 @@ Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt 
 5. **Änderung:** Im Portal „Änderung wünschen“ (neue Gästezahl, Nachricht). Unter „Sonderessen und Allergien“ im Portal einen Eintrag anlegen (er erscheint sofort im Tab „Küche“ des Auftrags). Im Auftrag erscheint der Wunsch, auf der Startseite die Karte „Änderungswunsch“. Angebot anpassen, „Neue Fassung senden“, Wunsch „erledigt“.
 6. **Küche:** Mehr → Küchenplanung. Zeitraum wählen, Produktion, Sonderessen und Einkauf prüfen. Bei einem Sonderessen unter „Küche“ im Auftrag ein Ersatzgericht eintragen.
 7. **Logo:** Einstellungen → Branding → Logo wählen. Es erscheint im PDF und im Portal.
-8. **Personal:** Im Auftrag Tab „Personal“ → Schicht anlegen (Qualifikation wählen), veröffentlichen. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner.
+8. **Kalender-Abo:** Mehr → Profil → „Im Kalender abonnieren“ (iPhone/Mac: webcal-Link öffnet Kalender; sonst Link kopieren). Funktioniert erst, wenn die Web-App (Vercel) mit dem neuen Ordner `api/` ausgeliefert ist.
+9. **Personal:** Im Auftrag Tab „Personal“ → Schicht anlegen (Qualifikation wählen), veröffentlichen. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner.
 
 ## 3. Was bewusst noch fehlt
 
 - E-Mails verschickt die App nicht selbst. „Per E-Mail senden“ öffnet deine E-Mail-App mit fertigem Text und Link; das PDF hängst du selbst an (E-Mail-Dienst folgt, E-3).
-- Push-Nachrichten, Offline-Speicher, Abo und Bezahlung, Excel-Import, Kalender-Abo (iCal).
+- Push-Nachrichten, Offline-Speicher, Abo und Bezahlung, Excel-Import.
 
 ## 4. Fehler melden
 
