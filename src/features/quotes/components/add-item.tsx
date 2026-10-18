@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
+import { SearchField } from '@/components/ui/search-field';
 import { formatCents } from '@/lib/money';
 import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
@@ -83,11 +83,11 @@ export function AddItem({
       ) : null}
       {type === 'package' || type === 'dish' ? (
         <View style={{ gap: 8 }}>
-          <TextField
+          <SearchField
             label={t('catalog.search')}
+            clearLabel={t('common.clear')}
             value={query}
             onChangeText={setQuery}
-            autoCorrect={false}
           />
           {type === 'package'
             ? packages

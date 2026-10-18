@@ -10,7 +10,7 @@ import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
+import { SearchField } from '@/components/ui/search-field';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { formatCents } from '@/lib/money';
 import { toAppError } from '@/lib/errors';
@@ -56,11 +56,11 @@ export function DishesScreen() {
       <CatalogTabs active="dishes" />
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       <Button label={t('catalog.dishes.add')} onPress={() => router.push('/dishes/new')} />
-      <TextField
+      <SearchField
         label={t('catalog.search')}
+        clearLabel={t('common.clear')}
         value={filters.query}
         onChangeText={(v) => set('query', v)}
-        autoCorrect={false}
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Chip

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { PartyPopper } from 'lucide-react-native';
+import { FilePlus, MessageSquarePlus, PartyPopper } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,14 @@ import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
-import { formatDate, formatTime } from '@/lib/dates';
+import { SearchField } from '@/components/ui/search-field';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { toAppError } from '@/lib/errors';
-import { surfaceStyle } from '@/components/ui/surface';
-import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useEvents } from '../api';
-import { StatusBadge } from '../components/status-badge';
+import { EventListItem } from '../components/event-list-item';
+import { groupByMonth } from '../group';
 import {
   DEFAULT_EVENT_FILTERS,
   filterEvents,
@@ -37,34 +36,40 @@ export function EventsScreen() {
   const [filters, setFilters] = useState<EventFilters>(DEFAULT_EVENT_FILTERS);
   const shown = useMemo(() => filterEvents(events.data ?? [], filters), [events.data, filters]);
 
+  const groups = useMemo(() => groupByMonth(shown), [shown]);
+
   return (
     <Screen title={t('events.title')}>
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
       {isAdmin ? (
-        <View style={{ gap: 8 }}>
-          <Button label={t('events.addChat')} onPress={() => router.push('/events/intake')} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button
+            label={t('events.addChat')}
+            icon={MessageSquarePlus}
+            style={{ flex: 1 }}
+            onPress={() => router.push('/events/intake')}
+          />
           <Button
             label={t('events.addQuick')}
+            icon={FilePlus}
             variant="secondary"
+            style={{ flex: 1 }}
             onPress={() => router.push('/events/new')}
           />
         </View>
       ) : null}
-      <TextField
+      <SearchField
         label={t('events.search')}
+        clearLabel={t('common.clear')}
         value={filters.query}
         onChangeText={(v) => setFilters((f) => ({ ...f, query: v }))}
-        autoCorrect={false}
+      />
+      <SegmentedTabs
+        items={MODES.map((m) => ({ key: m, label: t(`events.mode.${m}`) }))}
+        active={filters.mode === 'all' ? 'upcoming' : filters.mode}
+        onChange={(m) => setFilters((f) => ({ ...f, mode: m }))}
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {MODES.map((m) => (
-          <Chip
-            key={m}
-            label={t(`events.mode.${m}`)}
-            selected={filters.mode === m}
-            onPress={() => setFilters((f) => ({ ...f, mode: m }))}
-          />
-        ))}
         {(['event_catering', 'business_lunch'] as const).map((k) => (
           <Chip
             key={k}
@@ -82,40 +87,28 @@ export function EventsScreen() {
           {shown.length === 0 ? t('events.noMatch') : t('events.count', { count: shown.length })}
         </Text>
       ) : null}
-      <View style={{ gap: 8 }}>
-        {shown.map((e) => (
-          <Pressable
-            key={e.id}
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/events/[id]', params: { id: e.id } })}
-            style={({ pressed }) => ({
-              gap: 4,
-              padding: tokens.space[3],
-              ...surfaceStyle(),
-              ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-            })}
-          >
-            <Text variant="small" color="textSecondary">
-              {formatDate(e.starts_at)} · {formatTime(e.starts_at)}
-              {e.guest_count ? ` · ${t('events.detail.guests', { count: e.guest_count })}` : ''}
-            </Text>
-            <Text variant="bodyStrong">{e.title}</Text>
-            {e.customer_name ? (
-              <Text variant="small" color="textSecondary">
-                {e.customer_name}
-              </Text>
-            ) : null}
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <StatusBadge status={e.status} />
-              {e.status === 'optioned' && e.option_expires_at ? (
-                <Text variant="caption" color="textSecondary">
-                  {t('events.badge.optionExpires', { date: formatDate(e.option_expires_at) })}
-                </Text>
-              ) : null}
-            </View>
-          </Pressable>
-        ))}
-      </View>
+      {groups.map((g) => (
+        <View key={g.month} style={{ gap: 8 }}>
+          <Text variant="title2" accessibilityRole="header">
+            {monthTitle(g.month)}
+          </Text>
+          {g.events.map((e) => (
+            <EventListItem
+              key={e.id}
+              event={e}
+              onPress={() => router.push({ pathname: '/events/[id]', params: { id: e.id } })}
+            />
+          ))}
+        </View>
+      ))}
     </Screen>
   );
+}
+
+function monthTitle(iso: string): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${iso}T00:00:00Z`));
 }

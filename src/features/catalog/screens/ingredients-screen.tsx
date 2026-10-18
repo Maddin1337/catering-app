@@ -9,6 +9,7 @@ import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { SearchField } from '@/components/ui/search-field';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
@@ -83,11 +84,11 @@ export function IngredientsScreen() {
               setEditing({ mode: 'new' });
             }}
           />
-          <TextField
+          <SearchField
             label={t('catalog.search')}
+            clearLabel={t('common.clear')}
             value={query}
             onChangeText={setQuery}
-            autoCorrect={false}
           />
           <View style={{ flexDirection: 'row' }}>
             <Chip

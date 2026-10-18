@@ -13,7 +13,8 @@
     "done": "Fertig",
     "save": "Speichern",
     "saved": "Gespeichert.",
-    "remove": "Entfernen"
+    "remove": "Entfernen",
+    "clear": "Leeren"
   },
   "auth": {
     "onlineOnly": "Anmeldung nur online.",

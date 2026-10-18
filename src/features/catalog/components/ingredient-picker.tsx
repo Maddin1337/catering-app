@@ -6,7 +6,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
+import { SearchField } from '@/components/ui/search-field';
 import { toAppError } from '@/lib/errors';
 import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
@@ -57,11 +57,11 @@ export function IngredientPicker({
         ...surfaceStyle(),
       }}
     >
-      <TextField
+      <SearchField
         label={t('catalog.picker.search')}
+        clearLabel={t('common.clear')}
         value={query}
         onChangeText={setQuery}
-        autoCorrect={false}
       />
       {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
       {matches.map((i) => (

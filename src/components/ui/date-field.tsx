@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -7,6 +8,7 @@ import { monthGrid, shiftMonth } from '@/lib/month-grid';
 import { tokens } from '@/theme/tokens';
 
 import { Button } from './button';
+import { IconButton } from './icon-button';
 import { PickerSheet } from './picker-sheet';
 import { Text } from './text';
 
@@ -92,17 +94,15 @@ export function DateField({
           <View
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            <Button
-              label="‹"
-              variant="ghost"
-              accessibilityLabel={t('calendar.prev')}
+            <IconButton
+              icon={ChevronLeft}
+              label={t('calendar.prev')}
               onPress={() => setYm((c) => shiftMonth(c.year, c.month, -1))}
             />
             <Text variant="bodyStrong">{monthName}</Text>
-            <Button
-              label="›"
-              variant="ghost"
-              accessibilityLabel={t('calendar.next')}
+            <IconButton
+              icon={ChevronRight}
+              label={t('calendar.next')}
               onPress={() => setYm((c) => shiftMonth(c.year, c.month, 1))}
             />
           </View>

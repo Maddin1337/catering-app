@@ -4,13 +4,14 @@ import { Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
-import { TextField } from '@/components/ui/text-field';
+import { SearchField } from '@/components/ui/search-field';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 
@@ -55,11 +56,11 @@ export function CustomersScreen() {
         variant="secondary"
         onPress={() => router.push('/customers/import')}
       />
-      <TextField
+      <SearchField
         label={t('customers.search')}
+        clearLabel={t('common.clear')}
         value={query}
         onChangeText={setQuery}
-        autoCorrect={false}
       />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Chip label={t('customers.all')} selected={type === null} onPress={() => setType(null)} />
@@ -82,6 +83,7 @@ export function CustomersScreen() {
           <ListRow
             key={c.id}
             title={c.name}
+            leading={<Avatar name={c.name} />}
             subtitle={[
               c.contact_person,
               nextEvent.has(c.id)

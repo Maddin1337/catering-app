@@ -47,3 +47,10 @@ Gleiche Bausteine wie beim Admin (Begrüßung, Wochenleiste, Hero-Karte `HeroCar
 - **Personal, Tab „Meine Schichten“** (und für die Küche unter Mehr): Wochenleiste mit zugesagten Schichten, Hero-Karte „Nächste Schicht“, Kennzahlen (zugesagt, beworben, freie Schichten auf der Börse), Schichtkarten mit Datumskachel (`DateTile`) und Statusmarkierung. Die Schichtbörse nutzt dieselben Karten.
 
 Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview.ts` (getestet).
+
+## Listen, Kalender und Suche
+
+- **Auftragsliste:** Suchpille (`SearchField`), Segmente Anstehend/Vergangen/Archiv, Art als Chips, Aufträge nach Monat gruppiert (`groupByMonth`), Karten `EventListItem` mit Datumskachel, Zeit, Gästen, Kunde und Status.
+- **Kalender:** Segmente Monat/Woche/Liste, Monatskarte mit runden Tagen (gewählter Tag dunkel, heute mit Ring, Punkte in Statusfarbe), runde Pfeilknöpfe (`IconButton`), dieselben Auftragskarten für Tag, Woche und Liste.
+- **Kunden und Team:** `Avatar` mit Initialen auf Pastellgrund (Ton aus dem Namen) in `ListRow`; Suche überall als `SearchField`.
+- **Datumsauswahl:** Monatspfeile als `IconButton`.

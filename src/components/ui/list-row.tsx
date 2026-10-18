@@ -12,15 +12,19 @@ export function ListRow({
   title,
   subtitle,
   right,
+  leading,
   onPress,
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
+  /** Element links vor dem Text, z. B. ein Avatar. */
+  leading?: ReactNode;
   onPress?: () => void;
 }) {
   return (
     <Surface onPress={onPress} accessibilityLabel={title} style={styles.row}>
+      {leading}
       <View style={styles.texts}>
         <Text variant="bodyStrong">{title}</Text>
         {subtitle ? (

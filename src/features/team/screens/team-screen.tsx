@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
+import { Avatar } from '@/components/ui/avatar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Text } from '@/components/ui/text';
@@ -56,26 +58,17 @@ export function TeamScreen() {
       {tab === 'members' ? (
         <View style={{ gap: 8 }}>
           {(members.data ?? []).map((m) => (
-            <Pressable
+            <ListRow
               key={m.id}
-              disabled={!isAdmin}
-              accessibilityRole={isAdmin ? 'button' : undefined}
-              onPress={() =>
-                router.push({ pathname: '/team/[memberId]', params: { memberId: m.id } })
+              title={m.display_name}
+              subtitle={[t(`role.${m.role}`), m.phone].filter(Boolean).join(' · ')}
+              leading={<Avatar name={m.display_name} />}
+              onPress={
+                isAdmin
+                  ? () => router.push({ pathname: '/team/[memberId]', params: { memberId: m.id } })
+                  : undefined
               }
-              style={({ pressed }) => ({
-                minHeight: 64,
-                padding: tokens.space[3],
-                ...surfaceStyle(),
-                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-                gap: 2,
-              })}
-            >
-              <Text variant="bodyStrong">{m.display_name}</Text>
-              <Text variant="small" color="textSecondary">
-                {[t(`role.${m.role}`), m.phone].filter(Boolean).join(' · ')}
-              </Text>
-            </Pressable>
+            />
           ))}
         </View>
       ) : (

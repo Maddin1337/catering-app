@@ -1,23 +1,29 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
-import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
+import { IconButton } from '@/components/ui/icon-button';
+import { Pill } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
-import { surfaceStyle } from '@/components/ui/surface';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
-import { addDays, formatGermanDate, todayBerlin, weekday } from '@/lib/berlin';
+import { addDays, formatGermanDate, todayBerlin } from '@/lib/berlin';
 import { formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { eventStatusStyle, tokens } from '@/theme/tokens';
 
 import { useEvents } from '../../events/api';
-import { StatusBadge } from '../../events/components/status-badge';
+import { EventListItem } from '../../events/components/event-list-item';
 import { filterEvents } from '../../events/filter';
-import type { EventKind } from '../../events/types';
+import { groupByMonth } from '../../events/group';
+import type { EventKind, EventRow } from '../../events/types';
 import { eventsOnDay, monthGrid, shiftMonth, weekDays } from '../month';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
@@ -48,26 +54,33 @@ export function CalendarScreen() {
   });
 
   const open = (id: string) => router.push({ pathname: '/events/[id]', params: { id } });
+  const timeLabel = (e: EventRow, continuation: boolean) =>
+    continuation
+      ? t('calendar.continuation')
+      : `${formatTime(e.starts_at)}${e.ends_at ? `–${formatTime(e.ends_at)}` : ''}`;
+  const monthNav = (title: string, onPrev: () => void, onNext: () => void) => (
+    <View style={styles.nav}>
+      <IconButton icon={ChevronLeft} label={t('calendar.prev')} onPress={onPrev} />
+      <Text variant="title2" accessibilityRole="header" style={styles.navTitle}>
+        {title}
+      </Text>
+      <IconButton icon={ChevronRight} label={t('calendar.next')} onPress={onNext} />
+    </View>
+  );
 
   return (
     <Screen title={t('calendar.title')}>
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
+      <SegmentedTabs
+        items={[
+          { key: 'month', label: t('calendar.month') },
+          { key: 'week', label: t('calendar.week') },
+          { key: 'list', label: t('calendar.list') },
+        ]}
+        active={view}
+        onChange={setView}
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Chip
-          label={t('calendar.month')}
-          selected={view === 'month'}
-          onPress={() => setView('month')}
-        />
-        <Chip
-          label={t('calendar.week')}
-          selected={view === 'week'}
-          onPress={() => setView('week')}
-        />
-        <Chip
-          label={t('calendar.list')}
-          selected={view === 'list'}
-          onPress={() => setView('list')}
-        />
         {(['event_catering', 'business_lunch'] as const).map((k) => (
           <Chip
             key={k}
@@ -80,58 +93,35 @@ export function CalendarScreen() {
 
       {view === 'week' ? (
         <>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <Button
-              label="‹"
-              variant="ghost"
-              onPress={() => setSelected((d) => addDays(d, -7))}
-              accessibilityLabel={t('calendar.prev')}
-            />
-            <Text variant="title2" accessibilityRole="header">
-              {formatGermanDate(week[0]!)} – {formatGermanDate(week[6]!)}
-            </Text>
-            <Button
-              label="›"
-              variant="ghost"
-              onPress={() => setSelected((d) => addDays(d, 7))}
-              accessibilityLabel={t('calendar.next')}
-            />
-          </View>
-          <View style={{ gap: 12 }}>
+          {monthNav(
+            `${formatGermanDate(week[0]!)} – ${formatGermanDate(week[6]!)}`,
+            () => setSelected((d) => addDays(d, -7)),
+            () => setSelected((d) => addDays(d, 7)),
+          )}
+          <View style={{ gap: 16 }}>
             {week.map((date, i) => {
               const entries = eventsOnDay(all, date);
               return (
-                <View key={date} style={{ gap: 6 }}>
-                  <Text variant="bodyStrong" color={date === today ? 'accent' : 'text'}>
-                    {WEEKDAYS[i]}, {formatGermanDate(date)}
-                  </Text>
+                <View key={date} style={{ gap: 8 }}>
+                  <View style={styles.dayHead}>
+                    <Text variant="bodyStrong" color={date === today ? 'accent' : 'text'}>
+                      {WEEKDAYS[i]}, {formatGermanDate(date)}
+                    </Text>
+                    {date === today ? <Pill label={t('start.today')} tone="teal" /> : null}
+                  </View>
                   {entries.length === 0 ? (
                     <Text variant="small" color="textTertiary">
                       {t('calendar.noEvents')}
                     </Text>
                   ) : null}
                   {entries.map(({ event, continuation }) => (
-                    <Pressable
+                    <EventListItem
                       key={event.id}
-                      accessibilityRole="button"
+                      event={event}
+                      showTile={false}
+                      timeLabel={timeLabel(event, continuation)}
                       onPress={() => open(event.id)}
-                      style={({ pressed }) => ({
-                        gap: 4,
-                        padding: tokens.space[3],
-                        ...surfaceStyle(),
-                        ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-                      })}
-                    >
-                      <Text variant="small" color="textSecondary">
-                        {continuation
-                          ? t('calendar.continuation')
-                          : `${formatTime(event.starts_at)}${event.ends_at ? `–${formatTime(event.ends_at)}` : ''}`}
-                      </Text>
-                      <Text variant="bodyStrong">{event.title}</Text>
-                      <StatusBadge status={event.status} />
-                    </Pressable>
+                    />
                   ))}
                 </View>
               );
@@ -140,26 +130,12 @@ export function CalendarScreen() {
         </>
       ) : view === 'month' ? (
         <>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <Button
-              label="‹"
-              variant="ghost"
-              onPress={() => setYm((c) => shiftMonth(c.year, c.month, -1))}
-              accessibilityLabel={t('calendar.prev')}
-            />
-            <Text variant="title2" accessibilityRole="header">
-              {monthName}
-            </Text>
-            <Button
-              label="›"
-              variant="ghost"
-              onPress={() => setYm((c) => shiftMonth(c.year, c.month, 1))}
-              accessibilityLabel={t('calendar.next')}
-            />
-          </View>
-          <View>
+          <Surface style={styles.monthCard}>
+            {monthNav(
+              monthName,
+              () => setYm((c) => shiftMonth(c.year, c.month, -1)),
+              () => setYm((c) => shiftMonth(c.year, c.month, 1)),
+            )}
             <View style={{ flexDirection: 'row' }}>
               {WEEKDAYS.map((d) => (
                 <View key={d} style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}>
@@ -174,29 +150,35 @@ export function CalendarScreen() {
                 {w.map((d) => {
                   const entries = eventsOnDay(all, d.date);
                   const isSelected = d.date === selected;
+                  const isToday = d.date === today;
                   return (
-                    <Pressable
+                    <PressableScale
                       key={d.date}
                       accessibilityRole="button"
                       accessibilityLabel={`${formatGermanDate(d.date)}, ${t('calendar.eventCount', { count: entries.length })}`}
                       accessibilityState={{ selected: isSelected }}
                       onPress={() => setSelected(d.date)}
-                      style={{
-                        flex: 1,
-                        minHeight: 52,
-                        alignItems: 'center',
-                        paddingVertical: 4,
-                        gap: 2,
-                        borderRadius: tokens.radius.md,
-                        backgroundColor: isSelected ? tokens.color.accentSubtle : undefined,
-                        borderWidth: d.date === today ? 1 : 0,
-                        borderColor: tokens.color.accent,
-                      }}
+                      scale={0.9}
+                      style={styles.cell}
                     >
-                      <Text variant="small" color={d.inMonth ? 'text' : 'textTertiary'}>
-                        {Number(d.date.slice(8))}
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 2 }}>
+                      <View
+                        style={[
+                          styles.day,
+                          isSelected && styles.daySelected,
+                          isToday && !isSelected && styles.dayToday,
+                        ]}
+                      >
+                        <Text
+                          variant="small"
+                          color={isSelected ? 'onAccent' : d.inMonth ? 'text' : 'textTertiary'}
+                          style={
+                            isToday || isSelected ? { fontFamily: tokens.font.semibold } : null
+                          }
+                        >
+                          {Number(d.date.slice(8))}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 2, height: 6 }}>
                         {entries.slice(0, 3).map((x) => (
                           <View
                             key={x.event.id}
@@ -215,76 +197,66 @@ export function CalendarScreen() {
                           />
                         ))}
                       </View>
-                    </Pressable>
+                    </PressableScale>
                   );
                 })}
               </View>
             ))}
-          </View>
+          </Surface>
           <Text variant="title2">{formatGermanDate(selected)}</Text>
           {dayEntries.length === 0 ? (
-            <Text variant="body" color="textSecondary">
-              {t('calendar.noEvents')}
-            </Text>
+            <EmptyState icon={CalendarDays} text={t('calendar.noEvents')} />
           ) : null}
           <View style={{ gap: 8 }}>
             {dayEntries.map(({ event, continuation }) => (
-              <Pressable
+              <EventListItem
                 key={event.id}
-                accessibilityRole="button"
+                event={event}
+                showTile={false}
+                timeLabel={timeLabel(event, continuation)}
                 onPress={() => open(event.id)}
-                style={({ pressed }) => ({
-                  gap: 4,
-                  padding: tokens.space[3],
-                  ...surfaceStyle(),
-                  ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-                })}
-              >
-                <Text variant="small" color="textSecondary">
-                  {continuation
-                    ? t('calendar.continuation')
-                    : `${formatTime(event.starts_at)}${event.ends_at ? `–${formatTime(event.ends_at)}` : ''}`}
-                </Text>
-                <Text variant="bodyStrong">{event.title}</Text>
-                {event.customer_name ? (
-                  <Text variant="small" color="textSecondary">
-                    {event.customer_name}
-                  </Text>
-                ) : null}
-                <StatusBadge status={event.status} />
-              </Pressable>
+              />
             ))}
           </View>
         </>
       ) : (
-        <View style={{ gap: 8 }}>
+        <View style={{ gap: 16 }}>
           {upcoming.length === 0 ? (
-            <Text variant="body" color="textSecondary">
-              {t('calendar.noEvents')}
-            </Text>
+            <EmptyState icon={CalendarDays} text={t('calendar.noEvents')} />
           ) : null}
-          {upcoming.map((e) => (
-            <Pressable
-              key={e.id}
-              accessibilityRole="button"
-              onPress={() => open(e.id)}
-              style={({ pressed }) => ({
-                gap: 4,
-                padding: tokens.space[3],
-                ...surfaceStyle(),
-                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-              })}
-            >
-              <Text variant="small" color="textSecondary">
-                {WEEKDAYS[(weekday(e.event_date) + 6) % 7]}, {formatGermanDate(e.event_date)} ·{' '}
-                {formatTime(e.starts_at)}
+          {groupByMonth(upcoming).map((g) => (
+            <View key={g.month} style={{ gap: 8 }}>
+              <Text variant="title2" accessibilityRole="header">
+                {new Intl.DateTimeFormat('de-DE', {
+                  month: 'long',
+                  year: 'numeric',
+                  timeZone: 'UTC',
+                }).format(new Date(`${g.month}T00:00:00Z`))}
               </Text>
-              <Text variant="bodyStrong">{e.title}</Text>
-              <StatusBadge status={e.status} />
-            </Pressable>
+              {g.events.map((e) => (
+                <EventListItem key={e.id} event={e} onPress={() => open(e.id)} />
+              ))}
+            </View>
           ))}
         </View>
       )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  navTitle: { flex: 1, textAlign: 'center' },
+  dayHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  monthCard: { gap: tokens.space[2], padding: tokens.space[3] },
+  cell: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  day: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  daySelected: { backgroundColor: tokens.color.ink },
+  dayToday: { borderWidth: 1.5, borderColor: tokens.color.accent },
+});
