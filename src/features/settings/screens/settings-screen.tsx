@@ -10,21 +10,18 @@ import {
   SlidersHorizontal,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
 
-import { ActionCard } from '@/components/ui/card';
+import { Appear } from '@/components/ui/appear';
+import { GroupRow, ListGroup } from '@/components/ui/list-group';
 import { Screen } from '@/components/ui/screen';
 
-const GROUPS = [
-  'company',
-  'branding',
-  'tax-rates',
-  'qualifications',
-  'defaults',
-  'quote-texts',
-  'questionnaire',
-  'db-status',
-] as const;
+// Bereiche, thematisch gruppiert (iOS-Einstellungen als Vorbild).
+const GROUPS = {
+  company: ['company', 'branding'],
+  quotes: ['tax-rates', 'defaults', 'quote-texts', 'questionnaire'],
+  team: ['qualifications'],
+  system: ['db-status'],
+} as const;
 const PATHS = {
   company: '/settings/company',
   branding: '/settings/branding',
@@ -57,18 +54,22 @@ export function SettingsScreen() {
       onBack={() => router.back()}
       backLabel={t('common.back')}
     >
-      <View style={{ gap: 12 }}>
-        {GROUPS.map((g) => (
-          <ActionCard
-            key={g}
-            icon={LOOK[g].icon}
-            tint={LOOK[g].tint}
-            title={t(`settings.hub.${g}.title`)}
-            body={t(`settings.hub.${g}.body`)}
-            onPress={() => router.push(PATHS[g])}
-          />
-        ))}
-      </View>
+      {(Object.keys(GROUPS) as (keyof typeof GROUPS)[]).map((group, i) => (
+        <Appear key={group} index={i}>
+          <ListGroup title={t(`settings.hub.groups.${group}`)}>
+            {GROUPS[group].map((g) => (
+              <GroupRow
+                key={g}
+                icon={LOOK[g].icon}
+                tint={LOOK[g].tint}
+                title={t(`settings.hub.${g}.title`)}
+                subtitle={t(`settings.hub.${g}.body`)}
+                onPress={() => router.push(PATHS[g])}
+              />
+            ))}
+          </ListGroup>
+        </Appear>
+      ))}
     </Screen>
   );
 }

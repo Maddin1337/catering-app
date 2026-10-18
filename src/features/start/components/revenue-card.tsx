@@ -1,6 +1,9 @@
 import { TrendingDown, TrendingUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import { AnimatedNumber } from '@/components/ui/animated-number';
 
 import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
@@ -61,9 +64,12 @@ export function RevenueCard({ summary }: { summary: RevenueSummary }) {
         ) : null}
       </View>
 
-      <Text variant="display" tabular>
-        {formatEuroRounded(current.booked_cents)}
-      </Text>
+      <AnimatedNumber
+        value={current.booked_cents}
+        format={(n) => formatEuroRounded(Math.round(n))}
+        variant="display"
+        tabular
+      />
       <Text variant="small" color="textSecondary">
         {t('start.revenue.booked', { count: current.booked_count })}
       </Text>
@@ -77,13 +83,14 @@ export function RevenueCard({ summary }: { summary: RevenueSummary }) {
       ) : null}
 
       <View style={styles.chart} importantForAccessibility="no-hide-descendants">
-        {months.map((m) => {
+        {months.map((m, i) => {
           const isCurrent = m.month === current.month;
           const booked = Math.round((m.booked_cents / max) * BAR_AREA);
           const open = Math.round((m.open_cents / max) * BAR_AREA);
           return (
             <View key={m.month} style={styles.col}>
-              <View style={styles.barArea}>
+              {/* Balken wachsen nacheinander von unten herein. */}
+              <Animated.View style={[styles.barArea, grow(i)]}>
                 {open > 0 ? <View style={[styles.open, { height: Math.max(open, 3) }]} /> : null}
                 {booked > 0 ? (
                   <View
@@ -95,7 +102,7 @@ export function RevenueCard({ summary }: { summary: RevenueSummary }) {
                   />
                 ) : null}
                 {booked === 0 && open === 0 ? <View style={styles.empty} /> : null}
-              </View>
+              </Animated.View>
               <Text
                 variant="caption"
                 color={isCurrent ? 'text' : 'textTertiary'}
@@ -128,6 +135,16 @@ export function RevenueCard({ summary }: { summary: RevenueSummary }) {
     </Surface>
   );
 }
+
+const grow = (i: number) =>
+  ({
+    transformOrigin: 'bottom',
+    animationName: { from: { transform: [{ scaleY: 0 }] }, to: { transform: [{ scaleY: 1 }] } },
+    animationDuration: 650,
+    animationDelay: 120 + i * 70,
+    animationFillMode: 'backwards',
+    animationTimingFunction: tokens.motion.ease,
+  }) as ViewStyle;
 
 const styles = StyleSheet.create({
   card: { gap: tokens.space[1], padding: tokens.space[5] },

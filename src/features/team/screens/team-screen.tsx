@@ -1,11 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { UserPlus } from 'lucide-react-native';
 import { View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Avatar } from '@/components/ui/avatar';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
@@ -39,11 +42,23 @@ export function TeamScreen() {
   );
 
   return (
-    <Screen title={t('team.title')} onBack={() => router.back()} backLabel={t('common.back')}>
+    <Screen
+      title={t('team.title')}
+      onBack={() => router.back()}
+      backLabel={t('common.back')}
+      actions={
+        isAdmin ? (
+          <IconButton
+            icon={UserPlus}
+            label={t('team.invite')}
+            onPress={() => router.push('/team/invite')}
+          />
+        ) : null
+      }
+      onRefresh={() => void members.refetch()}
+      refreshing={members.isRefetching}
+    >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      {isAdmin ? (
-        <Button label={t('team.invite')} onPress={() => router.push('/team/invite')} />
-      ) : null}
       {isAdmin ? (
         <SegmentedTabs
           items={[
@@ -57,18 +72,20 @@ export function TeamScreen() {
 
       {tab === 'members' ? (
         <View style={{ gap: 8 }}>
-          {(members.data ?? []).map((m) => (
-            <ListRow
-              key={m.id}
-              title={m.display_name}
-              subtitle={[t(`role.${m.role}`), m.phone].filter(Boolean).join(' · ')}
-              leading={<Avatar name={m.display_name} />}
-              onPress={
-                isAdmin
-                  ? () => router.push({ pathname: '/team/[memberId]', params: { memberId: m.id } })
-                  : undefined
-              }
-            />
+          {(members.data ?? []).map((m, i) => (
+            <Appear key={m.id} index={i}>
+              <ListRow
+                title={m.display_name}
+                subtitle={[t(`role.${m.role}`), m.phone].filter(Boolean).join(' · ')}
+                leading={<Avatar name={m.display_name} />}
+                onPress={
+                  isAdmin
+                    ? () =>
+                        router.push({ pathname: '/team/[memberId]', params: { memberId: m.id } })
+                    : undefined
+                }
+              />
+            </Appear>
           ))}
         </View>
       ) : (

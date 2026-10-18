@@ -7,7 +7,8 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { showToast } from '@/components/ui/toast';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 
@@ -55,7 +56,7 @@ export function CustomerFormScreen() {
         onBack={() => router.back()}
         backLabel={t('common.back')}
       >
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }
@@ -87,7 +88,15 @@ function CustomerForm({
   const submit = () => {
     setTried(true);
     if (nameError || emailError) return;
-    save.mutate({ id: existing?.id, values: v }, { onSuccess: () => router.back() });
+    save.mutate(
+      { id: existing?.id, values: v },
+      {
+        onSuccess: () => {
+          showToast(t('common.saved'));
+          router.back();
+        },
+      },
+    );
   };
 
   return (
@@ -95,6 +104,15 @@ function CustomerForm({
       title={existing ? t('customers.form.edit') : t('customers.form.new')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          loading={save.isPending}
+          onPress={submit}
+        />
+      }
+      backIcon={existing ? 'back' : 'close'}
     >
       {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
       <RadioList
@@ -142,7 +160,6 @@ function CustomerForm({
           />
         ))}
       </View>
-      <Button label={t('common.save')} loading={save.isPending} onPress={submit} />
     </Screen>
   );
 }

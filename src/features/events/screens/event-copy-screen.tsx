@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { addDays, berlinToIso, isoToBerlin } from '@/lib/berlin';
 import { confirm } from '@/lib/confirm';
@@ -40,7 +41,7 @@ export function EventCopyScreen() {
         onBack={() => router.back()}
         backLabel={t('common.back')}
       >
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }
@@ -90,6 +91,14 @@ export function EventCopyScreen() {
       subtitle={t('events.copy.body')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('events.copy.submit')}
+          loading={copy.isPending}
+          onPress={() => void submit()}
+        />
+      }
     >
       {copy.error ? <Banner tone="danger">{toAppError(copy.error).message}</Banner> : null}
       <View style={{ gap: 12 }}>
@@ -157,11 +166,6 @@ export function EventCopyScreen() {
         ) : null}
         <Checkbox label={t('events.copy.dietary')} checked={dietary} onChange={setDietary} />
       </View>
-      <Button
-        label={t('events.copy.submit')}
-        loading={copy.isPending}
-        onPress={() => void submit()}
-      />
     </Screen>
   );
 }

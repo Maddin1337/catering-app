@@ -7,6 +7,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
+import { showToast } from '@/components/ui/toast';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
@@ -44,7 +45,6 @@ export function DefaultsSettingsScreen() {
   const update = useUpdateCompanySettings();
   const [draft, setDraft] = useState<Partial<DefaultsForm>>({});
   const [errors, setErrors] = useState<DefaultsErrors>({});
-  const [saved, setSaved] = useState(false);
 
   if (!settings.data) {
     return (
@@ -62,7 +62,6 @@ export function DefaultsSettingsScreen() {
 
   const form: DefaultsForm = { ...toDefaultsForm(settings.data), ...draft };
   const change = <K extends keyof DefaultsForm>(k: K, v: DefaultsForm[K]) => {
-    setSaved(false);
     setDraft((d) => ({ ...d, [k]: v }));
   };
 
@@ -75,7 +74,7 @@ export function DefaultsSettingsScreen() {
     setErrors({});
     update.mutate(result.value, {
       onSuccess: () => {
-        setSaved(true);
+        showToast(t('common.saved'));
         setDraft({});
       },
     });
@@ -87,9 +86,17 @@ export function DefaultsSettingsScreen() {
       subtitle={t('settings.defaults.body')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          disabled={Object.keys(draft).length === 0}
+          loading={update.isPending}
+          onPress={save}
+        />
+      }
     >
       {update.error ? <Banner tone="danger">{toAppError(update.error).message}</Banner> : null}
-      {saved ? <Banner tone="success">{t('common.saved')}</Banner> : null}
       <View style={{ gap: 16 }}>
         {NUMBER_FIELDS.map((k) => (
           <TextField
@@ -131,12 +138,6 @@ export function DefaultsSettingsScreen() {
           }))}
         />
       </View>
-      <Button
-        label={t('common.save')}
-        disabled={Object.keys(draft).length === 0}
-        loading={update.isPending}
-        onPress={save}
-      />
     </Screen>
   );
 }

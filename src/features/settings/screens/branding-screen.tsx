@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { ACCENT_SUGGESTIONS, normalizeHex } from '@/lib/color';
 import { toAppError } from '@/lib/errors';
@@ -25,7 +26,6 @@ export function BrandingSettingsScreen() {
   const upload = useUploadLogo();
   const removeLogo = useRemoveLogo();
   const [draft, setDraft] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   const hex = draft ?? settings.data?.accent_color ?? ACCENT_SUGGESTIONS[0];
   const valid = normalizeHex(hex);
@@ -44,6 +44,26 @@ export function BrandingSettingsScreen() {
       subtitle={t('settings.branding.body')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          disabled={!valid || draft === null}
+          loading={update.isPending}
+          onPress={() =>
+            valid &&
+            update.mutate(
+              { accent_color: valid },
+              {
+                onSuccess: () => {
+                  showToast(t('common.saved'));
+                  setDraft(null);
+                },
+              },
+            )
+          }
+        />
+      }
     >
       {update.error || upload.error || removeLogo.error ? (
         <Banner tone="danger">
@@ -82,11 +102,9 @@ export function BrandingSettingsScreen() {
           {t('settings.branding.logoHint')}
         </Text>
       </View>
-      {saved ? <Banner tone="success">{t('common.saved')}</Banner> : null}
       <ColorPicker
         hex={hex}
         onChangeHex={(v) => {
-          setSaved(false);
           setDraft(v);
         }}
         companyName={settings.data?.name ?? ''}
@@ -94,23 +112,6 @@ export function BrandingSettingsScreen() {
       <Text variant="small" color="textTertiary">
         {t('settings.branding.note')}
       </Text>
-      <Button
-        label={t('common.save')}
-        disabled={!valid || draft === null}
-        loading={update.isPending}
-        onPress={() =>
-          valid &&
-          update.mutate(
-            { accent_color: valid },
-            {
-              onSuccess: () => {
-                setSaved(true);
-                setDraft(null);
-              },
-            },
-          )
-        }
-      />
     </Screen>
   );
 }

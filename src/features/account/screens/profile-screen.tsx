@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { confirm } from '@/lib/confirm';
@@ -29,7 +30,6 @@ export function ProfileScreen() {
   // Entwurf bleibt `null`, bis jemand tippt; bis dahin gilt der gespeicherte Stand.
   const [nameDraft, setName] = useState<string | null>(null);
   const [phoneDraft, setPhone] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const name = nameDraft ?? membership?.display_name ?? '';
   const phone = phoneDraft ?? membership?.phone ?? '';
 
@@ -37,8 +37,7 @@ export function ProfileScreen() {
   const error = update.error ?? leave.error ?? del.error;
 
   const save = () => {
-    setSaved(false);
-    update.mutate({ displayName: name, phone }, { onSuccess: () => setSaved(true) });
+    update.mutate({ displayName: name, phone }, { onSuccess: () => showToast(t('common.saved')) });
   };
 
   const leaveCompany = async () => {
@@ -69,7 +68,6 @@ export function ProfileScreen() {
   return (
     <Screen title={t('profile.title')} onBack={() => router.back()} backLabel={t('common.back')}>
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      {saved ? <Banner tone="success">{t('common.saved')}</Banner> : null}
       <View style={{ gap: 16 }}>
         <TextField
           label={t('profile.name')}

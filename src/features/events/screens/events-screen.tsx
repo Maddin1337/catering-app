@@ -1,14 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FilePlus, MessageSquarePlus, PartyPopper } from 'lucide-react-native';
+import { FilePlus, MessageSquarePlus, PartyPopper, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { ActionSheet } from '@/components/ui/action-sheet';
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
-import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
+import { IconButton } from '@/components/ui/icon-button';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { SearchField } from '@/components/ui/search-field';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
@@ -37,26 +40,39 @@ export function EventsScreen() {
   const shown = useMemo(() => filterEvents(events.data ?? [], filters), [events.data, filters]);
 
   const groups = useMemo(() => groupByMonth(shown), [shown]);
+  const [adding, setAdding] = useState(false);
 
   return (
-    <Screen title={t('events.title')}>
+    <Screen
+      title={t('events.title')}
+      actions={
+        isAdmin ? (
+          <IconButton icon={Plus} label={t('tabs.create')} onPress={() => setAdding(true)} />
+        ) : null
+      }
+      onRefresh={() => void events.refetch()}
+      refreshing={events.isRefetching}
+    >
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
-      {isAdmin ? (
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Button
-            label={t('events.addChat')}
-            icon={MessageSquarePlus}
-            style={{ flex: 1 }}
-            onPress={() => router.push('/events/intake')}
-          />
-          <Button
-            label={t('events.addQuick')}
-            icon={FilePlus}
-            variant="secondary"
-            style={{ flex: 1 }}
-            onPress={() => router.push('/events/new')}
-          />
-        </View>
+      {adding ? (
+        <ActionSheet
+          title={t('create.title')}
+          onClose={() => setAdding(false)}
+          actions={[
+            {
+              label: t('events.addChat'),
+              hint: t('create.intakeHint'),
+              icon: MessageSquarePlus,
+              onPress: () => router.push('/events/intake'),
+            },
+            {
+              label: t('events.addQuick'),
+              hint: t('create.eventHint'),
+              icon: FilePlus,
+              onPress: () => router.push('/events/new'),
+            },
+          ]}
+        />
       ) : null}
       <SearchField
         label={t('events.search')}
@@ -79,6 +95,7 @@ export function EventsScreen() {
           />
         ))}
       </View>
+      {events.isPending ? <SkeletonList rows={4} /> : null}
       {!events.isPending && (events.data ?? []).length === 0 ? (
         <EmptyState icon={PartyPopper} text={t('events.empty')} />
       ) : null}
@@ -87,17 +104,18 @@ export function EventsScreen() {
           {shown.length === 0 ? t('events.noMatch') : t('events.count', { count: shown.length })}
         </Text>
       ) : null}
-      {groups.map((g) => (
+      {groups.map((g, gi) => (
         <View key={g.month} style={{ gap: 8 }}>
           <Text variant="title2" accessibilityRole="header">
             {monthTitle(g.month)}
           </Text>
-          {g.events.map((e) => (
-            <EventListItem
-              key={e.id}
-              event={e}
-              onPress={() => router.push({ pathname: '/events/[id]', params: { id: e.id } })}
-            />
+          {g.events.map((e, i) => (
+            <Appear key={e.id} index={gi * 3 + i}>
+              <EventListItem
+                event={e}
+                onPress={() => router.push({ pathname: '/events/[id]', params: { id: e.id } })}
+              />
+            </Appear>
           ))}
         </View>
       ))}

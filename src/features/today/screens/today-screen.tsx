@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Pill } from '@/components/ui/pill';
@@ -117,8 +118,10 @@ export function TodayScreen() {
         <EmptyState icon={ChefHat} text={t('today.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
-        {list.map((e) => (
-          <EventCard key={e.id} event={e} />
+        {list.map((e, i) => (
+          <Appear key={e.id} index={i}>
+            <EventCard event={e} />
+          </Appear>
         ))}
       </View>
     </Screen>

@@ -4,6 +4,7 @@ import { CalendarCheck, ClipboardList, Clock, Hand, MapPin, Users } from 'lucide
 import { useTranslation } from 'react-i18next';
 import { Linking, StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { DateTile } from '@/components/ui/date-tile';
@@ -161,61 +162,60 @@ export function MyShiftsScreen({ standalone = false }: { standalone?: boolean })
         <EmptyState icon={ClipboardList} text={t('shifts.mine.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
-        {current.map((s) => {
+        {current.map((s, i) => {
           const firm = FIRM.includes(s.status) && !s.is_called_off;
           return (
-            <Surface
-              key={s.application_id}
-              style={[styles.card, s.is_called_off && { opacity: 0.7 }]}
-            >
-              <View style={styles.head}>
-                <DateTile date={isoToBerlin(s.starts_at).date} muted={s.is_called_off} />
-                <View style={styles.texts}>
-                  <Text variant="bodyStrong">{s.title}</Text>
-                  <Text variant="small" color="textSecondary">
-                    {s.qualification_name} · {formatTime(s.starts_at)}–{formatTime(s.ends_at)}
-                  </Text>
-                  <View style={styles.pills}>
-                    <Pill
-                      label={
-                        s.is_called_off
-                          ? t('shifts.mine.calledOff')
-                          : t(`shifts.status.${s.status}`)
-                      }
-                      tone={s.is_called_off ? 'danger' : firm ? 'teal' : 'amber'}
-                    />
-                    {s.is_tentative && !s.is_called_off ? (
-                      <Pill label={t('shifts.board.tentative')} tone="slate" />
-                    ) : null}
+            <Appear key={s.application_id} index={i}>
+              <Surface style={[styles.card, s.is_called_off && { opacity: 0.7 }]}>
+                <View style={styles.head}>
+                  <DateTile date={isoToBerlin(s.starts_at).date} muted={s.is_called_off} />
+                  <View style={styles.texts}>
+                    <Text variant="bodyStrong">{s.title}</Text>
+                    <Text variant="small" color="textSecondary">
+                      {s.qualification_name} · {formatTime(s.starts_at)}–{formatTime(s.ends_at)}
+                    </Text>
+                    <View style={styles.pills}>
+                      <Pill
+                        label={
+                          s.is_called_off
+                            ? t('shifts.mine.calledOff')
+                            : t(`shifts.status.${s.status}`)
+                        }
+                        tone={s.is_called_off ? 'danger' : firm ? 'teal' : 'amber'}
+                      />
+                      {s.is_tentative && !s.is_called_off ? (
+                        <Pill label={t('shifts.board.tentative')} tone="slate" />
+                      ) : null}
+                    </View>
                   </View>
                 </View>
-              </View>
-              {s.status === 'applied' ? (
-                <Text variant="small" color="textSecondary">
-                  {t('shifts.mine.pending')}
-                </Text>
-              ) : null}
-              {firm ? <Info s={s} /> : null}
-              {s.status === 'applied' ? (
-                <Button
-                  label={t('shifts.mine.withdraw')}
-                  variant="secondary"
-                  onPress={() => cancel.mutate({ id: s.application_id, reason: '' })}
-                />
-              ) : null}
-              {firm ? (
-                <>
+                {s.status === 'applied' ? (
                   <Text variant="small" color="textSecondary">
-                    {t('shifts.mine.deadline', { date: formatDateTime(s.cancel_deadline_at) })}
+                    {t('shifts.mine.pending')}
                   </Text>
+                ) : null}
+                {firm ? <Info s={s} /> : null}
+                {s.status === 'applied' ? (
                   <Button
-                    label={t('shifts.mine.cancel')}
+                    label={t('shifts.mine.withdraw')}
                     variant="secondary"
-                    onPress={() => void doCancel(s)}
+                    onPress={() => cancel.mutate({ id: s.application_id, reason: '' })}
                   />
-                </>
-              ) : null}
-            </Surface>
+                ) : null}
+                {firm ? (
+                  <>
+                    <Text variant="small" color="textSecondary">
+                      {t('shifts.mine.deadline', { date: formatDateTime(s.cancel_deadline_at) })}
+                    </Text>
+                    <Button
+                      label={t('shifts.mine.cancel')}
+                      variant="secondary"
+                      onPress={() => void doCancel(s)}
+                    />
+                  </>
+                ) : null}
+              </Surface>
+            </Appear>
           );
         })}
       </View>

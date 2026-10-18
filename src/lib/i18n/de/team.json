@@ -172,7 +172,8 @@
     "today": "Heute",
     "myShifts": "Meine Schichten",
     "shiftBoard": "Schichtbörse",
-    "events": "Aufträge"
+    "events": "Aufträge",
+    "create": "Neu anlegen"
   },
   "shell": {
     "soon": "Kommt in {{milestone}}.",
@@ -199,7 +200,10 @@
     "catalog": "Katalog",
     "catalogBody": "Gerichte, Pakete und Zutaten",
     "customers": "Kunden",
-    "customersBody": "Kontakte und ihre Aufträge"
+    "customersBody": "Kontakte und ihre Aufträge",
+    "groupWork": "Arbeitsbereiche",
+    "groupAccount": "Konto",
+    "groupAdmin": "Verwaltung"
   },
   "role": {
     "admin": "Admin",
@@ -321,6 +325,12 @@
       "db-status": {
         "title": "Datenbank-Stand",
         "body": "Zeigt, welche SQL-Updates noch fehlen."
+      },
+      "groups": {
+        "company": "Firma",
+        "quotes": "Angebote & Anfragen",
+        "team": "Team",
+        "system": "System"
       }
     },
     "company": {
@@ -610,7 +620,13 @@
       "cost": "Wareneinsatz pro Person: {{cost}}",
       "price": "Preis pro Person (netto, in Euro)",
       "margin": "Rohertrag pro Person: {{margin}} (Wareneinsatzquote {{quote}} %)"
-    }
+    },
+    "filter": "Filter",
+    "filterCount": "Filter · {{count}}",
+    "filterTitle": "Gerichte filtern",
+    "filterDiet": "Ernährung",
+    "filterMore": "Weitere",
+    "filterReset": "Zurücksetzen"
   },
   "customers": {
     "title": "Kunden",
@@ -1496,5 +1512,20 @@
       }
     },
     "adminCancelled": "Vom Mitarbeiter abgesagt"
+  },
+  "create": {
+    "title": "Was möchtest du anlegen?",
+    "intake": "Anfrage aufnehmen",
+    "intakeHint": "Geführt im Chat, z. B. am Telefon",
+    "event": "Auftrag direkt anlegen",
+    "eventHint": "Alle Angaben in einem Formular",
+    "customer": "Kunde",
+    "customerHint": "Firma oder Privatperson",
+    "dish": "Gericht",
+    "dishHint": "Mit Zutaten und Allergenen",
+    "package": "Paket",
+    "packageHint": "Mehrere Gerichte zu einem Preis",
+    "invite": "Teammitglied einladen",
+    "inviteHint": "Link für Küche oder Personal"
   }
 }

@@ -9,6 +9,8 @@ import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { FormSection } from '@/components/ui/form-section';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { TimeField } from '@/components/ui/time-field';
@@ -39,7 +41,7 @@ export function EventFormScreen() {
         backLabel={t('common.back')}
       >
         {events.isPending ? (
-          <Text>{t('common.loading')}</Text>
+          <SkeletonList rows={3} />
         ) : (
           <Banner tone="info">{t('events.detail.gone')}</Banner>
         )}
@@ -183,7 +185,15 @@ function EventForm({
       cancellation_agreement: existing?.cancellation_agreement ?? null,
     };
     if (existing) {
-      update.mutate({ id: existing.id, values }, { onSuccess: () => router.back() });
+      update.mutate(
+        { id: existing.id, values },
+        {
+          onSuccess: () => {
+            showToast(t('common.saved'));
+            router.back();
+          },
+        },
+      );
     } else {
       create.mutate(values, {
         onSuccess: (id) => router.replace({ pathname: '/events/[id]', params: { id } }),
@@ -198,6 +208,15 @@ function EventForm({
       title={existing ? t('events.form.edit') : t('events.form.new')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('events.form.save')}
+          loading={create.isPending || update.isPending}
+          onPress={submit}
+        />
+      }
+      backIcon={existing ? 'back' : 'close'}
     >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       <FormSection title={t('events.form.section.customer')}>
@@ -329,11 +348,6 @@ function EventForm({
           {t('events.form.changesUntilHint')}
         </Text>
       </FormSection>
-      <Button
-        label={t('events.form.save')}
-        loading={create.isPending || update.isPending}
-        onPress={submit}
-      />
     </Screen>
   );
 }

@@ -1,17 +1,20 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Users } from 'lucide-react-native';
+import { FileSpreadsheet, Plus, Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Avatar } from '@/components/ui/avatar';
 import { Banner } from '@/components/ui/banner';
-import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { ChipRow } from '@/components/ui/chip-row';
+import { IconButton } from '@/components/ui/icon-button';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { SearchField } from '@/components/ui/search-field';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 
@@ -46,23 +49,37 @@ export function CustomersScreen() {
   );
 
   return (
-    <Screen title={t('customers.title')} onBack={() => router.back()} backLabel={t('common.back')}>
+    <Screen
+      title={t('customers.title')}
+      onBack={() => router.back()}
+      backLabel={t('common.back')}
+      actions={
+        <IconButton
+          icon={Plus}
+          label={t('customers.add')}
+          onPress={() => router.push('/customers/new')}
+        />
+      }
+      menu={[
+        {
+          label: t('customers.import.open'),
+          icon: FileSpreadsheet,
+          onPress: () => router.push('/customers/import'),
+        },
+      ]}
+      onRefresh={() => void customers.refetch()}
+      refreshing={customers.isRefetching}
+    >
       {customers.error ? (
         <Banner tone="danger">{toAppError(customers.error).message}</Banner>
       ) : null}
-      <Button label={t('customers.add')} onPress={() => router.push('/customers/new')} />
-      <Button
-        label={t('customers.import.open')}
-        variant="secondary"
-        onPress={() => router.push('/customers/import')}
-      />
       <SearchField
         label={t('customers.search')}
         clearLabel={t('common.clear')}
         value={query}
         onChangeText={setQuery}
       />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <ChipRow>
         <Chip label={t('customers.all')} selected={type === null} onPress={() => setType(null)} />
         <Chip
           label={t('customers.type.business')}
@@ -74,26 +91,28 @@ export function CustomersScreen() {
           selected={type === 'private'}
           onPress={() => setType(type === 'private' ? null : 'private')}
         />
-      </View>
+      </ChipRow>
+      {customers.isPending ? <SkeletonList /> : null}
       {!customers.isPending && (customers.data ?? []).length === 0 ? (
         <EmptyState icon={Users} tint="sky" text={t('customers.empty')} />
       ) : null}
       <View style={{ gap: 8 }}>
-        {shown.map((c) => (
-          <ListRow
-            key={c.id}
-            title={c.name}
-            leading={<Avatar name={c.name} />}
-            subtitle={[
-              c.contact_person,
-              nextEvent.has(c.id)
-                ? t('customers.next', { date: formatDate(nextEvent.get(c.id)!) })
-                : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-            onPress={() => router.push({ pathname: '/customers/[id]', params: { id: c.id } })}
-          />
+        {shown.map((c, i) => (
+          <Appear key={c.id} index={i}>
+            <ListRow
+              title={c.name}
+              leading={<Avatar name={c.name} />}
+              subtitle={[
+                c.contact_person,
+                nextEvent.has(c.id)
+                  ? t('customers.next', { date: formatDate(nextEvent.get(c.id)!) })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              onPress={() => router.push({ pathname: '/customers/[id]', params: { id: c.id } })}
+            />
+          </Appear>
         ))}
       </View>
     </Screen>

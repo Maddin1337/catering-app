@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Archive, ArchiveRestore } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
@@ -7,6 +8,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { costRatioBp, microToCents, suggestPriceCents } from '@/lib/costing';
@@ -53,7 +55,7 @@ export function PackageFormScreen() {
         onBack={() => router.back()}
         backLabel={t('common.back')}
       >
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }
@@ -184,6 +186,32 @@ function PackageForm({
       title={pkg ? t('catalog.package.edit') : t('catalog.package.new')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      backIcon={pkg ? 'back' : 'close'}
+      footer={
+        readOnly ? undefined : (
+          <Button
+            style={{ flex: 1 }}
+            label={t('common.save')}
+            loading={save.isPending}
+            onPress={submit}
+          />
+        )
+      }
+      menu={
+        pkg && isAdmin
+          ? [
+              {
+                label: pkg.archived_at ? t('catalog.dish.unarchive') : t('catalog.dish.archive'),
+                icon: pkg.archived_at ? ArchiveRestore : Archive,
+                onPress: () =>
+                  save.mutate(
+                    { id: pkg.id, archived: !pkg.archived_at },
+                    { onSuccess: () => router.back() },
+                  ),
+              },
+            ]
+          : undefined
+      }
     >
       {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
       <View style={{ gap: 16 }}>
@@ -364,22 +392,6 @@ function PackageForm({
             />
           ) : null}
         </View>
-      ) : null}
-
-      {!readOnly ? (
-        <Button label={t('common.save')} loading={save.isPending} onPress={submit} />
-      ) : null}
-      {pkg && isAdmin ? (
-        <Button
-          label={pkg.archived_at ? t('catalog.dish.unarchive') : t('catalog.dish.archive')}
-          variant="secondary"
-          onPress={() =>
-            save.mutate(
-              { id: pkg.id, archived: !pkg.archived_at },
-              { onSuccess: () => router.back() },
-            )
-          }
-        />
       ) : null}
     </Screen>
   );

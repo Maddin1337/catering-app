@@ -1,14 +1,30 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Linking, View } from 'react-native';
+import {
+  CalendarDays,
+  Mail,
+  MapPin,
+  MessageSquarePlus,
+  Pencil,
+  Phone,
+  StickyNote,
+  Trash2,
+} from 'lucide-react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { GroupRow, ListGroup } from '@/components/ui/list-group';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { tints, tokens } from '@/theme/tokens';
 
 import { useEvents } from '../../events/api';
 import { StatusBadge } from '../../events/components/status-badge';
@@ -32,7 +48,7 @@ export function CustomerDetailScreen() {
         onBack={() => router.back()}
         backLabel={t('common.back')}
       >
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }
@@ -56,84 +72,139 @@ export function CustomerDetailScreen() {
     .filter(Boolean)
     .join(', ');
 
+  // Kontaktwege als zwei große Kacheln in Daumenhöhe; Bearbeiten oben, Löschen hinter „⋯“.
+  const contact = [
+    customer.phone
+      ? {
+          key: 'call',
+          icon: Phone,
+          tint: 'teal' as const,
+          label: t('customers.detail.call'),
+          value: customer.phone,
+          url: `tel:${customer.phone}`,
+        }
+      : null,
+    customer.email
+      ? {
+          key: 'mail',
+          icon: Mail,
+          tint: 'sky' as const,
+          label: t('customers.detail.mail'),
+          value: customer.email,
+          url: `mailto:${customer.email}`,
+        }
+      : null,
+  ].filter((c) => c !== null);
+
   return (
     <Screen
       title={customer.name}
-      subtitle={t(`customers.type.${customer.type}`)}
+      subtitle={[t(`customers.type.${customer.type}`), customer.contact_person]
+        .filter(Boolean)
+        .join(' · ')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      actions={
+        <IconButton
+          icon={Pencil}
+          label={t('customers.detail.edit')}
+          onPress={() =>
+            router.push({ pathname: '/customers/[id]/edit', params: { id: customer.id } })
+          }
+        />
+      }
+      menu={[
+        {
+          label: t('customers.detail.delete'),
+          icon: Trash2,
+          destructive: true,
+          onPress: () => void remove(),
+        },
+      ]}
+      footer={
+        <Button
+          label={t('customers.detail.newEvent')}
+          icon={MessageSquarePlus}
+          style={{ flex: 1 }}
+          onPress={() =>
+            router.push({ pathname: '/events/intake', params: { customerId: customer.id } })
+          }
+        />
+      }
     >
       {del.error ? <Banner tone="danger">{toAppError(del.error).message}</Banner> : null}
-      <View style={{ gap: 8 }}>
-        {customer.contact_person ? <Text variant="body">{customer.contact_person}</Text> : null}
-        {customer.phone ? (
-          <Button
-            label={`${t('customers.detail.call')}: ${customer.phone}`}
-            variant="secondary"
-            onPress={() => void Linking.openURL(`tel:${customer.phone}`)}
-          />
-        ) : null}
-        {customer.email ? (
-          <Button
-            label={`${t('customers.detail.mail')}: ${customer.email}`}
-            variant="secondary"
-            onPress={() => void Linking.openURL(`mailto:${customer.email}`)}
-          />
-        ) : null}
-        {billing ? (
-          <View>
-            <Text variant="small" color="textSecondary">
-              {t('customers.detail.billing')}
-            </Text>
-            <Text variant="body">{billing}</Text>
-          </View>
-        ) : null}
-        {customer.notes ? (
-          <View>
-            <Text variant="small" color="textSecondary">
-              {t('customers.detail.notes')}
-            </Text>
-            <Text variant="body">{customer.notes}</Text>
-          </View>
-        ) : null}
-      </View>
-      <Button
-        label={t('customers.detail.newEvent')}
-        onPress={() =>
-          router.push({ pathname: '/events/intake', params: { customerId: customer.id } })
-        }
-      />
-      <View style={{ gap: 8 }}>
-        <Text variant="title2">{t('customers.detail.events')}</Text>
-        {events.length === 0 ? (
-          <Text variant="body" color="textSecondary">
-            {t('customers.detail.noEvents')}
-          </Text>
-        ) : null}
-        {events.map((e) => (
-          <View key={e.id} style={{ gap: 4 }}>
-            <Button
-              label={`${formatDate(e.starts_at)} · ${e.title}`}
-              variant="secondary"
+      {contact.length > 0 ? (
+        <Appear style={styles.contact}>
+          {contact.map((c) => (
+            <Surface
+              key={c.key}
+              accessibilityRole="link"
+              accessibilityLabel={`${c.label}: ${c.value}`}
+              onPress={() => void Linking.openURL(c.url)}
+              style={styles.tile}
+            >
+              <View style={[styles.tileIcon, { backgroundColor: tints[c.tint].bg }]}>
+                <c.icon color={tints[c.tint].fg} size={20} strokeWidth={2.2} />
+              </View>
+              <Text variant="bodyStrong">{c.label}</Text>
+              <Text variant="small" color="textSecondary" numberOfLines={1}>
+                {c.value}
+              </Text>
+            </Surface>
+          ))}
+        </Appear>
+      ) : null}
+      {billing || customer.notes ? (
+        <Appear index={1}>
+          <ListGroup>
+            {billing ? (
+              <GroupRow
+                icon={MapPin}
+                tint="slate"
+                title={billing}
+                subtitle={t('customers.detail.billing')}
+              />
+            ) : null}
+            {customer.notes ? (
+              <GroupRow
+                icon={StickyNote}
+                tint="amber"
+                title={customer.notes}
+                subtitle={t('customers.detail.notes')}
+              />
+            ) : null}
+          </ListGroup>
+        </Appear>
+      ) : null}
+      <Appear index={2}>
+        <ListGroup title={t('customers.detail.events')}>
+          {events.length === 0 ? (
+            <GroupRow icon={CalendarDays} title={t('customers.detail.noEvents')} />
+          ) : null}
+          {events.map((e) => (
+            <GroupRow
+              key={e.id}
+              title={e.title}
+              subtitle={formatDate(e.starts_at)}
+              right={<StatusBadge status={e.status} />}
               onPress={() => router.push({ pathname: '/events/[id]', params: { id: e.id } })}
             />
-            <StatusBadge status={e.status} />
-          </View>
-        ))}
-      </View>
-      <Button
-        label={t('customers.detail.edit')}
-        variant="secondary"
-        onPress={() =>
-          router.push({ pathname: '/customers/[id]/edit', params: { id: customer.id } })
-        }
-      />
-      <Button
-        label={t('customers.detail.delete')}
-        variant="danger"
-        loading={del.isPending}
-        onPress={() => void remove()}
-      />
+          ))}
+        </ListGroup>
+      </Appear>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  contact: { flexDirection: 'row', gap: tokens.space[3] },
+  tile: { flex: 1, gap: 2, padding: tokens.space[4] },
+  tileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: tokens.radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: tokens.space[2],
+  },
+});

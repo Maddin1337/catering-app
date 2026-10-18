@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -208,14 +209,16 @@ export function CalendarScreen() {
             <EmptyState icon={CalendarDays} text={t('calendar.noEvents')} />
           ) : null}
           <View style={{ gap: 8 }}>
-            {dayEntries.map(({ event, continuation }) => (
-              <EventListItem
-                key={event.id}
-                event={event}
-                showTile={false}
-                timeLabel={timeLabel(event, continuation)}
-                onPress={() => open(event.id)}
-              />
+            {dayEntries.map(({ event, continuation }, i) => (
+              // Neuer Schlüssel je Tag: Beim Wechsel des Tages gleiten die Einträge frisch herein.
+              <Appear key={`${selected}-${event.id}`} index={i}>
+                <EventListItem
+                  event={event}
+                  showTile={false}
+                  timeLabel={timeLabel(event, continuation)}
+                  onPress={() => open(event.id)}
+                />
+              </Appear>
             ))}
           </View>
         </>
@@ -233,8 +236,10 @@ export function CalendarScreen() {
                   timeZone: 'UTC',
                 }).format(new Date(`${g.month}T00:00:00Z`))}
               </Text>
-              {g.events.map((e) => (
-                <EventListItem key={e.id} event={e} onPress={() => open(e.id)} />
+              {g.events.map((e, i) => (
+                <Appear key={e.id} index={i}>
+                  <EventListItem event={e} onPress={() => open(e.id)} />
+                </Appear>
               ))}
             </View>
           ))}

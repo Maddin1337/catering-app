@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Archive, ArchiveRestore } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -9,6 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { dishCost, microToCents, suggestPriceCents, costRatioBp } from '@/lib/costing';
@@ -67,7 +70,7 @@ export function DishFormScreen() {
         onBack={() => router.back()}
         backLabel={t('common.back')}
       >
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }
@@ -208,7 +211,12 @@ function DishForm({
       payload.markup_bp = markupBp;
       payload.tax_rate_id = taxRateId || null;
     }
-    save.mutate(payload, { onSuccess: () => router.back() });
+    save.mutate(payload, {
+      onSuccess: () => {
+        showToast(t('common.saved'));
+        router.back();
+      },
+    });
   };
 
   const archive = () => {
@@ -221,6 +229,26 @@ function DishForm({
       title={dish ? t('catalog.dish.edit') : t('catalog.dish.new')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          loading={save.isPending}
+          onPress={submit}
+        />
+      }
+      backIcon={dish ? 'back' : 'close'}
+      menu={
+        dish && isAdmin
+          ? [
+              {
+                label: dish.archived_at ? t('catalog.dish.unarchive') : t('catalog.dish.archive'),
+                icon: dish.archived_at ? ArchiveRestore : Archive,
+                onPress: archive,
+              },
+            ]
+          : undefined
+      }
     >
       {save.error ? <Banner tone="danger">{toAppError(save.error).message}</Banner> : null}
       <View style={{ gap: 16 }}>
@@ -407,15 +435,6 @@ function DishForm({
             />
           ) : null}
         </View>
-      ) : null}
-
-      <Button label={t('common.save')} loading={save.isPending} onPress={submit} />
-      {dish && isAdmin ? (
-        <Button
-          label={dish.archived_at ? t('catalog.dish.unarchive') : t('catalog.dish.archive')}
-          variant="secondary"
-          onPress={archive}
-        />
       ) : null}
     </Screen>
   );

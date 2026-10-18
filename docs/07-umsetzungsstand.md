@@ -357,6 +357,18 @@ Komplette Überarbeitung der Oberfläche nach Appllama-Recherche, siehe [09-desi
 
 Danach: neue Startseite für Admin (Begrüßung, Wochenleiste, Hero-Karte, Kennzahlen), Umsatzkarte mit neuer Funktion `revenue_overview()` (Migration `20261106090000`, `remote-update-20261106090000.sql`, 560 pgTAP-Tests, 225 Jest-Tests) und neu gestaltete Startseiten für Küche und Personal, siehe [09-designsystem.md](09-designsystem.md). Abweichung A-38: Die Monatssumme stammt aus dem gesendeten Angebotsstand und berücksichtigt spätere Auswahl-Änderungen des Kunden im Portal nicht.
 
+## UX-Überarbeitung, zweite Runde (18.10.2026)
+
+Ziel: übersichtlicher, Aktionen in Daumenreichweite, moderne Übergänge. Details und Bewegungsregeln in `docs/09-designsystem.md` (Abschnitt „UX-Überarbeitung“).
+
+- Neuer Seitenrahmen: kompakte Kopfleiste mit rundem Zurück, Aktionen und „⋯“-Menü, einklappender Titel, feste Aktionsleiste unten, Ziehen zum Aktualisieren.
+- Schnellanlage über das „+“ in der Tab-Leiste (Admin); große „Anlegen“-Knöpfe auf Listen sind dem „+“ oben rechts gewichen, Excel-Import und Archivieren liegen im Menü.
+- Auftragsdetail: Bearbeiten oben, nächster Status unten fest, Absagen/Stornieren/Löschen nur noch rot im Menü. Statuswechsel und Sammelaktion als Blatt von unten.
+- Einstellungen, „Mehr“ und Kundendetail als gruppierte Listen; Gerichte mit einzeiliger Kategorie-Leiste und Filterblatt.
+- Bewegung: gestaffeltes Einblenden, hochzählende Kennzahlen, wachsende Umsatzbalken, gleitende Tab-/Segment-Markierung, Toasts statt „Gespeichert“-Banner, Platzhalter statt „Lädt …“, Haptik auf dem Gerät. Anlegen-Seiten fahren von unten herein.
+- Die Startseite verzichtet auf die zwei Schnellaktions-Knöpfe (jetzt im „+“).
+- Prüfung: Typecheck, Lint, 233 Jest-Tests (neu: Aktionsmenü), Mobil-Prüfung in drei iPhone-Größen ohne Befund, iOS-Bundle baut. Auf einem echten iPhone noch nicht getestet (Haptik, Wischgesten, Übergänge).
+
 ## Datenbank des Pilotprojekts auf dem neuesten Stand (18.10.2026)
 
 Über den Supabase-Konnektor eingespielt: Updates 2 bis 17 (`20261022090000` bis `20261106090000`). Update 1 war schon vorhanden. Geprüft per `supabase/check-updates.sql` (alle OK) und per Abgleich mit einer lokal aus allen Migrationen aufgebauten Datenbank: Spalten, Einschränkungen, Tabellen- und Spaltenrechte, alle Funktionen (Inhalt, Rechte, `security definer`), Regeln (auch Storage), Trigger und Ansichten sind identisch.

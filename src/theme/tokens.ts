@@ -31,6 +31,10 @@ export const tokens = {
     info: '#1D4ED8',
     infoSubtle: '#E0EAFE',
     scrim: 'rgba(20, 24, 31, 0.45)',
+    // Kopfleiste beim Scrollen (halbtransparent über dem Inhalt) und feine Trennlinien.
+    chrome: 'rgba(246, 244, 240, 0.86)',
+    hairline: 'rgba(20, 24, 31, 0.08)',
+    skeleton: '#E7E3DB',
   },
   // 4/8-Raster; nur diese Werte.
   space: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64 },
@@ -53,8 +57,18 @@ export const tokens = {
     headingHeavy: 'PlusJakartaSans_800ExtraBold',
   },
   touch: { min: 48, kitchen: 56 },
-  // Wirkung beim Tippen (Skalierung) und Dauer der Übergänge in ms.
-  motion: { pressScale: 0.97, fast: 120, base: 200 },
+  // Bewegung: Skalierung beim Tippen, Dauern in ms, Versatz für gestaffelte Listen, Kurven.
+  motion: {
+    pressScale: 0.97,
+    fast: 140,
+    base: 220,
+    slow: 360,
+    stagger: 45,
+    // Schnell hinein, weich auslaufen (für Übergänge ohne Feder).
+    ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    spring: { damping: 20, stiffness: 220, mass: 0.9 },
+    springSoft: { damping: 26, stiffness: 160, mass: 1 },
+  },
 } as const;
 
 // Pastell-Töne für runde Symbol-Plaketten (Einstiegskarten, Listen); Vordergrund ≥ 4,5:1.

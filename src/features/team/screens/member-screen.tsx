@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { showToast } from '@/components/ui/toast';
 import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
@@ -40,7 +42,6 @@ export function MemberScreen() {
   // Entwurf bleibt `null`, bis jemand etwas ändert; bis dahin gilt der gespeicherte Stand.
   const [roleDraft, setRoleDraft] = useState<MemberRole | null>(null);
   const [pickedDraft, setPickedDraft] = useState<string[] | null>(null);
-  const [saved, setSaved] = useState(false);
   const role = roleDraft ?? member?.role ?? 'staff';
   const picked = pickedDraft ?? current.data ?? [];
   const setPicked = (next: (p: string[]) => string[]) => setPickedDraft(next(picked));
@@ -49,11 +50,10 @@ export function MemberScreen() {
   const isSelf = member?.id === self?.id;
 
   const save = async () => {
-    setSaved(false);
     try {
       if (member && role !== member.role) await setRole.mutateAsync({ memberId: member.id, role });
       await setQuals.mutateAsync({ memberId: memberId!, qualificationIds: picked });
-      setSaved(true);
+      showToast(t('common.saved'));
     } catch {
       // Fehler stehen in den Mutationen und werden oben angezeigt.
     }
@@ -78,7 +78,7 @@ export function MemberScreen() {
         backLabel={t('common.back')}
       >
         {members.isPending ? (
-          <Text>{t('common.loading')}</Text>
+          <SkeletonList rows={3} />
         ) : (
           <Banner tone="info">{t('team.gone')}</Banner>
         )}
@@ -87,9 +87,20 @@ export function MemberScreen() {
   }
 
   return (
-    <Screen title={member.display_name} onBack={() => router.back()} backLabel={t('common.back')}>
+    <Screen
+      title={member.display_name}
+      onBack={() => router.back()}
+      backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          loading={setRole.isPending || setQuals.isPending}
+          onPress={() => void save()}
+        />
+      }
+    >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      {saved ? <Banner tone="success">{t('common.saved')}</Banner> : null}
       <View style={{ gap: 4 }}>
         {member.login_email ? <Text variant="body">{member.login_email}</Text> : null}
         {member.phone ? <Text variant="body">{member.phone}</Text> : null}
@@ -117,11 +128,6 @@ export function MemberScreen() {
           />
         ))}
       </View>
-      <Button
-        label={t('common.save')}
-        loading={setRole.isPending || setQuals.isPending}
-        onPress={() => void save()}
-      />
       {!isSelf ? (
         <Button
           label={t('team.remove')}

@@ -10,12 +10,17 @@ import {
   View,
   type ScrollViewInstance,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { X } from 'lucide-react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
+import { transition } from '@/components/ui/transition';
 import { berlinToIso, endIso, formatGermanDate, isoToBerlin } from '@/lib/berlin';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
@@ -56,7 +61,7 @@ export function IntakeChatScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </View>
     );
   }
@@ -229,16 +234,31 @@ function Chat({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={[styles.header, { paddingTop: insets.top + tokens.space[2] }]}>
-        <Button
-          label={t('intake.chat.discardShort')}
-          variant="ghost"
-          onPress={() => void discard()}
-        />
-        <Text variant="small" color="textSecondary">
-          {done
-            ? t('intake.chat.summaryTitle')
-            : t('intake.chat.progress', { n: index, total: visible.length })}
-        </Text>
+        <View style={styles.headerRow}>
+          <IconButton
+            icon={X}
+            label={t('intake.chat.discardShort')}
+            onPress={() => void discard()}
+          />
+          <Text variant="small" color="textSecondary">
+            {done
+              ? t('intake.chat.summaryTitle')
+              : t('intake.chat.progress', { n: index, total: visible.length })}
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        {/* Fortschritt gleitet mit jeder Antwort weiter. */}
+        <View style={styles.track}>
+          <Animated.View
+            style={[
+              styles.progress,
+              {
+                width: `${done ? 100 : Math.round((Math.max(index - 1, 0) / Math.max(visible.length, 1)) * 100)}%`,
+              },
+              transition('width', tokens.motion.slow),
+            ]}
+          />
+        </View>
       </View>
       {testRun ? <Banner tone="warning">{t('intake.chat.testRun')}</Banner> : null}
 
@@ -255,7 +275,11 @@ function Chat({
         {shown.map((q) => {
           const a = answers[q.id];
           return (
-            <View key={q.id} style={{ gap: 6 }}>
+            <Animated.View
+              key={q.id}
+              entering={FadeInDown.duration(tokens.motion.slow)}
+              style={{ gap: 6 }}
+            >
               <View style={[styles.bubble, styles.question]}>
                 <Text variant="body">{q.prompt}</Text>
                 {q.help_text ? (
@@ -291,7 +315,7 @@ function Chat({
                   </Text>
                 </Pressable>
               ) : null}
-            </View>
+            </Animated.View>
           );
         })}
 
@@ -389,7 +413,7 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: tokens.color.bg },
+  flex: { flex: 1, backgroundColor: tokens.color.canvas },
   center: {
     flex: 1,
     padding: tokens.space[6],
@@ -398,13 +422,22 @@ const styles = StyleSheet.create({
     backgroundColor: tokens.color.bg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: tokens.space[3],
-    borderBottomWidth: 1,
-    borderBottomColor: tokens.color.border,
+    gap: tokens.space[2],
+    paddingHorizontal: tokens.space[4],
+    paddingBottom: tokens.space[3],
+    backgroundColor: tokens.color.chrome,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: tokens.color.hairline,
   },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerSpacer: { width: 44 },
+  track: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: tokens.color.bgMuted,
+    overflow: 'hidden',
+  },
+  progress: { height: 4, borderRadius: 2, backgroundColor: tokens.color.accent },
   messages: {
     padding: tokens.space[4],
     gap: tokens.space[4],
@@ -412,10 +445,16 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
   },
-  bubble: { maxWidth: '88%', padding: tokens.space[3], borderRadius: tokens.radius.lg, gap: 4 },
-  question: { alignSelf: 'flex-start', backgroundColor: tokens.color.bgMuted },
+  bubble: { maxWidth: '88%', padding: tokens.space[3], borderRadius: tokens.radius.xl, gap: 4 },
+  question: {
+    alignSelf: 'flex-start',
+    backgroundColor: tokens.color.bg,
+    borderBottomLeftRadius: tokens.radius.sm,
+    boxShadow: tokens.shadow.card,
+  },
   answer: {
     alignSelf: 'flex-end',
+    borderBottomRightRadius: tokens.radius.sm,
     backgroundColor: tokens.color.accentSubtle,
     borderWidth: 1,
     borderColor: 'transparent',

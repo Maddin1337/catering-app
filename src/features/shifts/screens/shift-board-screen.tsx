@@ -3,6 +3,7 @@ import { Hand } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -38,7 +39,7 @@ export function ShiftBoardScreen({ standalone = false }: { standalone?: boolean 
         <EmptyState icon={Hand} tint="amber" text={t('shifts.board.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
-        {list.map((s) => {
+        {list.map((s, i) => {
           const mine =
             s.my_application_status &&
             s.my_application_status !== 'withdrawn' &&
@@ -47,45 +48,47 @@ export function ShiftBoardScreen({ standalone = false }: { standalone?: boolean 
               : null;
           const place = [s.postal_code, s.city].filter(Boolean).join(' ');
           return (
-            <Surface key={s.shift_slot_id} style={styles.card}>
-              <View style={styles.head}>
-                <DateTile date={isoToBerlin(s.starts_at).date} />
-                <View style={styles.texts}>
-                  <Text variant="bodyStrong">{s.title}</Text>
-                  <Text variant="small" color="textSecondary">
-                    {s.qualification_name} · {formatTime(s.starts_at)}–{formatTime(s.ends_at)}
-                  </Text>
-                  <View style={styles.pills}>
-                    <Pill
-                      label={t('shifts.board.free', { count: s.free_seats })}
-                      tone={s.free_seats > 0 ? 'teal' : 'slate'}
-                    />
-                    <Pill label={t(`shifts.board.kind.${s.event_kind}`)} tone="indigo" />
-                    {s.is_tentative ? (
-                      <Pill label={t('shifts.board.tentative')} tone="amber" />
-                    ) : null}
+            <Appear key={s.shift_slot_id} index={i}>
+              <Surface style={styles.card}>
+                <View style={styles.head}>
+                  <DateTile date={isoToBerlin(s.starts_at).date} />
+                  <View style={styles.texts}>
+                    <Text variant="bodyStrong">{s.title}</Text>
+                    <Text variant="small" color="textSecondary">
+                      {s.qualification_name} · {formatTime(s.starts_at)}–{formatTime(s.ends_at)}
+                    </Text>
+                    <View style={styles.pills}>
+                      <Pill
+                        label={t('shifts.board.free', { count: s.free_seats })}
+                        tone={s.free_seats > 0 ? 'teal' : 'slate'}
+                      />
+                      <Pill label={t(`shifts.board.kind.${s.event_kind}`)} tone="indigo" />
+                      {s.is_tentative ? (
+                        <Pill label={t('shifts.board.tentative')} tone="amber" />
+                      ) : null}
+                    </View>
                   </View>
                 </View>
-              </View>
-              <Text variant="small" color="textSecondary">
-                {[
-                  s.guest_count ? t('shifts.board.guests', { count: s.guest_count }) : null,
-                  place || null,
-                  s.dress_code,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-              {mine ? (
-                <Pill label={t(`shifts.status.${mine}`)} tone="teal" />
-              ) : (
-                <Button
-                  label={t('shifts.board.apply')}
-                  loading={apply.isPending && apply.variables?.slotId === s.shift_slot_id}
-                  onPress={() => apply.mutate({ slotId: s.shift_slot_id, comment: '' })}
-                />
-              )}
-            </Surface>
+                <Text variant="small" color="textSecondary">
+                  {[
+                    s.guest_count ? t('shifts.board.guests', { count: s.guest_count }) : null,
+                    place || null,
+                    s.dress_code,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+                {mine ? (
+                  <Pill label={t(`shifts.status.${mine}`)} tone="teal" />
+                ) : (
+                  <Button
+                    label={t('shifts.board.apply')}
+                    loading={apply.isPending && apply.variables?.slotId === s.shift_slot_id}
+                    onPress={() => apply.mutate({ slotId: s.shift_slot_id, comment: '' })}
+                  />
+                )}
+              </Surface>
+            </Appear>
           );
         })}
       </View>

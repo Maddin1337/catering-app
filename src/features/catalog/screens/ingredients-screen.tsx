@@ -1,11 +1,14 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Plus } from 'lucide-react-native';
 import { View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { IconButton } from '@/components/ui/icon-button';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -61,6 +64,18 @@ export function IngredientsScreen() {
       title={t('catalog.ingredients.title')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      actions={
+        editing ? null : (
+          <IconButton
+            icon={Plus}
+            label={t('catalog.ingredients.add')}
+            onPress={() => {
+              save.reset();
+              setEditing({ mode: 'new' });
+            }}
+          />
+        )
+      }
     >
       <CatalogTabs active="ingredients" />
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
@@ -77,13 +92,6 @@ export function IngredientsScreen() {
         />
       ) : (
         <>
-          <Button
-            label={t('catalog.ingredients.add')}
-            onPress={() => {
-              save.reset();
-              setEditing({ mode: 'new' });
-            }}
-          />
           <SearchField
             label={t('catalog.search')}
             clearLabel={t('common.clear')}
@@ -98,37 +106,38 @@ export function IngredientsScreen() {
             />
           </View>
           <View style={{ gap: 8 }}>
-            {shown.map((i) => {
+            {shown.map((i, n) => {
               const price = priceById.get(i.id);
               return (
-                <ListRow
-                  key={i.id}
-                  title={i.name}
-                  subtitle={[
-                    t(`catalog.unit.${i.unit}`),
-                    i.product_group,
-                    t('catalog.ingredients.usedIn', { count: usage.get(i.id) ?? 0 }),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  right={
-                    isAdmin ? (
-                      <Text
-                        variant="small"
-                        color={price == null ? 'danger' : 'textSecondary'}
-                        tabular
-                      >
-                        {price == null
-                          ? t('catalog.ingredients.noPrice')
-                          : `${formatCents(price)} ${t(`catalog.perUnit.${i.unit}`)}`}
-                      </Text>
-                    ) : undefined
-                  }
-                  onPress={() => {
-                    save.reset();
-                    setEditing({ mode: 'edit', row: i });
-                  }}
-                />
+                <Appear key={i.id} index={n}>
+                  <ListRow
+                    title={i.name}
+                    subtitle={[
+                      t(`catalog.unit.${i.unit}`),
+                      i.product_group,
+                      t('catalog.ingredients.usedIn', { count: usage.get(i.id) ?? 0 }),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    right={
+                      isAdmin ? (
+                        <Text
+                          variant="small"
+                          color={price == null ? 'danger' : 'textSecondary'}
+                          tabular
+                        >
+                          {price == null
+                            ? t('catalog.ingredients.noPrice')
+                            : `${formatCents(price)} ${t(`catalog.perUnit.${i.unit}`)}`}
+                        </Text>
+                      ) : undefined
+                    }
+                    onPress={() => {
+                      save.reset();
+                      setEditing({ mode: 'edit', row: i });
+                    }}
+                  />
+                </Appear>
               );
             })}
           </View>

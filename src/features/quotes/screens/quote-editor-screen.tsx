@@ -10,6 +10,7 @@ import { DateField } from '@/components/ui/date-field';
 import { ListRow } from '@/components/ui/list-row';
 import { FormSection } from '@/components/ui/form-section';
 import { Screen } from '@/components/ui/screen';
+import { SkeletonList } from '@/components/ui/skeleton';
 import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -130,7 +131,7 @@ export function QuoteEditorScreen() {
   if (!event || !quote.data || !rates.data || !settings.data || !dishes.data || !packages.data) {
     return (
       <Screen title={t('quote.title')} onBack={back} backLabel={t('common.back')}>
-        <Text>{t('common.loading')}</Text>
+        <SkeletonList rows={3} />
       </Screen>
     );
   }

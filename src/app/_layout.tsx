@@ -21,6 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { ToastHost } from '@/components/ui/toast';
 import { useSignOut } from '@/features/auth/api';
 import { SessionProvider } from '@/features/auth/session-provider';
 import { useMembership } from '@/features/company/api';
@@ -48,6 +49,7 @@ export default function RootLayout() {
         <SessionProvider>
           <StatusBar style="dark" />
           {envProblem ? <ConfigProblem missing={envProblem} /> : <Gate fontsReady={fontsReady} />}
+          <ToastHost />
         </SessionProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

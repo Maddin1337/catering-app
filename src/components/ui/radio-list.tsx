@@ -1,4 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { tokens } from '@/theme/tokens';
 
@@ -38,7 +40,10 @@ export function RadioList<T extends string | number>({
               accessibilityState={{ selected, disabled: !!o.disabled }}
               accessibilityLabel={o.hint ? `${o.label}, ${o.hint}` : o.label}
               disabled={o.disabled}
-              onPress={() => onChange(o.value)}
+              onPress={() => {
+                if (Platform.OS !== 'web') void Haptics.selectionAsync();
+                onChange(o.value);
+              }}
               style={[styles.row, i > 0 && styles.divider, o.disabled && styles.disabled]}
             >
               <View style={styles.texts}>
@@ -50,7 +55,9 @@ export function RadioList<T extends string | number>({
                 ) : null}
               </View>
               <View style={[styles.radio, selected && styles.radioOn]}>
-                {selected ? <View style={styles.dot} /> : null}
+                {selected ? (
+                  <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.dot} />
+                ) : null}
               </View>
             </Pressable>
           );
@@ -63,9 +70,9 @@ export function RadioList<T extends string | number>({
 const styles = StyleSheet.create({
   wrap: { gap: tokens.space[1] },
   card: {
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: tokens.color.border,
-    borderRadius: tokens.radius.lg,
+    borderRadius: tokens.radius.xl,
     overflow: 'hidden',
     backgroundColor: tokens.color.bg,
   },
@@ -77,7 +84,7 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.space[2],
     gap: tokens.space[3],
   },
-  divider: { borderTopWidth: 1, borderTopColor: tokens.color.border },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: tokens.color.border },
   disabled: { opacity: 0.5 },
   texts: { flex: 1 },
   radio: {

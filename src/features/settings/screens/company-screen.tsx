@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { showToast } from '@/components/ui/toast';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
 
@@ -50,11 +51,9 @@ export function CompanyScreen() {
   const settings = useCompanySettings();
   const update = useUpdateCompanySettings();
   const [draft, setDraft] = useState<Partial<Record<Key, string>>>({});
-  const [saved, setSaved] = useState(false);
 
   const value = (k: Key) => draft[k] ?? (settings.data?.[k] as string | null | undefined) ?? '';
   const set = (k: Key) => (v: string) => {
-    setSaved(false);
     setDraft((d) => ({ ...d, [k]: v }));
   };
 
@@ -72,7 +71,7 @@ export function CompanyScreen() {
     }
     update.mutate(values, {
       onSuccess: () => {
-        setSaved(true);
+        showToast(t('common.saved'));
         setDraft({});
       },
     });
@@ -84,11 +83,19 @@ export function CompanyScreen() {
       subtitle={t('settings.company.body')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      footer={
+        <Button
+          style={{ flex: 1 }}
+          label={t('common.save')}
+          disabled={!!nameError || !!emailError || Object.keys(draft).length === 0}
+          loading={update.isPending}
+          onPress={save}
+        />
+      }
     >
       {settings.error || update.error ? (
         <Banner tone="danger">{toAppError(settings.error ?? update.error).message}</Banner>
       ) : null}
-      {saved ? <Banner tone="success">{t('common.saved')}</Banner> : null}
       <View style={{ gap: 16 }}>
         {FIELDS.map((k) => (
           <TextField
@@ -115,12 +122,6 @@ export function CompanyScreen() {
           />
         ))}
       </View>
-      <Button
-        label={t('common.save')}
-        disabled={!!nameError || !!emailError || Object.keys(draft).length === 0}
-        loading={update.isPending}
-        onPress={save}
-      />
     </Screen>
   );
 }

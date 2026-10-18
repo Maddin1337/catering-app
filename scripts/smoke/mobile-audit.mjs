@@ -636,9 +636,17 @@ for (const [size, vp] of sizes) {
           const s = getComputedStyle(e);
           return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
         };
+        // Waagerecht wischbare Reihen (Chip-Leisten) dürfen über den Rand laufen.
+        const inScroller = (e) => {
+          for (let p = e.parentElement; p; p = p.parentElement) {
+            const o = getComputedStyle(p).overflowX;
+            if (o === 'auto' || o === 'scroll') return true;
+          }
+          return false;
+        };
         document.querySelectorAll('*').forEach((e) => {
           const r = e.getBoundingClientRect();
-          if (vis(e) && r.right > W + 2 && r.left < W && out.wide.length < 4)
+          if (vis(e) && !inScroller(e) && r.right > W + 2 && r.left < W && out.wide.length < 4)
             out.wide.push(
               (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40) +
                 ` r=${Math.round(r.right)}`,

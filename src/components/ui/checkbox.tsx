@@ -1,4 +1,7 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Check } from 'lucide-react-native';
+import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { tokens } from '@/theme/tokens';
 
@@ -22,16 +25,21 @@ export function Checkbox({
         accessibilityRole="checkbox"
         accessibilityState={{ checked }}
         accessibilityLabel={label}
-        onPress={() => onChange(!checked)}
+        onPress={() => {
+          if (Platform.OS !== 'web') void Haptics.selectionAsync();
+          onChange(!checked);
+        }}
         style={styles.row}
       >
-        <View style={[styles.box, checked && styles.boxOn, !!error && styles.boxError]}>
+        <Animated.View
+          style={[styles.box, checked && styles.boxOn, !!error && styles.boxError, colorFade]}
+        >
           {checked ? (
-            <Text variant="caption" color="onAccent">
-              ✓
-            </Text>
+            <Animated.View entering={ZoomIn.springify().damping(12)}>
+              <Check color={tokens.color.onAccent} size={16} strokeWidth={3.2} />
+            </Animated.View>
           ) : null}
-        </View>
+        </Animated.View>
         <View style={styles.label}>
           <Text variant="body">{label}</Text>
         </View>
@@ -44,6 +52,11 @@ export function Checkbox({
     </View>
   );
 }
+
+const colorFade = {
+  transitionProperty: ['backgroundColor', 'borderColor'],
+  transitionDuration: tokens.motion.fast,
+} as ViewStyle;
 
 const styles = StyleSheet.create({
   wrap: { gap: tokens.space[1] },

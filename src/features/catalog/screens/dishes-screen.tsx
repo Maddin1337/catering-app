@@ -1,21 +1,25 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { UtensilsCrossed } from 'lucide-react-native';
+import { Plus, SlidersHorizontal, UtensilsCrossed } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { ChipRow } from '@/components/ui/chip-row';
 import { EmptyState } from '@/components/ui/empty-state';
+import { IconButton } from '@/components/ui/icon-button';
 import { Screen } from '@/components/ui/screen';
+import { Sheet } from '@/components/ui/sheet';
+import { SkeletonList } from '@/components/ui/skeleton';
+import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { SearchField } from '@/components/ui/search-field';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { formatCents } from '@/lib/money';
 import { toAppError } from '@/lib/errors';
-import { surfaceStyle } from '@/components/ui/surface';
-import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useDishes, useDishPrices } from '../api';
@@ -34,7 +38,7 @@ export function DishesScreen() {
   const dishes = useDishes();
   const prices = useDishPrices();
   const [filters, setFilters] = useState<DishFilters>(NO_FILTERS);
-  const [showAllergenFilter, setShowAllergenFilter] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const priceById = useMemo(
     () => new Map((prices.data ?? []).map((p) => [p.id, p.price_cents])),
@@ -47,22 +51,47 @@ export function DishesScreen() {
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
   const error = dishes.error ?? prices.error;
 
+  // Seltenere Filter liegen in einem Blatt; die Zahl am Filter-Chip zeigt, wie viele aktiv sind.
+  const extraFilters =
+    filters.diets.length +
+    filters.without.length +
+    (filters.unreviewedOnly ? 1 : 0) +
+    (filters.showArchived ? 1 : 0);
+
   return (
     <Screen
       title={t('catalog.dishes.title')}
       onBack={() => router.back()}
       backLabel={t('common.back')}
+      actions={
+        <IconButton
+          icon={Plus}
+          label={t('catalog.dishes.add')}
+          onPress={() => router.push('/dishes/new')}
+        />
+      }
+      onRefresh={() => void dishes.refetch()}
+      refreshing={dishes.isRefetching}
     >
       <CatalogTabs active="dishes" />
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
-      <Button label={t('catalog.dishes.add')} onPress={() => router.push('/dishes/new')} />
       <SearchField
         label={t('catalog.search')}
         clearLabel={t('common.clear')}
         value={filters.query}
         onChangeText={(v) => set('query', v)}
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <ChipRow>
+        <Chip
+          label={
+            extraFilters > 0
+              ? t('catalog.filterCount', { count: extraFilters })
+              : t('catalog.filter')
+          }
+          selected={extraFilters > 0}
+          icon={SlidersHorizontal}
+          onPress={() => setFilterOpen(true)}
+        />
         <Chip
           label={t('catalog.all')}
           selected={filters.category === null}
@@ -76,34 +105,42 @@ export function DishesScreen() {
             onPress={() => set('category', filters.category === c ? null : c)}
           />
         ))}
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {FILTER_DIETS.map((d) => (
-          <Chip
-            key={d}
-            label={t(`diet.${d}`)}
-            selected={filters.diets.includes(d)}
-            onPress={() => set('diets', toggle(filters.diets, d))}
-          />
-        ))}
-        <Chip
-          label={t('catalog.withoutAllergen')}
-          selected={filters.without.length > 0 || showAllergenFilter}
-          onPress={() => setShowAllergenFilter((s) => !s)}
-        />
-        <Chip
-          label={t('catalog.unreviewed')}
-          selected={filters.unreviewedOnly}
-          onPress={() => set('unreviewedOnly', !filters.unreviewedOnly)}
-        />
-        <Chip
-          label={t('catalog.archive')}
-          selected={filters.showArchived}
-          onPress={() => set('showArchived', !filters.showArchived)}
-        />
-      </View>
-      {showAllergenFilter ? (
-        <View style={{ gap: 8 }}>
+      </ChipRow>
+      {filterOpen ? (
+        <Sheet
+          title={t('catalog.filterTitle')}
+          onClose={() => setFilterOpen(false)}
+          footer={
+            <>
+              <Button
+                label={t('catalog.filterReset')}
+                variant="secondary"
+                style={{ flex: 1 }}
+                onPress={() =>
+                  setFilters((f) => ({ ...NO_FILTERS, query: f.query, category: f.category }))
+                }
+              />
+              <Button
+                label={t('common.done')}
+                style={{ flex: 1 }}
+                onPress={() => setFilterOpen(false)}
+              />
+            </>
+          }
+        >
+          <Text variant="small" color="textSecondary">
+            {t('catalog.filterDiet')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {FILTER_DIETS.map((d) => (
+              <Chip
+                key={d}
+                label={t(`diet.${d}`)}
+                selected={filters.diets.includes(d)}
+                onPress={() => set('diets', toggle(filters.diets, d))}
+              />
+            ))}
+          </View>
           <Text variant="small" color="textSecondary">
             {t('catalog.withoutAllergenHint')}
           </Text>
@@ -117,52 +154,64 @@ export function DishesScreen() {
               />
             ))}
           </View>
-        </View>
+          <Text variant="small" color="textSecondary">
+            {t('catalog.filterMore')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Chip
+              label={t('catalog.unreviewed')}
+              selected={filters.unreviewedOnly}
+              onPress={() => set('unreviewedOnly', !filters.unreviewedOnly)}
+            />
+            <Chip
+              label={t('catalog.archive')}
+              selected={filters.showArchived}
+              onPress={() => set('showArchived', !filters.showArchived)}
+            />
+          </View>
+        </Sheet>
       ) : null}
 
+      {dishes.isPending ? <SkeletonList /> : null}
       {!dishes.isPending && (dishes.data ?? []).length === 0 ? (
         <EmptyState icon={UtensilsCrossed} tint="violet" text={t('catalog.dishes.empty')} />
       ) : null}
       <View style={{ gap: 8 }}>
-        {shown.map((d) => {
+        {shown.map((d, i) => {
           const price = priceById.get(d.id);
           return (
-            <Pressable
-              key={d.id}
-              accessibilityRole="button"
-              onPress={() => router.push({ pathname: '/dishes/[id]', params: { id: d.id } })}
-              style={({ pressed }) => ({
-                gap: 6,
-                padding: tokens.space[3],
-                ...surfaceStyle(),
-                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
-              })}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                <Text variant="bodyStrong" style={{ flex: 1 }}>
-                  {d.name}
-                </Text>
-                {isAdmin && price != null ? (
-                  <Text variant="body" tabular>
-                    {formatCents(price)}
-                  </Text>
-                ) : null}
-              </View>
-              <Text variant="small" color="textSecondary">
-                {t(`catalog.category.${d.category}`)}
-              </Text>
-              <View
-                style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+            <Appear key={d.id} index={i}>
+              <Surface
+                accessibilityLabel={d.name}
+                onPress={() => router.push({ pathname: '/dishes/[id]', params: { id: d.id } })}
+                style={{ gap: 6 }}
               >
-                <AllergenCodes allergens={d.allergens} />
-                <DietTags diets={d.diets} />
-                {d.allergens_reviewed_at === null ? (
-                  <Text variant="caption" color="danger">
-                    {t('catalog.unreviewedBadge')}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                  <Text variant="bodyStrong" style={{ flex: 1 }}>
+                    {d.name}
                   </Text>
-                ) : null}
-              </View>
-            </Pressable>
+                  {isAdmin && price != null ? (
+                    <Text variant="body" tabular>
+                      {formatCents(price)}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text variant="small" color="textSecondary">
+                  {t(`catalog.category.${d.category}`)}
+                </Text>
+                <View
+                  style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+                >
+                  <AllergenCodes allergens={d.allergens} />
+                  <DietTags diets={d.diets} />
+                  {d.allergens_reviewed_at === null ? (
+                    <Text variant="caption" color="danger">
+                      {t('catalog.unreviewedBadge')}
+                    </Text>
+                  ) : null}
+                </View>
+              </Surface>
+            </Appear>
           );
         })}
       </View>

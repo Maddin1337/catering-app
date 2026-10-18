@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Surface } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { tints, tokens, type Tint } from '@/theme/tokens';
@@ -30,9 +31,7 @@ export function StatGrid({ tiles }: { tiles: StatTile[] }) {
           <View style={[styles.badge, { backgroundColor: tints[tint].bg }]}>
             <Icon color={tints[tint].fg} size={18} strokeWidth={2.2} />
           </View>
-          <Text variant="display" tabular style={styles.value}>
-            {value}
-          </Text>
+          <AnimatedNumber value={value} variant="display" tabular style={styles.value} />
           <Text variant="small" color="textSecondary">
             {label}
           </Text>

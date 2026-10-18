@@ -5,27 +5,27 @@ import {
   CalendarDays,
   CircleCheck,
   Clock,
-  FilePlus,
   Hand,
   Hourglass,
   Inbox,
-  MessageSquarePlus,
   MessageSquareWarning,
   Send,
   UserPlus,
   Users,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { View } from 'react-native';
 
+import { Appear } from '@/components/ui/appear';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
-import { tokens } from '@/theme/tokens';
 
 import { useDishes } from '../../catalog/api';
 import { useMembership, useSubscription } from '../../company/api';
@@ -37,7 +37,6 @@ import { useTeamMembers } from '../../team/api';
 import { useRevenueOverview } from '../api';
 import { AgendaRow } from '../components/agenda-row';
 import { NextEventCard } from '../components/next-event-card';
-import { QuickActions } from '../components/quick-actions';
 import { SetupCard } from '../components/setup-card';
 import { StatGrid } from '../components/stat-grid';
 import { RevenueCard } from '../components/revenue-card';
@@ -67,6 +66,14 @@ export function StartScreen() {
   const staffing = useStaffingOverview().data;
   const changeRequests = useOpenChangeRequests().data ?? [];
   const [completing, setCompleting] = useState(false);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  // Ziehen zum Aktualisieren lädt alles neu, was die Startseite zeigt.
+  const refresh = async () => {
+    setRefreshing(true);
+    await queryClient.refetchQueries({ type: 'active' });
+    setRefreshing(false);
+  };
 
   const all = events.data ?? [];
   const { today, tomorrow } = todayAndTomorrow(all);
@@ -120,19 +127,28 @@ export function StartScreen() {
     ) : null;
 
   return (
-    <Screen title={name ? t('start.hello', { greeting, name }) : greeting} subtitle={todayLabel}>
+    <Screen
+      title={name ? t('start.hello', { greeting, name }) : greeting}
+      subtitle={todayLabel}
+      onRefresh={() => void refresh()}
+      refreshing={refreshing}
+    >
       {trialEnd ? (
         <Banner tone="info">{t('start.trial', { date: formatDate(trialEnd) })}</Banner>
       ) : null}
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
 
-      <WeekStrip days={weekStrip(all)} />
+      <Appear index={0}>
+        <WeekStrip days={weekStrip(all)} />
+      </Appear>
 
-      <NextEventCard
-        event={next}
-        days={next ? daysUntil(next) : 0}
-        onPress={() => next && open(next.id)}
-      />
+      <Appear index={1}>
+        <NextEventCard
+          event={next}
+          days={next ? daysUntil(next) : 0}
+          onPress={() => next && open(next.id)}
+        />
+      </Appear>
 
       {setupOpen ? (
         <SetupCard
@@ -145,27 +161,13 @@ export function StartScreen() {
         />
       ) : null}
 
-      <QuickActions
-        actions={[
-          {
-            key: 'chat',
-            label: t('start.new'),
-            icon: MessageSquarePlus,
-            primary: true,
-            onPress: () => router.push('/events/intake'),
-          },
-          {
-            key: 'form',
-            label: t('start.newQuick'),
-            icon: FilePlus,
-            onPress: () => router.push('/events/new'),
-          },
-        ]}
-      />
+      {revenue ? (
+        <Appear index={2}>
+          <RevenueCard summary={revenue} />
+        </Appear>
+      ) : null}
 
-      {revenue ? <RevenueCard summary={revenue} /> : null}
-
-      <View style={{ gap: 12 }}>
+      <Appear index={3} style={{ gap: 12 }}>
         <Text variant="title2">{t('start.stats.title')}</Text>
         <StatGrid
           tiles={[
@@ -202,9 +204,9 @@ export function StartScreen() {
             },
           ]}
         />
-      </View>
+      </Appear>
 
-      <View style={{ gap: 8 }}>
+      <Appear index={4} style={{ gap: 8 }}>
         <Text variant="title2">{t('start.todo')}</Text>
         {!hasTodos ? (
           <EmptyState icon={CircleCheck} tint="indigo" text={t('start.nothingTodo')} />
@@ -267,16 +269,16 @@ export function StartScreen() {
             onPress={() => setCompleting(true)}
           />
         ) : null}
-      </View>
+      </Appear>
 
-      <View style={{ gap: 12 }}>
+      <Appear index={5} style={{ gap: 12 }}>
         <Text variant="title2">{t('start.todayTomorrow')}</Text>
         {today.length + tomorrow.length === 0 ? (
           <EmptyState icon={CalendarCheck} text={t('start.nothing')} />
         ) : null}
         {agenda(t('start.today'), today)}
         {agenda(t('start.tomorrow'), tomorrow)}
-      </View>
+      </Appear>
 
       {completing ? (
         <CompleteDialog events={todos.toComplete} onClose={() => setCompleting(false)} />
@@ -309,60 +311,41 @@ function CompleteDialog({ events, onClose }: { events: EventRow[]; onClose: () =
   };
 
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.card} onPress={() => undefined}>
-          <ScrollView contentContainerStyle={{ gap: tokens.space[4] }}>
-            <Text variant="title2" accessibilityRole="header">
-              {t('start.completeTitle', { count: events.length })}
-            </Text>
-            {failed ? <Banner tone="danger">{t('start.completeError')}</Banner> : null}
-            {set.error && failed ? (
-              <Banner tone="danger">{toAppError(set.error).message}</Banner>
-            ) : null}
-            <View style={{ gap: 4 }}>
-              {events.map((e) => (
-                <Text key={e.id} variant="body">
-                  {formatDate(e.starts_at)} · {e.title}
-                </Text>
-              ))}
-            </View>
-            <Text variant="small" color="textSecondary">
-              {t('events.dialog.consequences.completed')}
-            </Text>
-            <Text variant="small" color="danger">
-              {t('events.dialog.irreversible')}
-            </Text>
-            <View style={{ gap: 8 }}>
-              <Button label={t('events.dialog.cancel')} onPress={onClose} />
-              <Button
-                label={t('start.completeAll')}
-                variant="secondary"
-                loading={busy}
-                onPress={() => void run()}
-              />
-            </View>
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <Sheet
+      title={t('start.completeTitle', { count: events.length })}
+      onClose={onClose}
+      footer={
+        <>
+          <Button
+            label={t('events.dialog.cancel')}
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={onClose}
+          />
+          <Button
+            label={t('start.completeAll')}
+            style={{ flex: 1 }}
+            loading={busy}
+            onPress={() => void run()}
+          />
+        </>
+      }
+    >
+      {failed ? <Banner tone="danger">{t('start.completeError')}</Banner> : null}
+      {set.error && failed ? <Banner tone="danger">{toAppError(set.error).message}</Banner> : null}
+      <View style={{ gap: 4 }}>
+        {events.map((e) => (
+          <Text key={e.id} variant="body">
+            {formatDate(e.starts_at)} · {e.title}
+          </Text>
+        ))}
+      </View>
+      <Text variant="small" color="textSecondary">
+        {t('events.dialog.consequences.completed')}
+      </Text>
+      <Text variant="small" color="danger">
+        {t('events.dialog.irreversible')}
+      </Text>
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: tokens.color.scrim,
-    justifyContent: 'center',
-    padding: tokens.space[4],
-  },
-  card: {
-    maxHeight: '90%',
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    backgroundColor: tokens.color.bg,
-    borderRadius: tokens.radius.xl,
-    padding: tokens.space[5],
-  },
-});
