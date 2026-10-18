@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AppError, toAppError } from '@/lib/errors';
+import { newId } from '@/lib/uuid';
 import { supabase } from '@/lib/supabase';
 
 import { useMembership } from '../company/api';
@@ -14,7 +15,7 @@ function client() {
 }
 
 const COLUMNS =
-  'name, phone, contact_email, website, street, postal_code, city, vat_id, tax_number, footer_text, ' +
+  'name, logo_path, phone, contact_email, website, street, postal_code, city, vat_id, tax_number, footer_text, ' +
   'privacy_policy_url, imprint_url, accent_color, price_entry_mode, default_pricing_mode, default_markup_bp, ' +
   'price_rounding_cents, quote_validity_days, portal_change_lead_hours, ' +
   'portal_change_lead_hours_business_lunch, shift_cancel_deadline_hours, shopping_buffer_bp, ' +
@@ -218,3 +219,53 @@ export const useArchiveQualification = () =>
       .eq('id', id);
     if (error) throw toAppError(error);
   });
+
+// ---------- Logo ----------
+
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Lädt ein neues Logo hoch (neuer Dateiname je Upload), trägt den Pfad ein und löscht die alte Datei. */
+export function useUploadLogo() {
+  const queryClient = useQueryClient();
+  const companyId = useCompanyId();
+  const current = useCompanySettings().data?.logo_path ?? null;
+  return useMutation({
+    mutationFn: async (v: { uri: string; mimeType: string | undefined; file?: Blob }) => {
+      if (v.mimeType !== 'image/png' && v.mimeType !== 'image/jpeg')
+        throw new AppError('logo_type');
+      const body = v.file ?? (await (await fetch(v.uri)).arrayBuffer());
+      const size = body instanceof Blob ? body.size : body.byteLength;
+      if (size > LOGO_MAX_BYTES) throw new AppError('logo_size');
+      const path = `${companyId}/logo-${newId()}.${v.mimeType === 'image/png' ? 'png' : 'jpg'}`;
+      const up = await client().storage.from('logos').upload(path, body, {
+        contentType: v.mimeType,
+        upsert: false,
+      });
+      if (up.error) throw toAppError(up.error);
+      const { error } = await client()
+        .from('companies')
+        .update({ logo_path: path })
+        .eq('id', companyId!);
+      if (error) throw toAppError(error);
+      if (current) await client().storage.from('logos').remove([current]);
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}
+
+export function useRemoveLogo() {
+  const queryClient = useQueryClient();
+  const companyId = useCompanyId();
+  const current = useCompanySettings().data?.logo_path ?? null;
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await client()
+        .from('companies')
+        .update({ logo_path: null })
+        .eq('id', companyId!);
+      if (error) throw toAppError(error);
+      if (current) await client().storage.from('logos').remove([current]);
+    },
+    onSuccess: () => queryClient.invalidateQueries(),
+  });
+}

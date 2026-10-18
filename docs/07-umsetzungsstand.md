@@ -281,6 +281,12 @@ Push an die Küche, Offline-Speicher, iCal-Abo, Druckansicht, `log_usage_event` 
 
 Zeitänderungen melden (kommt mit Push), Start-Karten „unbesetzte Schichten“ und „offene Bewerbungen“, Offline-Vorladen der Einsätze, Nebenläufigkeitstest mit zwei Sitzungen, Monatsübersicht der Stunden, Schichten für die Küche (Rolle `kitchen` bewirbt sich über die Funktionen, hat aber noch keinen eigenen Tab).
 
+## Ergänzung · Firmenlogo
+
+- `supabase/migrations/20261101090000_m1_logos.sql` (`remote-update-20261101090000.sql`): öffentlicher Bucket `logos` (2 MB, PNG/JPEG), Upload und Löschen nur Admin der Firma im Schreibmodus, Ordner = `company_id`. 492 pgTAP-Tests laufen lokal (die Testumgebung bildet `storage` minimal nach, `scripts/db/stubs.sql`).
+- App: Einstellungen → Branding → „Logo wählen“ (`expo-image-picker`, neuer Dateiname je Upload, altes Logo wird gelöscht); das Logo steht im Angebots-PDF und im Kundenportal. Nur Pfade der Form `{company_id}/logo-{uuid}.{png|jpg}` werden eingebunden.
+- Neues natives Modul (`expo-image-picker`): In Expo Go und im Web läuft es; für einen Store-Build braucht es einen neuen EAS-Build.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

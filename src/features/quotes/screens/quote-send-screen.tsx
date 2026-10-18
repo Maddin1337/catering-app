@@ -120,6 +120,7 @@ export function QuoteSendScreen() {
       frozenAt: new Date().toISOString(),
       company: {
         name: settings.name,
+        logo_path: settings.logo_path,
         accent_color: settings.accent_color,
         street: settings.street,
         postal_code: settings.postal_code,

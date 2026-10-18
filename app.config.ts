@@ -43,6 +43,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-localization',
     [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'Die App greift auf deine Fotos zu, damit du dein Firmenlogo auswählen kannst.',
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         backgroundColor: ACCENT,

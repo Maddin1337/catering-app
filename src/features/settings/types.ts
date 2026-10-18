@@ -3,6 +3,7 @@ export type PricingMode = 'flat' | 'cost_based';
 /** Firmendaten und Standardwerte für die Einstellungen (nur admin liest die Basistabelle `companies`). */
 export type CompanySettings = {
   name: string;
+  logo_path: string | null;
   phone: string | null;
   contact_email: string;
   website: string | null;

@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { formatGermanDate } from '@/lib/berlin';
 import { formatDate, formatDateTime } from '@/lib/dates';
+import { logoUrl } from '@/lib/logo';
 import { formatCents } from '@/lib/money';
 import { sharePdf } from '@/lib/pdf';
 import { tokens } from '@/theme/tokens';
@@ -157,6 +159,14 @@ export function PortalScreen() {
 
   return (
     <Screen title={t('title', { number: quote.number })} subtitle={company.name}>
+      {logoUrl(snapshot.company.logo_path) ? (
+        <Image
+          source={{ uri: logoUrl(snapshot.company.logo_path)! }}
+          style={{ width: 220, height: 64 }}
+          contentFit="contain"
+          accessibilityLabel={company.name}
+        />
+      ) : null}
       <View
         style={{
           height: 4,

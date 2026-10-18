@@ -45,6 +45,7 @@ export type QuoteSnapshot = {
   frozen_at: string;
   company: {
     name: string;
+    logo_path?: string | null;
     accent_color: string | null;
     street: string | null;
     postal_code: string | null;

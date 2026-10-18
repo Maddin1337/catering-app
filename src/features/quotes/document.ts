@@ -1,5 +1,6 @@
 import { formatGermanDate } from '@/lib/berlin';
 import { formatDate, formatTime } from '@/lib/dates';
+import { logoUrl } from '@/lib/logo';
 import { formatCents } from '@/lib/money';
 import { bpToPercentString } from '@/lib/percent';
 
@@ -108,6 +109,7 @@ ${
       : '';
 
   const c = s.company;
+  const logo = logoUrl(c.logo_path);
   const addr = [c.street, [c.postal_code, c.city].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ');
@@ -125,6 +127,7 @@ ${
 body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1f2933; font-size: 10.5pt; line-height: 1.4; }
 h1 { font-size: 20pt; margin: 0; color: ${accent}; }
 .top { display: flex; justify-content: space-between; border-bottom: 3px solid ${accent}; padding-bottom: 8px; margin-bottom: 16px; }
+.logo { max-height: 56px; max-width: 220px; display: block; margin-bottom: 6px; }
 .muted { color: #667085; font-size: 9pt; }
 .r { text-align: right; white-space: nowrap; }
 table { width: 100%; border-collapse: collapse; }
@@ -146,7 +149,7 @@ table { width: 100%; border-collapse: collapse; }
 .foot { border-top: 1px solid #d0d5dd; margin-top: 22px; padding-top: 8px; }
 .text { margin: 12px 0; }
 </style></head><body>
-<div class="top"><div><h1>${esc(c.name)}</h1><div class="muted">${esc(addr)}${contact ? `<br>${esc(contact)}` : ''}</div></div>
+<div class="top"><div>${logo ? `<img class="logo" src="${esc(logo)}" alt="">` : ''}<h1>${esc(c.name)}</h1><div class="muted">${esc(addr)}${contact ? `<br>${esc(contact)}` : ''}</div></div>
 <div class="r"><strong>${esc(t('quoteDoc.title'))} ${esc(q.number)}</strong><div class="muted">${esc(t('quoteDoc.revision', { n: s.revision }))}<br>${esc(formatDate(s.frozen_at))}${
     q.valid_until
       ? `<br>${esc(t('quoteDoc.validUntil', { date: formatGermanDate(q.valid_until) }))}`

@@ -28,6 +28,7 @@ const settings: CompanySettings = {
   quote_terms_text: null,
   quote_closing_text: null,
   quote_item_templates: [],
+  logo_path: null,
 };
 
 describe('Fristen & Standardwerte', () => {

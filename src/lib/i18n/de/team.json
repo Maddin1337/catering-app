@@ -327,7 +327,13 @@
     "branding": {
       "title": "Branding",
       "body": "Die Akzentfarbe erscheint im Kundenportal und in neuen Angeboten.",
-      "note": "Wirkt sofort auf das Portal und neue PDFs. Bereits versendete PDFs bleiben unverändert. Das Logo kannst du mit dem nächsten App-Update hochladen."
+      "note": "Wirkt sofort auf das Portal und neue PDFs. Bereits versendete PDFs bleiben unverändert. Das Logo kannst du mit dem nächsten App-Update hochladen.",
+      "logo": "Logo",
+      "logoNone": "Noch kein Logo.",
+      "logoPick": "Logo wählen",
+      "logoChange": "Logo ändern",
+      "logoRemove": "Logo entfernen",
+      "logoHint": "PNG oder JPEG, höchstens 2 MB. Das Logo erscheint im Angebots-PDF und im Kundenportal."
     },
     "tax": {
       "title": "Steuersätze",

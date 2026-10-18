@@ -59,6 +59,8 @@ export type AppErrorCode =
   | 'already_assigned'
   | 'qualification_required'
   | 'seats_below_taken'
+  | 'logo_type'
+  | 'logo_size'
   | 'unknown';
 
 export class AppError extends Error {
@@ -140,6 +142,8 @@ export const messages: Record<AppErrorCode, string> = {
   already_assigned: 'Diese Person ist schon eingeplant.',
   qualification_required: 'Bitte wähle eine Qualifikation für die Schicht.',
   seats_below_taken: 'Es sind schon mehr Plätze belegt. Plane erst Personen aus.',
+  logo_type: 'Bitte wähle ein Bild als PNG oder JPEG.',
+  logo_size: 'Das Bild ist größer als 2 MB. Bitte wähle ein kleineres.',
   unknown: 'Das hat nicht geklappt. Bitte versuche es erneut.',
 };
 
