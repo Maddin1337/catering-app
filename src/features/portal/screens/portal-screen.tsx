@@ -16,6 +16,7 @@ import { formatDate, formatDateTime } from '@/lib/dates';
 import { logoUrl } from '@/lib/logo';
 import { formatCents } from '@/lib/money';
 import { sharePdf } from '@/lib/pdf';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { DietaryCard } from '../components/dietary-card';
@@ -42,9 +43,7 @@ function Card({ children }: { children: React.ReactNode }) {
       style={{
         gap: 12,
         padding: tokens.space[4],
-        borderWidth: 1,
-        borderColor: tokens.color.border,
-        borderRadius: tokens.radius.lg,
+        ...surfaceStyle(),
       }}
     >
       {children}

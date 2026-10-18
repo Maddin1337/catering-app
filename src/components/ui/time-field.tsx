@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
   field: {
     minHeight: tokens.touch.min,
     justifyContent: 'center',
-    paddingHorizontal: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
     borderWidth: 1,
-    borderRadius: tokens.radius.md,
+    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.bg,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: tokens.space[2] },
@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: tokens.radius.md,
+    borderRadius: tokens.radius.full,
     borderWidth: 1,
-    borderColor: tokens.color.borderInput,
+    borderColor: tokens.color.border,
     flexGrow: 1,
   },
 });

@@ -1,11 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { CalendarCheck, CircleCheck, FilePlus, MessageSquarePlus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatDate, formatTime } from '@/lib/dates';
@@ -86,9 +88,14 @@ export function StartScreen() {
         <Banner tone="info">{t('start.trial', { date: formatDate(trialEnd) })}</Banner>
       ) : null}
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
-      <Button label={t('start.new')} onPress={() => router.push('/events/intake')} />
+      <Button
+        label={t('start.new')}
+        icon={MessageSquarePlus}
+        onPress={() => router.push('/events/intake')}
+      />
       <Button
         label={t('start.newQuick')}
+        icon={FilePlus}
         variant="secondary"
         onPress={() => router.push('/events/new')}
       />
@@ -110,9 +117,7 @@ export function StartScreen() {
       <View style={{ gap: 12 }}>
         <Text variant="title2">{t('start.todayTomorrow')}</Text>
         {today.length + tomorrow.length === 0 ? (
-          <Text variant="body" color="textSecondary">
-            {t('start.nothing')}
-          </Text>
+          <EmptyState icon={CalendarCheck} text={t('start.nothing')} />
         ) : null}
         {dayCard(t('start.today'), today)}
         {dayCard(t('start.tomorrow'), tomorrow)}
@@ -121,9 +126,7 @@ export function StartScreen() {
       <View style={{ gap: 8 }}>
         <Text variant="title2">{t('start.todo')}</Text>
         {!hasTodos ? (
-          <Text variant="body" color="textSecondary">
-            {t('start.nothingTodo')}
-          </Text>
+          <EmptyState icon={CircleCheck} tint="indigo" text={t('start.nothingTodo')} />
         ) : null}
         {todos.staleInquiries.length > 0 ? (
           <ListRow
@@ -245,7 +248,7 @@ function CompleteDialog({ events, onClose }: { events: EventRow[]; onClose: () =
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.color.scrim,
     justifyContent: 'center',
     padding: tokens.space[4],
   },

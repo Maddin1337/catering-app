@@ -15,6 +15,7 @@ import { berlinToIso, endIso, isoToBerlin } from '@/lib/berlin';
 import { confirm } from '@/lib/confirm';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import type { EventRow } from '../../events/types';
@@ -89,9 +90,7 @@ export function StaffingTab({ event }: { event: EventRow }) {
                 style={{
                   gap: 8,
                   padding: tokens.space[3],
-                  borderWidth: 1,
-                  borderColor: tokens.color.border,
-                  borderRadius: tokens.radius.md,
+                  ...surfaceStyle(),
                 }}
               >
                 <ListRow
@@ -408,9 +407,7 @@ function SlotForm({
       style={{
         gap: 12,
         padding: tokens.space[3],
-        borderWidth: 1,
-        borderColor: tokens.color.borderInput,
-        borderRadius: tokens.radius.md,
+        ...surfaceStyle(),
       }}
     >
       <Text variant="title2">{slot ? t('shifts.edit') : t('shifts.add')}</Text>

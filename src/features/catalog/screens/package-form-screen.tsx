@@ -15,6 +15,7 @@ import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
 import { centsToEuroInput, parseEuroToCents } from '@/lib/money-input';
 import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership, useTaxRates } from '../../company/api';
@@ -213,9 +214,7 @@ function PackageForm({
               style={{
                 gap: 8,
                 padding: tokens.space[3],
-                borderWidth: 1,
-                borderColor: tokens.color.border,
-                borderRadius: tokens.radius.md,
+                ...surfaceStyle(),
               }}
             >
               <Text variant="bodyStrong">{d?.name ?? '?'}</Text>
@@ -259,9 +258,7 @@ function PackageForm({
               style={{
                 gap: 4,
                 padding: tokens.space[2],
-                borderWidth: 1,
-                borderColor: tokens.color.borderInput,
-                borderRadius: tokens.radius.md,
+                ...surfaceStyle(),
               }}
             >
               {dishes

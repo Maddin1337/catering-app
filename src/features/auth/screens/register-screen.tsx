@@ -43,7 +43,7 @@ export function RegisterScreen() {
       : null;
 
   return (
-    <Screen title={t('auth.register.title')} subtitle={t('auth.onlineOnly')}>
+    <Screen brand title={t('auth.register.title')} subtitle={t('auth.onlineOnly')}>
       {error ? <Banner tone="danger">{error.message}</Banner> : null}
       <View style={{ gap: 16 }}>
         <Controller

@@ -28,6 +28,7 @@ import {
   type Answers,
   type Question,
 } from '@/lib/intake';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useCustomers } from '../../customers/api';
@@ -422,9 +423,7 @@ const styles = StyleSheet.create({
   summary: {
     gap: tokens.space[3],
     padding: tokens.space[4],
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    borderRadius: tokens.radius.lg,
+    ...surfaceStyle(),
   },
   input: {
     padding: tokens.space[4],

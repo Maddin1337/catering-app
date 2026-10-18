@@ -10,6 +10,7 @@ import { TextField } from '@/components/ui/text-field';
 import { formatCents } from '@/lib/money';
 import { centsToEuroInput, parseEuroToCents } from '@/lib/money-input';
 import { bpToPercentString, parsePercentToBp } from '@/lib/percent';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import type { TaxRate } from '../../company/types';
@@ -106,9 +107,7 @@ export function ItemForm({
       style={{
         gap: 16,
         padding: tokens.space[3],
-        borderWidth: 1,
-        borderColor: tokens.color.borderInput,
-        borderRadius: tokens.radius.md,
+        ...surfaceStyle(),
       }}
     >
       <TextField

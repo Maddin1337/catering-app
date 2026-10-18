@@ -18,12 +18,13 @@ export function PickerSheet({
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal transparent animationType="fade" onRequestClose={onClose}>
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Schließen">
         <Pressable
           style={[styles.sheet, { paddingBottom: tokens.space[5] + insets.bottom }]}
           onPress={() => undefined}
         >
+          <View style={styles.handle} />
           <ScrollView
             contentContainerStyle={{ gap: tokens.space[3] }}
             keyboardShouldPersistTaps="handled"
@@ -42,7 +43,7 @@ export function PickerSheet({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.color.scrim,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
@@ -51,8 +52,18 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     maxHeight: '90%',
     backgroundColor: tokens.color.bg,
-    borderTopLeftRadius: tokens.radius.xl,
-    borderTopRightRadius: tokens.radius.xl,
-    padding: tokens.space[5],
+    borderTopLeftRadius: tokens.radius.xxl,
+    borderTopRightRadius: tokens.radius.xxl,
+    paddingHorizontal: tokens.space[5],
+    paddingTop: tokens.space[2],
+    boxShadow: tokens.shadow.float,
+  },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: tokens.color.border,
+    marginBottom: tokens.space[4],
   },
 });

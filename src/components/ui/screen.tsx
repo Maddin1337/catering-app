@@ -1,9 +1,11 @@
+import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tokens } from '@/theme/tokens';
 
+import { BrandMark } from './brand-mark';
 import { Button } from './button';
 import { Text } from './text';
 
@@ -13,6 +15,7 @@ export function Screen({
   subtitle,
   onBack,
   backLabel = 'Zurück',
+  brand,
   children,
 }: {
   title: string;
@@ -20,6 +23,8 @@ export function Screen({
   /** Zeigt oben „Zurück“, z. B. auf Detailseiten außerhalb der Tabs. */
   onBack?: () => void;
   backLabel?: string;
+  /** Zeigt die Marken-Plakette über dem Titel (Anmeldeseiten). */
+  brand?: boolean;
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -40,9 +45,19 @@ export function Screen({
         ]}
       >
         <View style={styles.column}>
-          {onBack ? <Button label={backLabel} variant="ghost" onPress={onBack} /> : null}
+          {onBack ? (
+            <Button
+              label={backLabel}
+              variant="secondary"
+              size="sm"
+              icon={ChevronLeft}
+              onPress={onBack}
+              style={styles.back}
+            />
+          ) : null}
+          {brand ? <BrandMark /> : null}
           <View style={styles.header}>
-            <Text variant="title1" accessibilityRole="header">
+            <Text variant={title.length > 30 ? 'title1' : 'display'} accessibilityRole="header">
               {title}
             </Text>
             {subtitle ? (
@@ -59,7 +74,8 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: tokens.color.bg },
+  flex: { flex: 1, backgroundColor: tokens.color.canvas },
+  back: { alignSelf: 'flex-start' },
   content: { flexGrow: 1, paddingHorizontal: tokens.space[4], alignItems: 'center' },
   column: { width: '100%', maxWidth: 440, gap: tokens.space[6] },
   header: { gap: tokens.space[2] },

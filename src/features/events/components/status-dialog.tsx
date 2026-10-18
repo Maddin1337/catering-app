@@ -170,7 +170,7 @@ export function StatusDialog({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.color.scrim,
     justifyContent: 'center',
     padding: tokens.space[4],
   },

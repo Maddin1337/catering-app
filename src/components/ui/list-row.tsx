@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { tokens } from '@/theme/tokens';
 
+import { Surface } from './surface';
 import { Text } from './text';
 
 /** Zeile in Listen: Titel, Untertitel, rechts Zusatz (z. B. Badge). Tippbar, wenn `onPress` gesetzt ist. */
@@ -18,12 +20,7 @@ export function ListRow({
   onPress?: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      disabled={!onPress}
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && { backgroundColor: tokens.color.bgMuted }]}
-    >
+    <Surface onPress={onPress} accessibilityLabel={title} style={styles.row}>
       <View style={styles.texts}>
         <Text variant="bodyStrong">{title}</Text>
         {subtitle ? (
@@ -33,21 +30,19 @@ export function ListRow({
         ) : null}
       </View>
       {right}
-    </Pressable>
+      {onPress && !right ? <ChevronRight color={tokens.color.textTertiary} size={20} /> : null}
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 64,
+    minHeight: 68,
     flexDirection: 'row',
     alignItems: 'center',
     gap: tokens.space[3],
-    padding: tokens.space[3],
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    borderRadius: tokens.radius.md,
-    backgroundColor: tokens.color.bg,
+    paddingVertical: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
   },
   texts: { flex: 1, gap: 2 },
 });

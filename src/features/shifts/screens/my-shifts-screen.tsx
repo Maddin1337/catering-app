@@ -1,15 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { ClipboardList } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Linking, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { formatDate, formatDateTime, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useCompanyProfile } from '../../company/api';
@@ -63,9 +66,7 @@ export function MyShiftsScreen({ standalone = false }: { standalone?: boolean })
         />
       ) : null}
       {!shifts.isPending && current.length === 0 ? (
-        <Text variant="body" color="textSecondary">
-          {t('shifts.mine.empty')}
-        </Text>
+        <EmptyState icon={ClipboardList} text={t('shifts.mine.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
         {current.map((s) => (
@@ -74,9 +75,7 @@ export function MyShiftsScreen({ standalone = false }: { standalone?: boolean })
             style={{
               gap: 6,
               padding: tokens.space[4],
-              borderWidth: 1,
-              borderColor: tokens.color.border,
-              borderRadius: tokens.radius.lg,
+              ...surfaceStyle(),
               opacity: s.is_called_off ? 0.6 : 1,
             }}
           >

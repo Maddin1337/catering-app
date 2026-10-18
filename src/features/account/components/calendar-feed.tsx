@@ -9,6 +9,7 @@ import { webUrl } from '@/lib/env';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
 import { shareText } from '@/lib/share';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useIcalToken, useResetIcalToken } from '../api';
@@ -28,9 +29,7 @@ export function CalendarFeed() {
       style={{
         gap: 8,
         padding: tokens.space[4],
-        borderWidth: 1,
-        borderColor: tokens.color.border,
-        borderRadius: tokens.radius.lg,
+        ...surfaceStyle(),
       }}
     >
       <Text variant="title2">{t('profile.calendar.title')}</Text>

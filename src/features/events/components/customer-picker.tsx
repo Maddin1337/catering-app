@@ -9,6 +9,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useCustomers, useSaveCustomer } from '../../customers/api';
@@ -108,9 +109,7 @@ export function CustomerPicker({
             style={{
               gap: 8,
               padding: tokens.space[3],
-              borderWidth: 1,
-              borderColor: tokens.color.border,
-              borderRadius: tokens.radius.md,
+              ...surfaceStyle(),
             }}
           >
             <View style={{ flexDirection: 'row', gap: 8 }}>

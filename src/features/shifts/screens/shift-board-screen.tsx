@@ -1,13 +1,16 @@
 import { useRouter } from 'expo-router';
+import { Hand } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useApply, useShiftBoard } from '../api';
@@ -29,9 +32,7 @@ export function ShiftBoardScreen({ standalone = false }: { standalone?: boolean 
     >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       {!board.isPending && list.length === 0 ? (
-        <Text variant="body" color="textSecondary">
-          {t('shifts.board.empty')}
-        </Text>
+        <EmptyState icon={Hand} tint="amber" text={t('shifts.board.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
         {list.map((s) => (
@@ -40,9 +41,7 @@ export function ShiftBoardScreen({ standalone = false }: { standalone?: boolean 
             style={{
               gap: 6,
               padding: tokens.space[4],
-              borderWidth: 1,
-              borderColor: tokens.color.border,
-              borderRadius: tokens.radius.lg,
+              ...surfaceStyle(),
             }}
           >
             <Text variant="bodyStrong">

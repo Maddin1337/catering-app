@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
   wrap: { gap: tokens.space[1] },
   card: {
     borderWidth: 1,
-    borderColor: tokens.color.borderInput,
-    borderRadius: tokens.radius.md,
+    borderColor: tokens.color.border,
+    borderRadius: tokens.radius.lg,
     overflow: 'hidden',
     backgroundColor: tokens.color.bg,
   },

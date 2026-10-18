@@ -1,6 +1,15 @@
 import '@/lib/i18n';
 
-import { Inter_400Regular, Inter_600SemiBold, useFonts } from '@expo-google-fonts/inter';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  useFonts,
+} from '@expo-google-fonts/inter';
+import {
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -18,11 +27,18 @@ import { useMembership } from '@/features/company/api';
 import { useSetupStage } from '@/features/company/use-setup-stage';
 import { envProblem } from '@/lib/env';
 import { queryClient } from '@/lib/query-client';
+import { tokens } from '@/theme/tokens';
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_600SemiBold });
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
   // Bei einem Ladefehler läuft die App mit der Systemschrift weiter.
   const fontsReady = fontsLoaded || !!fontError;
 
@@ -56,7 +72,9 @@ function Gate({ fontsReady }: { fontsReady: boolean }) {
   if (stage === 'error') return <MembershipError />;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tokens.color.canvas } }}
+    >
       <Stack.Protected guard={stage === 'ready'}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>

@@ -36,7 +36,7 @@ export function TextField({
 
   return (
     <View style={styles.wrap}>
-      <Text variant="small" color="textSecondary" nativeID={id}>
+      <Text variant="small" color="textSecondary" nativeID={id} style={styles.label}>
         {label}
       </Text>
       <View
@@ -100,15 +100,16 @@ export function TextField({
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: tokens.space[1] },
+  wrap: { gap: tokens.space[2] },
+  label: { fontFamily: tokens.font.semibold, marginLeft: tokens.space[1] },
   field: {
     minHeight: tokens.touch.min,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: tokens.radius.md,
+    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.bg,
-    paddingHorizontal: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
   },
   focused: { borderWidth: 2 },
   input: {

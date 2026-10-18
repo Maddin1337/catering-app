@@ -5,6 +5,7 @@ import { Banner } from '@/components/ui/banner';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { ACCENT_SUGGESTIONS, normalizeHex, whiteTextReadable } from '@/lib/color';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 /** Vorschau, wie Portal-Kopf und Schaltfläche in der gewählten Farbe aussehen. */
@@ -80,9 +81,7 @@ const styles = StyleSheet.create({
   preview: {
     gap: tokens.space[2],
     padding: tokens.space[4],
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    borderRadius: tokens.radius.lg,
+    ...surfaceStyle(),
   },
   previewButton: {
     minHeight: tokens.touch.min,

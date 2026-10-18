@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/text';
 import type { CalcResult } from '@/lib/calc';
 import { formatCents } from '@/lib/money';
 import { bpToPercentString } from '@/lib/percent';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 function Row({
@@ -54,9 +55,7 @@ export function TotalsBlock({
       style={{
         gap: 6,
         padding: tokens.space[4],
-        borderWidth: 1,
-        borderColor: tokens.color.border,
-        borderRadius: tokens.radius.lg,
+        ...surfaceStyle(),
       }}
     >
       {display === 'net' ? (

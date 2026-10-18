@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useDishes, usePackageDishLines } from '../../catalog/api';
@@ -164,9 +165,7 @@ function DietaryForm({
       style={{
         gap: 12,
         padding: tokens.space[3],
-        borderWidth: 1,
-        borderColor: tokens.color.borderInput,
-        borderRadius: tokens.radius.md,
+        ...surfaceStyle(),
       }}
     >
       <TextField

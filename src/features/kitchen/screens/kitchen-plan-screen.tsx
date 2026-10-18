@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { ChefHat } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
 import { DateField } from '@/components/ui/date-field';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
@@ -158,9 +160,7 @@ export function KitchenPlanScreen() {
           {t('common.loading')}
         </Text>
       ) : plan.days.length === 0 ? (
-        <Text variant="body" color="textSecondary">
-          {t('kitchenPlan.empty')}
-        </Text>
+        <EmptyState icon={ChefHat} text={t('kitchenPlan.empty')} />
       ) : tab === 'production' ? (
         <View style={{ gap: 16 }}>
           {plan.days.map((day) => (

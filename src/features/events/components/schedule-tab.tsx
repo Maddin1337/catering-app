@@ -13,6 +13,7 @@ import { TimeField } from '@/components/ui/time-field';
 import { berlinToIso, endIso, isoToBerlin } from '@/lib/berlin';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useDeleteScheduleItem, useSaveScheduleItem, useScheduleItems } from '../api';
@@ -169,9 +170,7 @@ function ItemForm({
       style={{
         gap: 12,
         padding: tokens.space[3],
-        borderWidth: 1,
-        borderColor: tokens.color.borderInput,
-        borderRadius: tokens.radius.md,
+        ...surfaceStyle(),
       }}
     >
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

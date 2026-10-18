@@ -6,13 +6,13 @@ import { Linking, Platform, Pressable, View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Text } from '@/components/ui/text';
 import { confirm } from '@/lib/confirm';
 import { formatDate, formatDateTime, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
 import { isClosed, nextStatuses, type EventStatus } from '@/lib/event-status';
-import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useExistingQuote } from '../../quotes/api';
@@ -158,31 +158,14 @@ export function EventDetailScreen() {
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row' }} accessibilityRole="tablist">
-        {(isAdmin
+      <SegmentedTabs
+        items={(isAdmin
           ? (['overview', 'schedule', 'kitchen', 'staff'] as const)
           : (['overview', 'schedule', 'kitchen'] as const)
-        ).map((k) => (
-          <Pressable
-            key={k}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === k }}
-            onPress={() => setTab(k)}
-            style={{
-              flex: 1,
-              minHeight: tokens.touch.min,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderBottomWidth: 2,
-              borderBottomColor: tab === k ? tokens.color.accent : tokens.color.border,
-            }}
-          >
-            <Text variant="bodyStrong" color={tab === k ? 'accent' : 'textSecondary'}>
-              {t(`events.detail.tabs.${k}`)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+        ).map((k) => ({ key: k, label: t(`events.detail.tabs.${k}`) }))}
+        active={tab}
+        onChange={setTab}
+      />
 
       {tab === 'overview' ? (
         <View style={{ gap: 12 }}>

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { ActionCard } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { pendingInvite } from '@/lib/pending-invite';
-import { tokens } from '@/theme/tokens';
 
 import { useSignOut } from '../../auth/api';
 import { useSession } from '../../auth/session-provider';
@@ -33,13 +32,14 @@ export function WelcomeScreen() {
 
   return (
     <Screen
+      brand
       title={t('company.welcome.title')}
       subtitle={t('company.welcome.body', { email: session?.user.email ?? '' })}
     >
       <ActionCard
         title={t('company.welcome.create.title')}
         body={t('company.welcome.create.body')}
-        icon={<Building color={tokens.color.accent} size={28} />}
+        icon={Building}
         onPress={() => {
           void pendingInvite.clear();
           router.push('/onboarding/company');
@@ -48,7 +48,8 @@ export function WelcomeScreen() {
       <ActionCard
         title={t('company.welcome.invite.title')}
         body={t('company.welcome.invite.body')}
-        icon={<MailOpen color={tokens.color.accent} size={28} />}
+        icon={MailOpen}
+        tint="indigo"
         onPress={() => void openInvite().then((found) => !found && router.push('/invite-help'))}
       />
       {signOut.error ? <Banner tone="danger">{t('common.error')}</Banner> : null}

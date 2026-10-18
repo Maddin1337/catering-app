@@ -27,7 +27,7 @@ export function LoginScreen() {
   const submit = handleSubmit((v) => signIn.mutate(v));
 
   return (
-    <Screen title={t('auth.login.title')} subtitle={t('auth.onlineOnly')}>
+    <Screen brand title={t('auth.login.title')} subtitle={t('auth.onlineOnly')}>
       {signIn.error ? <Banner tone="danger">{toAppError(signIn.error).message}</Banner> : null}
       <View style={{ gap: 16 }}>
         <Controller

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { Users } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -7,6 +8,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { ListRow } from '@/components/ui/list-row';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import { formatDate } from '@/lib/dates';
@@ -73,7 +75,7 @@ export function CustomersScreen() {
         />
       </View>
       {!customers.isPending && (customers.data ?? []).length === 0 ? (
-        <Banner tone="info">{t('customers.empty')}</Banner>
+        <EmptyState icon={Users} tint="sky" text={t('customers.empty')} />
       ) : null}
       <View style={{ gap: 8 }}>
         {shown.map((c) => (

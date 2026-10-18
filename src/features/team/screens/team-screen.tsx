@@ -6,9 +6,11 @@ import { Pressable, View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Text } from '@/components/ui/text';
 import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
@@ -16,36 +18,6 @@ import { useInvitations, useResendInvitation, useRevokeInvitation, useTeamMember
 import { InviteLinkCard } from '../invite-link-card';
 import { invitationStatus } from '../status';
 import type { InvitationToken } from '../types';
-
-function Segment({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={{
-        flex: 1,
-        minHeight: tokens.touch.min,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderBottomWidth: 2,
-        borderBottomColor: active ? tokens.color.accent : tokens.color.border,
-      }}
-    >
-      <Text variant="bodyStrong" color={active ? 'accent' : 'textSecondary'}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
 
 /** SC-54 Team: Mitglieder und Einladungen. Admins bearbeiten, die Küche liest nur. */
 export function TeamScreen() {
@@ -71,18 +43,14 @@ export function TeamScreen() {
         <Button label={t('team.invite')} onPress={() => router.push('/team/invite')} />
       ) : null}
       {isAdmin ? (
-        <View style={{ flexDirection: 'row' }} accessibilityRole="tablist">
-          <Segment
-            label={t('team.members')}
-            active={tab === 'members'}
-            onPress={() => setTab('members')}
-          />
-          <Segment
-            label={t('team.invitations', { count: openInvitations.length })}
-            active={tab === 'invitations'}
-            onPress={() => setTab('invitations')}
-          />
-        </View>
+        <SegmentedTabs
+          items={[
+            { key: 'members', label: t('team.members') },
+            { key: 'invitations', label: t('team.invitations', { count: openInvitations.length }) },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
       ) : null}
 
       {tab === 'members' ? (
@@ -98,10 +66,8 @@ export function TeamScreen() {
               style={({ pressed }) => ({
                 minHeight: 64,
                 padding: tokens.space[3],
-                borderWidth: 1,
-                borderColor: tokens.color.border,
-                borderRadius: tokens.radius.md,
-                backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                ...surfaceStyle(),
+                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
                 gap: 2,
               })}
             >
@@ -127,9 +93,7 @@ export function TeamScreen() {
                 key={i.id}
                 style={{
                   padding: tokens.space[3],
-                  borderWidth: 1,
-                  borderColor: tokens.color.border,
-                  borderRadius: tokens.radius.md,
+                  ...surfaceStyle(),
                   gap: 8,
                 }}
               >

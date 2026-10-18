@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { tokens } from '@/theme/tokens';
 
+import { PressableScale } from './pressable-scale';
 import { Text } from './text';
 
 /** Auswahl-Chip für Filter und Kennzeichen; Zielhöhe 40 dp mit Tippfläche-Erweiterung. */
@@ -15,29 +16,31 @@ export function Chip({
   onPress?: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
+      scale={0.95}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={onPress ? { selected: !!selected } : undefined}
       disabled={!onPress}
       onPress={onPress}
       style={[styles.chip, selected && styles.on]}
     >
-      <Text variant="small" color={selected ? 'onAccent' : 'textSecondary'}>
+      <Text variant="small" color={selected ? 'onAccent' : 'text'} style={styles.label}>
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
+  label: { fontFamily: tokens.font.semibold },
   chip: {
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: tokens.space[3],
+    paddingHorizontal: tokens.space[4],
     borderRadius: tokens.radius.full,
     borderWidth: 1,
-    borderColor: tokens.color.borderInput,
+    borderColor: tokens.color.border,
     backgroundColor: tokens.color.bg,
   },
-  on: { backgroundColor: tokens.color.accent, borderColor: tokens.color.accent },
+  on: { backgroundColor: tokens.color.ink, borderColor: tokens.color.ink },
 });

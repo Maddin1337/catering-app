@@ -1,3 +1,13 @@
+import {
+  BookOpen,
+  ChefHat,
+  ClipboardList,
+  Hand,
+  Settings,
+  UserRound,
+  Users,
+  UsersRound,
+} from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
@@ -59,6 +69,8 @@ export function MoreScreen() {
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
             title={t('more.team')}
+            icon={UsersRound}
+            tint="indigo"
             body={t('more.teamBody')}
             onPress={() => router.push('/team')}
           />
@@ -66,6 +78,8 @@ export function MoreScreen() {
         {role === 'admin' ? (
           <ActionCard
             title={t('more.customers')}
+            icon={Users}
+            tint="sky"
             body={t('more.customersBody')}
             onPress={() => router.push('/customers')}
           />
@@ -74,11 +88,15 @@ export function MoreScreen() {
           <>
             <ActionCard
               title={t('shifts.board.title')}
+              icon={Hand}
+              tint="amber"
               body={t('shifts.board.moreBody')}
               onPress={() => router.push('/shifts/board')}
             />
             <ActionCard
               title={t('shifts.mine.title')}
+              icon={ClipboardList}
+              tint="teal"
               body={t('shifts.mine.moreBody')}
               onPress={() => router.push('/shifts/mine')}
             />
@@ -87,6 +105,8 @@ export function MoreScreen() {
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
             title={t('kitchenPlan.more')}
+            icon={ChefHat}
+            tint="rose"
             body={t('kitchenPlan.moreBody')}
             onPress={() => router.push('/kitchen')}
           />
@@ -94,6 +114,8 @@ export function MoreScreen() {
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
             title={t('more.catalog')}
+            icon={BookOpen}
+            tint="violet"
             body={t('more.catalogBody')}
             onPress={() => router.push('/dishes')}
           />
@@ -101,12 +123,16 @@ export function MoreScreen() {
         {role === 'admin' ? (
           <ActionCard
             title={t('more.settings')}
+            icon={Settings}
+            tint="slate"
             body={t('more.settingsBody')}
             onPress={() => router.push('/settings')}
           />
         ) : null}
         <ActionCard
           title={t('more.profileLink')}
+          icon={UserRound}
+          tint="teal"
           body={t('more.profileBody')}
           onPress={() => router.push('/profile')}
         />

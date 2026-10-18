@@ -23,6 +23,7 @@ import {
   type ShowIf,
   type Target,
 } from '@/lib/intake';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import {
@@ -360,9 +361,7 @@ function QuestionForm({
         style={{
           gap: 8,
           padding: tokens.space[3],
-          borderWidth: 1,
-          borderColor: tokens.color.border,
-          borderRadius: tokens.radius.md,
+          ...surfaceStyle(),
         }}
       >
         <Text variant="title2">{t('intake.form.condition')}</Text>

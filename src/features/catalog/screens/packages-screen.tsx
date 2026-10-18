@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { Package } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 import { useState } from 'react';
@@ -6,10 +7,12 @@ import { useState } from 'react';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { toAppError } from '@/lib/errors';
 import { formatCents } from '@/lib/money';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
@@ -49,7 +52,7 @@ export function PackagesScreen() {
         />
       </View>
       {!packages.isPending && (packages.data ?? []).length === 0 ? (
-        <Banner tone="info">{t('catalog.packages.empty')}</Banner>
+        <EmptyState icon={Package} tint="violet" text={t('catalog.packages.empty')} />
       ) : null}
       <View style={{ gap: 8 }}>
         {(packages.data ?? [])
@@ -65,10 +68,8 @@ export function PackagesScreen() {
                 style={({ pressed }) => ({
                   gap: 6,
                   padding: tokens.space[3],
-                  borderWidth: 1,
-                  borderColor: tokens.color.border,
-                  borderRadius: tokens.radius.md,
-                  backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                  ...surfaceStyle(),
+                  ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
                 })}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>

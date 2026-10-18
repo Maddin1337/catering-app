@@ -64,6 +64,7 @@ Details, Definition of Done und Appllama-Termine stehen in [06-roadmap.md](docs/
 | [04-screens-ux.md](docs/04-screens-ux.md)                               | Navigation, Screen-Inventar (SC-xx), Design-Tokens, Appllama-Rechercheplan                                              | Beim Screen-Design        |
 | [05-architektur.md](docs/05-architektur.md)                             | Stack, Projektstruktur, Edge Functions, Auth, Stripe, Sicherheit, CI/EAS, ADRs                                          | Beim Projekt-Setup        |
 | [06-roadmap.md](docs/06-roadmap.md)                                     | Meilensteine, Gantt, Pilot, Store-Einreichung, Risiken, nächste Schritte                                                | Für die Planung der Woche |
+| [09-designsystem.md](docs/09-designsystem.md)                           | Designsystem: Farben, Typografie, Bausteine, Bewegung                                                                   | Bei UI-Arbeit             |
 | [07-umsetzungsstand.md](docs/07-umsetzungsstand.md)                     | Was gebaut und geprüft ist, Abweichungen von der Planung                                                                | **Vor dem Weiterbauen**   |
 | [research/appllama-onboarding.md](docs/research/appllama-onboarding.md) | Appllama-Recherche Onboarding: Muster, Lücken, Entscheidungsvorlage                                                     | Beim Screen-Design        |
 

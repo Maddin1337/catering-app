@@ -8,6 +8,7 @@ import { Chip } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useSaveIngredient } from '../api';
@@ -53,9 +54,7 @@ export function IngredientPicker({
       style={{
         gap: tokens.space[3],
         padding: tokens.space[3],
-        borderWidth: 1,
-        borderColor: tokens.color.borderInput,
-        borderRadius: tokens.radius.md,
+        ...surfaceStyle(),
       }}
     >
       <TextField

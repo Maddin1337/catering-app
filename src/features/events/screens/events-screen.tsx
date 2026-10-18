@@ -1,16 +1,19 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { PartyPopper } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
@@ -72,7 +75,7 @@ export function EventsScreen() {
         ))}
       </View>
       {!events.isPending && (events.data ?? []).length === 0 ? (
-        <Banner tone="info">{t('events.empty')}</Banner>
+        <EmptyState icon={PartyPopper} text={t('events.empty')} />
       ) : null}
       {(events.data ?? []).length > 0 ? (
         <Text variant="small" color="textSecondary">
@@ -88,10 +91,8 @@ export function EventsScreen() {
             style={({ pressed }) => ({
               gap: 4,
               padding: tokens.space[3],
-              borderWidth: 1,
-              borderColor: tokens.color.border,
-              borderRadius: tokens.radius.md,
-              backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+              ...surfaceStyle(),
+              ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
             })}
           >
             <Text variant="small" color="textSecondary">

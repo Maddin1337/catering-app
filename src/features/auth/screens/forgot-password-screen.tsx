@@ -39,6 +39,7 @@ export function ForgotPasswordScreen() {
 
   return (
     <Screen
+      brand
       title={t('auth.forgot.title')}
       subtitle={t(authEmailCode ? 'auth.forgot.body' : 'auth.forgot.bodyLinkOnly')}
     >

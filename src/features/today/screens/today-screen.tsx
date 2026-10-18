@@ -1,15 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { ChefHat } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { addDays, isoToBerlin, todayBerlin } from '@/lib/berlin';
 import { formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useDietary, useEvents, useScheduleItems } from '../../events/api';
@@ -39,9 +42,7 @@ export function TodayScreen() {
         />
       </View>
       {!events.isPending && list.length === 0 ? (
-        <Text variant="body" color="textSecondary">
-          {t('today.empty')}
-        </Text>
+        <EmptyState icon={ChefHat} text={t('today.empty')} />
       ) : null}
       <View style={{ gap: 12 }}>
         {list.map((e) => (
@@ -68,10 +69,8 @@ function EventCard({ event }: { event: EventRow }) {
       style={({ pressed }) => ({
         gap: 6,
         padding: tokens.space[4],
-        borderWidth: 1,
-        borderColor: tokens.color.border,
-        borderRadius: tokens.radius.lg,
-        backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+        ...surfaceStyle(),
+        ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
       })}
     >
       <Text variant="kitchen">{event.title}</Text>

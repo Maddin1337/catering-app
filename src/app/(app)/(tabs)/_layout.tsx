@@ -10,6 +10,8 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
+import { FloatingTabBar } from '@/components/ui/tab-bar';
+
 import { useMembership } from '@/features/company/api';
 import { tokens } from '@/theme/tokens';
 
@@ -27,18 +29,14 @@ export default function TabsLayout() {
   const role = useMembership().data?.role ?? 'staff';
   const visible = (name: string) => (TABS[role].includes(name) ? undefined : (null as null));
   const icon = (Icon: typeof House) =>
-    function TabIcon({ focused, size }: { focused: boolean; size: number }) {
-      return <Icon color={focused ? tokens.color.accent : tokens.color.textTertiary} size={size} />;
+    function TabIcon({ color, size }: { color: unknown; size: number }) {
+      return <Icon color={String(color)} size={size} strokeWidth={2.1} />;
     };
 
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: tokens.color.accent,
-        tabBarInactiveTintColor: tokens.color.textTertiary,
-        tabBarLabelStyle: { fontFamily: tokens.font.semibold, fontSize: 12 },
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: tokens.color.canvas } }}
     >
       <Tabs.Screen
         name="start"

@@ -1,17 +1,20 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { UtensilsCrossed } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
 import { ALLERGENS, DIETS, type Allergen, type Diet } from '@/lib/dietary';
 import { formatCents } from '@/lib/money';
 import { toAppError } from '@/lib/errors';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
@@ -118,7 +121,7 @@ export function DishesScreen() {
       ) : null}
 
       {!dishes.isPending && (dishes.data ?? []).length === 0 ? (
-        <Banner tone="info">{t('catalog.dishes.empty')}</Banner>
+        <EmptyState icon={UtensilsCrossed} tint="violet" text={t('catalog.dishes.empty')} />
       ) : null}
       <View style={{ gap: 8 }}>
         {shown.map((d) => {
@@ -131,10 +134,8 @@ export function DishesScreen() {
               style={({ pressed }) => ({
                 gap: 6,
                 padding: tokens.space[3],
-                borderWidth: 1,
-                borderColor: tokens.color.border,
-                borderRadius: tokens.radius.md,
-                backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                ...surfaceStyle(),
+                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
               })}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>

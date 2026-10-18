@@ -14,6 +14,7 @@ import { webUrl } from '@/lib/env';
 import { messages, toAppError } from '@/lib/errors';
 import { sharePdf } from '@/lib/pdf';
 import { shareText } from '@/lib/share';
+import { surfaceStyle } from '@/components/ui/surface';
 import { tokens } from '@/theme/tokens';
 
 import { useDishes, usePackageDishLines, usePackages } from '../../catalog/api';
@@ -263,9 +264,7 @@ export function QuoteSendScreen() {
           style={{
             gap: 4,
             padding: tokens.space[3],
-            borderWidth: 1,
-            borderColor: tokens.color.border,
-            borderRadius: tokens.radius.md,
+            ...surfaceStyle(),
           }}
         >
           <Text variant="small" color="textSecondary">

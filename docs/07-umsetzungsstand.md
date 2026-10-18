@@ -350,3 +350,7 @@ Außerdem ein neuer Test `m9_app_writes` (alle direkten Schreibzugriffe der App 
 | Bundle-ID | Platzhalter `com.example.cateringapp` in `app.config.ts` | vor dem ersten Store-Build, mit dem App-Namen (E-2) |
 | Icon und Splash | Platzhalter-Dateien des Templates | mit Name und Marke (E-4) |
 | Sentry, Maestro-E2E | in 05 §10 für später vorgesehen | M10 |
+
+## Design-Überarbeitung
+
+Komplette Überarbeitung der Oberfläche nach Appllama-Recherche, siehe [09-designsystem.md](09-designsystem.md): warmer Hintergrund mit weißen, weich beschatteten Karten, Plus Jakarta Sans für Überschriften, Pillen-Schaltflächen mit Verlauf, Federeffekt und Haptik, schwebende Tab-Leiste, Segment-Reiter, Symbol-Plaketten, leere Zustände, Marken-Plakette auf Anmeldeseiten. Keine Datenbankänderung. Neue Pakete: `expo-linear-gradient`, `expo-haptics`, `@expo-google-fonts/plus-jakarta-sans`.

@@ -7,6 +7,7 @@ import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Screen } from '@/components/ui/screen';
+import { surfaceStyle } from '@/components/ui/surface';
 import { Text } from '@/components/ui/text';
 import { addDays, formatGermanDate, todayBerlin, weekday } from '@/lib/berlin';
 import { formatTime } from '@/lib/dates';
@@ -119,10 +120,8 @@ export function CalendarScreen() {
                       style={({ pressed }) => ({
                         gap: 4,
                         padding: tokens.space[3],
-                        borderWidth: 1,
-                        borderColor: tokens.color.border,
-                        borderRadius: tokens.radius.md,
-                        backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                        ...surfaceStyle(),
+                        ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
                       })}
                     >
                       <Text variant="small" color="textSecondary">
@@ -237,10 +236,8 @@ export function CalendarScreen() {
                 style={({ pressed }) => ({
                   gap: 4,
                   padding: tokens.space[3],
-                  borderWidth: 1,
-                  borderColor: tokens.color.border,
-                  borderRadius: tokens.radius.md,
-                  backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                  ...surfaceStyle(),
+                  ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
                 })}
               >
                 <Text variant="small" color="textSecondary">
@@ -274,10 +271,8 @@ export function CalendarScreen() {
               style={({ pressed }) => ({
                 gap: 4,
                 padding: tokens.space[3],
-                borderWidth: 1,
-                borderColor: tokens.color.border,
-                borderRadius: tokens.radius.md,
-                backgroundColor: pressed ? tokens.color.bgMuted : tokens.color.bg,
+                ...surfaceStyle(),
+                ...(pressed ? { backgroundColor: tokens.color.bgSubtle } : null),
               })}
             >
               <Text variant="small" color="textSecondary">

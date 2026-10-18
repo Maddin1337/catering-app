@@ -2,38 +2,72 @@
 
 export const tokens = {
   color: {
+    // Seitenhintergrund (warmes Off-White) und weiße Flächen darauf.
+    canvas: '#F6F4F0',
     bg: '#FFFFFF',
-    bgSubtle: '#F8FAFC',
-    bgMuted: '#F1F5F9',
-    border: '#E2E8F0',
-    borderInput: '#8A94A6',
-    text: '#0F172A',
-    textSecondary: '#475569',
-    textTertiary: '#64748B',
+    bgSubtle: '#FAF8F5',
+    bgMuted: '#EFECE6',
+    border: '#E9E4DB',
+    borderInput: '#8A8478',
+    text: '#14181F',
+    textSecondary: '#4A5160',
+    textTertiary: '#667085',
+    // Marke: tiefes Petrol; `ink` ist die dunkle Zweitfarbe für starke Aktionen.
     accent: '#0F766E',
-    accentPressed: '#115E59',
-    accentSubtle: '#CCFBF1',
+    accentPressed: '#0B5F58',
+    accentGradientFrom: '#139085',
+    accentGradientTo: '#0B6A62',
+    accentSubtle: '#D9F3EE',
     onAccent: '#FFFFFF',
+    ink: '#161B26',
+    inkPressed: '#2B3242',
     focus: '#2563EB',
     success: '#15803D',
-    successSubtle: '#DCFCE7',
+    successSubtle: '#DDF5E6',
     warning: '#B45309',
-    warningSubtle: '#FEF3C7',
+    warningSubtle: '#FEF0CF',
     danger: '#B91C1C',
-    dangerSubtle: '#FEE2E2',
+    dangerSubtle: '#FDE4E2',
     info: '#1D4ED8',
-    infoSubtle: '#DBEAFE',
+    infoSubtle: '#E0EAFE',
+    scrim: 'rgba(20, 24, 31, 0.45)',
   },
   // 4/8-Raster; nur diese Werte.
   space: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 8: 32, 10: 40, 12: 48, 16: 64 },
-  radius: { sm: 6, md: 8, lg: 12, xl: 16, full: 999 },
-  // Statische Inter-Schnitte statt fontWeight (Android wählt bei variablen Schriften unzuverlässig).
+  radius: { sm: 8, md: 12, lg: 16, xl: 22, xxl: 28, full: 999 },
+  // Weiche, warme Schatten (Karten, schwebende Leisten, Aktionen).
+  shadow: {
+    card: '0px 1px 2px rgba(60, 45, 20, 0.05), 0px 6px 18px rgba(60, 45, 20, 0.06)',
+    raised: '0px 2px 4px rgba(60, 45, 20, 0.06), 0px 12px 28px rgba(60, 45, 20, 0.12)',
+    float: '0px 4px 10px rgba(20, 24, 31, 0.10), 0px 16px 36px rgba(20, 24, 31, 0.18)',
+    accent: '0px 6px 16px rgba(15, 118, 110, 0.32)',
+    ink: '0px 6px 16px rgba(22, 27, 38, 0.28)',
+  },
+  // Statische Schnitte statt fontWeight (Android wählt bei variablen Schriften unzuverlässig).
+  // Inter für Fließtext und Bedienung, Plus Jakarta Sans für Überschriften.
   font: {
     regular: 'Inter_400Regular',
+    medium: 'Inter_500Medium',
     semibold: 'Inter_600SemiBold',
+    heading: 'PlusJakartaSans_700Bold',
+    headingHeavy: 'PlusJakartaSans_800ExtraBold',
   },
   touch: { min: 48, kitchen: 56 },
+  // Wirkung beim Tippen (Skalierung) und Dauer der Übergänge in ms.
+  motion: { pressScale: 0.97, fast: 120, base: 200 },
 } as const;
+
+// Pastell-Töne für runde Symbol-Plaketten (Einstiegskarten, Listen); Vordergrund ≥ 4,5:1.
+export const tints = {
+  teal: { fg: '#0F766E', bg: '#D9F3EE' },
+  amber: { fg: '#92400E', bg: '#FDEBC8' },
+  indigo: { fg: '#3730A3', bg: '#E3E6FD' },
+  rose: { fg: '#9F1239', bg: '#FCE1E7' },
+  sky: { fg: '#075985', bg: '#DCEFFB' },
+  violet: { fg: '#5B21B6', bg: '#EBE4FC' },
+  slate: { fg: '#334155', bg: '#E8E6E1' },
+} as const;
+export type Tint = keyof typeof tints;
 
 export type TextVariant =
   'display' | 'title1' | 'title2' | 'body' | 'bodyStrong' | 'small' | 'caption' | 'kitchen';
@@ -42,14 +76,14 @@ export const textStyles: Record<
   TextVariant,
   { fontSize: number; lineHeight: number; fontFamily: string }
 > = {
-  display: { fontSize: 28, lineHeight: 36, fontFamily: tokens.font.semibold },
-  title1: { fontSize: 22, lineHeight: 28, fontFamily: tokens.font.semibold },
-  title2: { fontSize: 18, lineHeight: 24, fontFamily: tokens.font.semibold },
+  display: { fontSize: 30, lineHeight: 38, fontFamily: tokens.font.headingHeavy },
+  title1: { fontSize: 24, lineHeight: 30, fontFamily: tokens.font.heading },
+  title2: { fontSize: 18, lineHeight: 24, fontFamily: tokens.font.heading },
   body: { fontSize: 16, lineHeight: 24, fontFamily: tokens.font.regular },
   bodyStrong: { fontSize: 16, lineHeight: 24, fontFamily: tokens.font.semibold },
   small: { fontSize: 14, lineHeight: 20, fontFamily: tokens.font.regular },
   caption: { fontSize: 12, lineHeight: 16, fontFamily: tokens.font.semibold },
-  kitchen: { fontSize: 20, lineHeight: 28, fontFamily: tokens.font.semibold },
+  kitchen: { fontSize: 20, lineHeight: 28, fontFamily: tokens.font.heading },
 };
 
 export type EventStatus =
