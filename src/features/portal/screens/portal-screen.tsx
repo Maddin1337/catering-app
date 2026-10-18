@@ -391,7 +391,7 @@ export function PortalScreen() {
           {canDecline ? (
             <Button label={t('decline.button')} variant="ghost" onPress={() => toggle('decline')} />
           ) : null}
-          {canChange ? (
+          {canChange && event.changes_until ? (
             <Text variant="small" color="textSecondary">
               {t('change.until', { date: formatDateTime(event.changes_until) })}
             </Text>

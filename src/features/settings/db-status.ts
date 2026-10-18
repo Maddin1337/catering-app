@@ -73,6 +73,11 @@ export const UPDATES: Update[] = [
       },
     },
   },
+  {
+    file: '20261103090000',
+    title: 'Korrekturen Sicherheitsprüfung',
+    probe: { kind: 'table', table: 'quotes', column: 'binding_revision' },
+  },
 ];
 
 /** Tabelle oder Funktion fehlt: Postgres 42P01/42703, PostgREST PGRST200–PGRST205 bzw. 404. */

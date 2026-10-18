@@ -289,13 +289,31 @@ Zeitänderungen melden (kommt mit Push), Start-Karten „unbesetzte Schichten“
 ## Ergänzung · Firmenlogo
 
 - `supabase/migrations/20261101090000_m1_logos.sql` (`remote-update-20261101090000.sql`): öffentlicher Bucket `logos` (2 MB, PNG/JPEG), Upload und Löschen nur Admin der Firma im Schreibmodus, Ordner = `company_id`. 492 pgTAP-Tests laufen lokal (die Testumgebung bildet `storage` minimal nach, `scripts/db/stubs.sql`).
-- App: Einstellungen → Branding → „Logo wählen“ (`expo-image-picker`, neuer Dateiname je Upload, altes Logo wird gelöscht); das Logo steht im Angebots-PDF und im Kundenportal. Nur Pfade der Form `{company_id}/logo-{uuid}.{png|jpg}` werden eingebunden.
+- App: Einstellungen → Branding → „Logo wählen“ (`expo-image-picker`, neuer Dateiname je Upload, alte Dateien bleiben für bereits versendete Angebote); das Logo steht im Angebots-PDF und im Kundenportal. Nur Pfade der Form `{company_id}/logo-{uuid}.{png|jpg}` werden eingebunden.
 - Neues natives Modul (`expo-image-picker`): In Expo Go und im Web läuft es; für einen Store-Build braucht es einen neuen EAS-Build.
 
 ## Ergänzung · Datenbank-Stand und Korrektur
 
 - Einstellungen → **Datenbank-Stand**: zeigt je SQL-Update, ob es eingespielt ist (Probe auf Tabelle, Spalte oder Funktion), und nennt die fehlenden Dateien. So muss niemand raten, welche Datei noch fehlt.
 - Korrektur: Der **Fragenkatalog** (Einstellungen → Fragenkatalog) war nur per Adresse erreichbar und stand nicht in der Einstellungsliste; er steht jetzt dort.
+
+## Korrekturen aus dem Sicherheits-Review (M5–M8)
+
+Eine unabhängige Prüfung der neuen SQL-Dateien fand 11 Punkte; alle sind in `supabase/migrations/20261103090000_review_fixes.sql` (`remote-update-20261103090000.sql`) behoben und mit Tests abgedeckt (516 pgTAP-Tests):
+
+1. Sonderessen schreiben nur noch admin und Küche (vorher konnte auch Personal mit zugesagter Schicht schreiben).
+2. Die Annahme speichert die Summe der angenommenen Fassung, nicht die des laufenden Entwurfs.
+3. Die Küche behält die angenommene Menüwahl (`acceptance_selection`).
+4. Die verbindliche Fassung steht als Spalte (`binding_revision`) am Angebot, nicht mehr abgeleitet vom aktuellen Auftragsstatus; „Zur Info“ ist nur bei bestätigten Aufträgen möglich.
+5. `events.portal_locked` wirkt im Portal; Sonderessen löschen nur bei offenem Auftrag.
+6. Portal-Links laufen nach Eventende plus `portal_token_ttl_days` (60) ab.
+7. Eine fehlende Fassung umgeht die Prüfung „Angebot aktualisiert“ nicht mehr.
+8. Eine späte Absage lässt sich nicht durch erneutes Bewerben löschen.
+9. Alte Logo-Dateien werden nicht mehr gelöscht (versendete Angebote verweisen darauf).
+10. Sonderessen-Summe: Auftrag wird gesperrt, damit zwei gleichzeitige Eingaben die Gästezahl nicht überschreiten.
+11. „Kein Änderungsschluss“ (leeres `changes_until`) bleibt ohne Frist; neue Aufträge bekommen die Vorbelegung aus den Firmeneinstellungen (72 h bzw. 24 h), bestehende werden nachgetragen.
+
+Bewusst nicht geändert: Die Gültigkeit („gültig bis“) gilt weiter live, damit „Gültigkeit verlängern“ ohne neue Fassung wirkt (docs/03).
 
 ## Nicht in M0 gebaut (bewusst)
 

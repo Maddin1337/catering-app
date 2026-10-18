@@ -52,7 +52,7 @@ export type PortalData =
         acceptance_name: string | null;
         declined_at: string | null;
       };
-      event: { status: string; changes_until: string; changes_locked: boolean };
+      event: { status: string; changes_until: string | null; changes_locked: boolean };
       snapshot: QuoteSnapshot;
       selection: Record<string, string>;
       dietary: PortalDietary[];

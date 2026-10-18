@@ -226,11 +226,10 @@ export const useArchiveQualification = () =>
 
 const LOGO_MAX_BYTES = 2 * 1024 * 1024;
 
-/** Lädt ein neues Logo hoch (neuer Dateiname je Upload), trägt den Pfad ein und löscht die alte Datei. */
+/** Lädt ein neues Logo hoch (neuer Dateiname je Upload) und trägt den Pfad ein. Alte Dateien bleiben, versendete Angebote verweisen darauf. */
 export function useUploadLogo() {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
-  const current = useCompanySettings().data?.logo_path ?? null;
   return useMutation({
     mutationFn: async (v: { uri: string; mimeType: string | undefined; file?: Blob }) => {
       if (v.mimeType !== 'image/png' && v.mimeType !== 'image/jpeg')
@@ -249,7 +248,6 @@ export function useUploadLogo() {
         .update({ logo_path: path })
         .eq('id', companyId!);
       if (error) throw toAppError(error);
-      if (current) await client().storage.from('logos').remove([current]);
     },
     onSuccess: () => queryClient.invalidateQueries(),
   });
@@ -258,7 +256,6 @@ export function useUploadLogo() {
 export function useRemoveLogo() {
   const queryClient = useQueryClient();
   const companyId = useCompanyId();
-  const current = useCompanySettings().data?.logo_path ?? null;
   return useMutation({
     mutationFn: async () => {
       const { error } = await client()
@@ -266,7 +263,6 @@ export function useRemoveLogo() {
         .update({ logo_path: null })
         .eq('id', companyId!);
       if (error) throw toAppError(error);
-      if (current) await client().storage.from('logos').remove([current]);
     },
     onSuccess: () => queryClient.invalidateQueries(),
   });
