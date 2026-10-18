@@ -155,3 +155,49 @@ export const useCancelMine = () =>
   useShiftMutation((v: { id: string; reason: string }) =>
     rpc('cancel_my_application', { p_application_id: v.id, p_reason: v.reason || null }),
   );
+
+/** Kommende Schichten und offene Bewerbungen für die Startseite (admin). */
+export function useStaffingOverview() {
+  const m = useMembership().data;
+  return useQuery({
+    queryKey: ['shifts', 'overview', m?.company_id],
+    enabled: m?.role === 'admin',
+    queryFn: async (): Promise<{
+      unfilled: { event_id: string; open: number }[];
+      applications: { event_id: string; count: number }[];
+    }> => {
+      const now = new Date().toISOString();
+      const slots = await client()
+        .from('shift_slots')
+        .select('id, event_id, seats, taken_seats, published_at')
+        .is('cancelled_at', null)
+        .gt('starts_at', now);
+      if (slots.error) throw toAppError(slots.error);
+      const rows = slots.data ?? [];
+      const apps = await client()
+        .from('shift_applications')
+        .select('shift_slot_id')
+        .eq('status', 'applied');
+      if (apps.error) throw toAppError(apps.error);
+      const slotEvent = new Map(rows.map((s) => [s.id as string, s.event_id as string]));
+      const perEvent = new Map<string, number>();
+      for (const a of apps.data ?? []) {
+        const ev = slotEvent.get(a.shift_slot_id as string);
+        if (ev) perEvent.set(ev, (perEvent.get(ev) ?? 0) + 1);
+      }
+      const unfilled = new Map<string, number>();
+      for (const s of rows)
+        if (s.published_at && (s.taken_seats as number) < (s.seats as number))
+          unfilled.set(
+            s.event_id as string,
+            (unfilled.get(s.event_id as string) ?? 0) +
+              (s.seats as number) -
+              (s.taken_seats as number),
+          );
+      return {
+        unfilled: [...unfilled].map(([event_id, open]) => ({ event_id, open })),
+        applications: [...perEvent].map(([event_id, count]) => ({ event_id, count })),
+      };
+    },
+  });
+}

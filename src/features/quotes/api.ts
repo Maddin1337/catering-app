@@ -224,3 +224,20 @@ export function useResolveChange() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quotes'] }),
   });
 }
+
+/** Aufträge mit offenem Änderungswunsch aus dem Portal (admin). */
+export function useOpenChangeRequests() {
+  const m = useMembership().data;
+  return useQuery({
+    queryKey: ['quotes', 'open-changes', m?.company_id],
+    enabled: m?.role === 'admin',
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await client()
+        .from('quotes')
+        .select('event_id')
+        .not('pending_change', 'is', null);
+      if (error) throw toAppError(error);
+      return (data ?? []).map((r) => r.event_id as string);
+    },
+  });
+}

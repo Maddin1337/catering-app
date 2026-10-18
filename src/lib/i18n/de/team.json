@@ -876,7 +876,11 @@
     "setupEvent": "Erste Anfrage erfassen",
     "setupDone": "erledigt",
     "trial": "Testphase bis {{date}}",
-    "newQuick": "Schnelles Formular"
+    "newQuick": "Schnelles Formular",
+    "changeRequests": "{{count}} Änderungswunsch aus dem Portal",
+    "applications": "{{count}} offene Bewerbung(en) auf Schichten",
+    "unfilled": "{{count}} Platz/Plätze in veröffentlichten Schichten unbesetzt",
+    "quoted": "{{count}} Angebot(e) warten auf Antwort"
   },
   "today": {
     "title": "Heute",

@@ -17,6 +17,8 @@ import { useSubscription } from '../../company/api';
 import { useEvents, useSetEventStatus } from '../../events/api';
 import { StatusBadge } from '../../events/components/status-badge';
 import type { EventRow } from '../../events/types';
+import { useOpenChangeRequests } from '../../quotes/api';
+import { useStaffingOverview } from '../../shifts/api';
 import { useTeamMembers } from '../../team/api';
 import { computeTodos, todayAndTomorrow } from '../todos';
 
@@ -28,13 +30,25 @@ export function StartScreen() {
   const subscription = useSubscription();
   const members = useTeamMembers();
   const dishes = useDishes();
+  const staffing = useStaffingOverview().data;
+  const changeRequests = useOpenChangeRequests().data ?? [];
   const [completing, setCompleting] = useState(false);
 
   const all = events.data ?? [];
   const { today, tomorrow } = todayAndTomorrow(all);
   const todos = computeTodos(all);
+  const quoted = all.filter((e) => e.status === 'quoted');
+  const unfilled = staffing?.unfilled ?? [];
+  const applications = staffing?.applications ?? [];
   const hasTodos =
-    todos.staleInquiries.length + todos.expiringOptions.length + todos.toComplete.length > 0;
+    todos.staleInquiries.length +
+      todos.expiringOptions.length +
+      todos.toComplete.length +
+      quoted.length +
+      changeRequests.length +
+      unfilled.length +
+      applications.length >
+    0;
   const trialEnd =
     subscription.data?.status === 'trialing' ? subscription.data.trial_ends_at : null;
 
@@ -121,6 +135,32 @@ export function StartScreen() {
           <ListRow
             title={t('start.expiringOptions', { count: todos.expiringOptions.length })}
             onPress={() => open(todos.expiringOptions[0]!.id)}
+          />
+        ) : null}
+        {changeRequests.length > 0 ? (
+          <ListRow
+            title={t('start.changeRequests', { count: changeRequests.length })}
+            onPress={() => open(changeRequests[0]!)}
+          />
+        ) : null}
+        {applications.length > 0 ? (
+          <ListRow
+            title={t('start.applications', {
+              count: applications.reduce((n, a) => n + a.count, 0),
+            })}
+            onPress={() => open(applications[0]!.event_id)}
+          />
+        ) : null}
+        {unfilled.length > 0 ? (
+          <ListRow
+            title={t('start.unfilled', { count: unfilled.reduce((n, a) => n + a.open, 0) })}
+            onPress={() => open(unfilled[0]!.event_id)}
+          />
+        ) : null}
+        {quoted.length > 0 ? (
+          <ListRow
+            title={t('start.quoted', { count: quoted.length })}
+            onPress={() => open(quoted[0]!.id)}
           />
         ) : null}
         {todos.toComplete.length > 0 ? (
