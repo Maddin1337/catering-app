@@ -377,6 +377,13 @@ Ziel: übersichtlicher, Aktionen in Daumenreichweite, moderne Übergänge. Detai
 - **Küche:** Hinweise der Küche als gelbe Notiz, Sonderessen mit Zähler und Anteil an den Gästen, Einträge mit Anzahl-Kachel, Allergenen und „kurzfristig“; Formular als Blatt mit +/− für die Personen.
 - Vorbilder aus Appllama: Partiful (Zähler-Kreise, Werkzeugleiste, Aktionsblatt), Supershift (Schichtliste mit „Schicht hinzufügen“), TimeTree (Ablauf). Neue Bausteine: `Stepper`, `IconButton` mit `tone`, `SegmentedTabs` mit `badge`. Logik in `src/features/shifts/staffing.ts` (getestet).
 
+## Mitteilungen in der App (18.10.2026)
+
+- **Abweichung A-40 (docs/01 §3.6, docs/02 §9):** Statt Push und E-Mail (braucht ein natives Build bzw. einen Mail-Dienst, A-34/E-3) gibt es Mitteilungen in der App: Glocke mit Zähler auf Start, Heute und Meine Schichten, Seite „Mitteilungen“ (Heute/Früher, Neues hervorgehoben, Tippen führt zum Auftrag bzw. zu den Schichten, nach kurzem Ansehen gelesen). Aktualisierung jede Minute und beim Zurückkehren in die App.
+- **Auslöser (Migration `20261107090000`, `remote-update-20261107090000.sql`):** neue Bewerbung, Rückzug, Absage durch Personal (an Admins); Zusage, Absage (an das Mitglied); neue veröffentlichte Schicht (an Küche/Personal mit passender Qualifikation); abgesagte Schicht (an Beworbene und Eingeplante); Annahme, Ablehnung, Änderungswunsch im Portal (an Admins); Sonderessen vom Kunden (an Admin und Küche, nur Anzahl und „kurzfristig“, keine Namen oder Diätformen). Wer etwas selbst auslöst, bekommt keine Mitteilung. Die Texte stehen in der App (`notifications.kind.*`), die Datenbank speichert nur Art und Rohdaten.
+- **Tests:** 16 pgTAP-Tests (Empfänger, kein Auslöser, nur eigene lesbar, keine andere Firma, keine Gesundheitsdaten), Jest-Tests für Texte, Ziele und Tagesaufteilung.
+- **Pilotdatenbank:** über den Supabase-Konnektor eingespielt; Abgleich mit der lokalen Referenz in allen 8 Bereichen identisch. Hinweis: Der Konnektor wertet Anweisungen mit dem Wort „delete“ (auch in Funktionskörpern) als Löschaktion und wartet auf eine Bestätigung, die in der Sitzung nicht erscheint; daher bricht er dort nach 60 s ab. `mark_notifications_read()` räumt deshalb keine alten Mitteilungen ab; die App zeigt die letzten 50.
+
 ## Datenbank des Pilotprojekts auf dem neuesten Stand (18.10.2026)
 
 Über den Supabase-Konnektor eingespielt: Updates 2 bis 17 (`20261022090000` bis `20261106090000`). Update 1 war schon vorhanden. Geprüft per `supabase/check-updates.sql` (alle OK) und per Abgleich mit einer lokal aus allen Migrationen aufgebauten Datenbank: Spalten, Einschränkungen, Tabellen- und Spaltenrechte, alle Funktionen (Inhalt, Rechte, `security definer`), Regeln (auch Storage), Trigger und Ansichten sind identisch.

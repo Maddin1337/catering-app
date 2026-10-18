@@ -93,6 +93,11 @@ export const UPDATES: Update[] = [
     title: 'Umsatzübersicht auf der Startseite',
     probe: { kind: 'rpc', name: 'revenue_overview', args: {} },
   },
+  {
+    file: '20261107090000',
+    title: 'Benachrichtigungen in der App',
+    probe: { kind: 'table', table: 'notifications' },
+  },
 ];
 
 /** Tabelle oder Funktion fehlt: Postgres 42P01/42703, PostgREST PGRST200–PGRST205 bzw. 404. */

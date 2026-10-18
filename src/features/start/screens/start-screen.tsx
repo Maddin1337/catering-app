@@ -28,6 +28,7 @@ import { formatDate } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 
 import { useDishes } from '../../catalog/api';
+import { NotificationBell } from '../../notifications/components/notification-bell';
 import { useMembership, useSubscription } from '../../company/api';
 import { useEvents, useSetEventStatus } from '../../events/api';
 import type { EventRow } from '../../events/types';
@@ -130,6 +131,7 @@ export function StartScreen() {
     <Screen
       title={name ? t('start.hello', { greeting, name }) : greeting}
       subtitle={todayLabel}
+      actions={<NotificationBell />}
       onRefresh={() => void refresh()}
       refreshing={refreshing}
     >

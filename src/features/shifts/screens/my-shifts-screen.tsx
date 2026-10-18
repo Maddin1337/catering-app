@@ -22,6 +22,7 @@ import { tokens } from '@/theme/tokens';
 
 import { useCompanyProfile, useMembership } from '../../company/api';
 import { StatGrid } from '../../start/components/stat-grid';
+import { NotificationBell } from '../../notifications/components/notification-bell';
 import { whenLabel } from '../../start/components/next-event-card';
 import { WeekStrip } from '../../start/components/week-strip';
 import { daysUntilIso, firstName, greetingPart, stripFromTimestamps } from '../../start/overview';
@@ -94,6 +95,7 @@ export function MyShiftsScreen({ standalone = false }: { standalone?: boolean })
       subtitle={standalone ? undefined : todayLabel}
       onBack={standalone ? () => router.back() : undefined}
       backLabel={t('common.back')}
+      actions={standalone ? undefined : <NotificationBell />}
     >
       {error ? <Banner tone="danger">{toAppError(error).message}</Banner> : null}
       {phoneHint ? <Banner tone="warning">{t('shifts.mine.phoneOnly')}</Banner> : null}

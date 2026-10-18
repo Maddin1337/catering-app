@@ -116,6 +116,10 @@ Berechnungen: `src/features/shifts/overview.ts` und `src/features/start/overview
 - **Küche:** gelbe Hinweis-Notiz, Zählerkarte Sonderessen, Einträge mit Anzahl-Kachel.
 - Alle Formulare der Reiter sind Blätter von unten; Zahlen werden mit `Stepper` (− / +) gesetzt.
 
+## Mitteilungen
+
+Glocke (`NotificationBell`) rechts in der Kopfleiste der Startseiten; das rote Abzeichen springt beim Eintreffen neuer Mitteilungen mit einer Feder herein. Die Seite gruppiert nach „Heute“ und „Früher“, ungelesene Zeilen haben einen hellen Petrol-Grund und einen Punkt, jede Art hat ein eigenes Symbol und einen eigenen Ton.
+
 ## Auftragsdetail und Formulare
 
 - **Auftragsdetail:** Zusammenfassungskarte (Status, „in n Tagen“, Termin, Kunde, Gäste, Adresse als Kartenlink, Optionsfrist), Angaben als gruppierte Karten mit Trennlinien (`FieldGroup`), Angebotskarte mit Nummer, Summe, Portal-Status und den Aktionen. Bearbeiten oben rechts, Kopieren und Seltenes im „⋯“-Menü, der nächste Status fest unten (siehe Tabelle oben).

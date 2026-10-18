@@ -26,6 +26,7 @@ import { formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { tints, tokens } from '@/theme/tokens';
 
+import { NotificationBell } from '../../notifications/components/notification-bell';
 import { useMembership } from '../../company/api';
 import { useDietary, useEvents, useScheduleItems } from '../../events/api';
 import type { EventRow } from '../../events/types';
@@ -61,7 +62,11 @@ export function TodayScreen() {
   const upcoming = firm.filter((e) => isoToBerlin(e.starts_at).date >= todayBerlin());
 
   return (
-    <Screen title={name ? t('start.hello', { greeting, name }) : greeting} subtitle={todayLabel}>
+    <Screen
+      title={name ? t('start.hello', { greeting, name }) : greeting}
+      subtitle={todayLabel}
+      actions={<NotificationBell />}
+    >
       {events.error ? <Banner tone="danger">{toAppError(events.error).message}</Banner> : null}
 
       <WeekStrip days={weekStrip(firm)} />

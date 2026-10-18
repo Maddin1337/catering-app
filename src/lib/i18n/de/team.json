@@ -1556,5 +1556,70 @@
     "packageHint": "Mehrere Gerichte zu einem Preis",
     "invite": "Teammitglied einladen",
     "inviteHint": "Link für Küche oder Personal"
+  },
+  "notifications": {
+    "title": "Mitteilungen",
+    "bell": "Mitteilungen",
+    "bellUnread_one": "Mitteilungen, {{count}} neu",
+    "bellUnread_other": "Mitteilungen, {{count}} neu",
+    "empty": "Noch keine Mitteilungen. Hier erscheinen neue Bewerbungen, Zusagen, Annahmen und Änderungswünsche.",
+    "markAll": "Alle als gelesen markieren",
+    "today": "Heute",
+    "earlier": "Früher",
+    "justNow": "gerade eben",
+    "minutesAgo_one": "vor {{count}} Min.",
+    "minutesAgo_other": "vor {{count}} Min.",
+    "hoursAgo_one": "vor {{count}} Std.",
+    "hoursAgo_other": "vor {{count}} Std.",
+    "someCustomer": "Der Kunde",
+    "inCity": " in {{city}}",
+    "short": "(kurzfristig)",
+    "unread": "neu",
+    "kind": {
+      "application_new": {
+        "title": "Neue Bewerbung",
+        "body": "{{member}} möchte „{{slot}}“ am {{date}} übernehmen."
+      },
+      "application_withdrawn": {
+        "title": "Bewerbung zurückgezogen",
+        "body": "{{member}} hat die Bewerbung für „{{slot}}“ am {{date}} zurückgezogen."
+      },
+      "shift_cancelled_by_staff": {
+        "title": "Absage einer Schicht",
+        "body": "{{member}} hat „{{slot}}“ am {{date}} abgesagt. Der Platz ist wieder frei."
+      },
+      "shift_confirmed": {
+        "title": "Du bist eingeplant",
+        "body": "„{{slot}}“ am {{date}} um {{time}} Uhr. Alles Weitere steht unter Meine Schichten."
+      },
+      "shift_rejected": {
+        "title": "Diesmal nicht dabei",
+        "body": "Für „{{slot}}“ am {{date}} hat es leider nicht geklappt."
+      },
+      "shift_new": {
+        "title": "Neue Schicht frei",
+        "body": "„{{slot}}“ am {{date}}{{place}}. Jetzt in der Schichtbörse bewerben."
+      },
+      "shift_slot_cancelled": {
+        "title": "Schicht entfällt",
+        "body": "„{{slot}}“ am {{date}} wurde abgesagt."
+      },
+      "quote_accepted": {
+        "title": "Angebot angenommen",
+        "body": "{{customer}} hat das Angebot für „{{event}}“ angenommen."
+      },
+      "quote_declined": {
+        "title": "Angebot abgelehnt",
+        "body": "{{customer}} hat das Angebot für „{{event}}“ abgelehnt."
+      },
+      "change_requested": {
+        "title": "Änderungswunsch",
+        "body": "{{customer}} wünscht eine Änderung an „{{event}}“."
+      },
+      "dietary_added": {
+        "title": "Sonderessen eingetragen",
+        "body": "Für „{{event}}“ am {{date}} kamen Sonderessen für {{count}} Personen dazu."
+      }
+    }
   }
 }

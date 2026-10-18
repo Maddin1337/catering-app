@@ -53,6 +53,7 @@ select is(
     'public.invitation_preview',
     'public.issue_portal_token',
     'public.leave_company',
+    'public.mark_notifications_read',
     'public.portal_accept_quote',
     'public.portal_decline_quote',
     'public.portal_delete_dietary',

@@ -43,6 +43,7 @@ from (values
   (16, '20261105090000', 'Kalender-Abo',                          to_regclass('public.calendar_tokens') is not null),
   (17, '20261106090000', 'Umsatzübersicht auf der Startseite',
         exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                 where n.nspname = 'public' and p.proname = 'revenue_overview'))
+                 where n.nspname = 'public' and p.proname = 'revenue_overview')),
+  (18, '20261107090000', 'Benachrichtigungen in der App',         to_regclass('public.notifications') is not null)
 ) as p(nr, version, titel, ok)
 order by p.nr;

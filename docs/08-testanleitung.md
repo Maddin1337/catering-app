@@ -25,6 +25,7 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 15 | `remote-update-20261104090000.sql` | Annahme durch das Team macht die Fassung verbindlich |
 | 16 | `remote-update-20261105090000.sql` | Kalender-Abo |
 | 17 | `remote-update-20261106090000.sql` | Umsatzübersicht auf der Startseite |
+| 18 | `remote-update-20261107090000.sql` | Mitteilungen in der App |
 
 **Welche Updates fehlen?** Den Inhalt von `supabase/check-updates.sql` im SQL Editor ausführen: Die Abfrage ändert nichts und zeigt je Update „OK“ oder „FEHLT“. Nur die Zeilen mit FEHLT einspielen, der Reihe nach.
 
@@ -40,7 +41,7 @@ Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt 
 6. **Küche:** Mehr → Küchenplanung. Zeitraum wählen, Produktion, Sonderessen und Einkauf prüfen. Bei einem Sonderessen unter „Küche“ im Auftrag ein Ersatzgericht eintragen.
 7. **Logo:** Einstellungen → Branding → Logo wählen. Es erscheint im PDF und im Portal.
 8. **Kalender-Abo:** Mehr → Profil → „Im Kalender abonnieren“ (iPhone/Mac: webcal-Link öffnet Kalender; sonst Link kopieren). Funktioniert erst, wenn die Web-App (Vercel) mit dem neuen Ordner `api/` ausgeliefert ist.
-9. **Personal:** Im Auftrag Tab „Personal“ → „Schicht anlegen“ (Qualifikation wählen, Plätze mit +/−). Ist der Auftrag optioniert oder bestätigt, steht die Schicht sofort in der Schichtbörse; sonst geht sie automatisch hinein, sobald du den Termin vormerkst. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner.
+9. **Personal:** Im Auftrag Tab „Personal“ → „Schicht anlegen“ (Qualifikation wählen, Plätze mit +/−). Ist der Auftrag optioniert oder bestätigt, steht die Schicht sofort in der Schichtbörse; sonst geht sie automatisch hinein, sobald du den Termin vormerkst. Mit einer eingeladenen Aushilfe: Schichtbörse → „Bewerben“; du sagst zu; „Meine Schichten“ zeigt jetzt Adresse und Ansprechpartner. Dabei erscheinen Mitteilungen an der Glocke: neue Schicht (Aushilfe), neue Bewerbung (du), Zusage (Aushilfe).
 
 ## 3. Was bewusst noch fehlt
 
