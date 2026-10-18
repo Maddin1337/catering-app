@@ -220,6 +220,25 @@ Kundenportal (M6, Seite hinter dem Link), Annahme/Ablehnung durch den Kunden, ve
 
 Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kunden (M6), Sperren der Links in der App, echter E-Mail-Versand mit PDF-Anhang (E-3), Allergen-Anzeige live im Portal.
 
+## M6 (Kern) · Kundenportal
+
+- **Datenbank:** `supabase/migrations/20261028090000_m6_portal.sql` (Spalten für Aufruf, Annahme, Ablehnung und Änderungswunsch an `quotes`; RPCs `portal_get`, `portal_accept_quote`, `portal_decline_quote`, `portal_request_change` für `anon` und `authenticated`, `resolve_pending_change` für Admins). Annahme: `quoted`/`optioned` → `confirmed` (Historie mit `actor_kind = 'portal'`); Ablehnung: `quoted` → `declined`, `optioned` → `cancelled`, beides endgültig; Annahme der neuen Fassung bei bestätigtem Auftrag mit „Bitte bestätigen“. Änderungsschluss nach R2-6 (72 h/24 h oder `changes_until`). Für das Dashboard: `supabase/remote-update-20261028090000.sql`. 429 pgTAP-Tests laufen lokal, auch mit dem Gesamtbundle.
+- **App:** `/portal/[token]` (Siezen, ab 360 px): Auftragsdaten, Positionen mit Allergen-Codes und Legende, Summen, Anzahlung, Konditionen, PDF, Annehmen (Name, Haken, Kommentar), Ablehnen (Grund optional), Änderungswunsch (Name, Gästezahl, Nachricht), Zustände „Link ungültig“, „Link nicht mehr gültig“, abgelaufen, abgeschlossen, neue Fassung. Im Auftrag zeigt die Team-App, ob der Kunde angesehen, angenommen, abgelehnt oder eine Änderung gewünscht hat, und lässt den Wunsch als erledigt markieren.
+- **Geprüft:** Typecheck, Lint, Jest, pgTAP (u. a. unbekannter/gesperrter Token, veraltete Fassung, doppelte Annahme, Änderungsschluss, keine internen Felder in der Antwort); im Browser mit Handy-Profil gegen eine simulierte Datenbank: Link ungültig, Ansicht, Annahme.
+
+### Abweichungen M6
+
+| Nr. | Thema | Plan | Umsetzung | Grund |
+|---|---|---|---|---|
+| A-28 | Portal-API | Edge Function `portal-api` mit Rate-Limit | RPCs für `anon`, der Token (244 Bit, nur als Hash gespeichert) ist das Geheimnis; feste Feldauswahl | kein Edge-Function-Deployment möglich (siehe A-25) |
+| A-29 | Wahlgruppen und Sonderessen im Portal | Auswahlkarten, `portal_select_choice`, `portal_save_dietary` | noch nicht gebaut; Änderungswunsch als Nachricht (Gästezahl, Text) | Umsetzung braucht die Neuberechnung im Datenbankmodul bzw. weitere Tabellen, kommt als nächster Schritt |
+| A-30 | Allergene | live aus dem Katalog | aus dem Snapshot der versendeten Fassung | einfacher; bei Allergenänderungen nach dem Versand neue Fassung senden |
+| A-31 | Benachrichtigungen | Tabelle `notifications`, E-Mail an den Admin | Anzeige im Auftrag (Aufruf, Annahme, Ablehnung, Wunsch) | kein E-Mail-Dienst (E-3); Liste folgt mit M7 |
+
+### Noch offen
+
+`binding_snapshot` für die Küche nach Annahme, Wahlgruppen und Sonderessen im Portal, Benachrichtigungsliste und Start-Karten „offene Änderungswünsche“, Jobs (Option-Erinnerung, Angebotsablauf), Annahme-PDF.
+
 ## Nicht in M0 gebaut (bewusst)
 
 | Punkt | Warum | Wann |

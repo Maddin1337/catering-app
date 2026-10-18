@@ -175,3 +175,52 @@ export function useDiscardChanges() {
     onSuccess: () => queryClient.invalidateQueries(),
   });
 }
+
+export type PortalInfo = {
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  accepted_at: string | null;
+  acceptance_name: string | null;
+  acceptance_revision: number | null;
+  acceptance_comment: string | null;
+  declined_at: string | null;
+  decline_reason: string | null;
+  decline_comment: string | null;
+  pending_change: {
+    requested_at: string;
+    revision: number;
+    name: string;
+    comment: string | null;
+    guest_count: number | null;
+  } | null;
+};
+
+/** Was der Kunde im Portal getan hat (Aufruf, Annahme, Ablehnung, Änderungswunsch). */
+export function usePortalInfo(quoteId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['quotes', 'portal-info', quoteId],
+    enabled: !!quoteId && enabled,
+    queryFn: async (): Promise<PortalInfo> => {
+      const { data, error } = await client()
+        .from('quotes')
+        .select(
+          'first_viewed_at, last_viewed_at, accepted_at, acceptance_name, acceptance_revision, acceptance_comment, declined_at, decline_reason, decline_comment, pending_change',
+        )
+        .eq('id', quoteId!)
+        .single();
+      if (error) throw toAppError(error);
+      return data as unknown as PortalInfo;
+    },
+  });
+}
+
+export function useResolveChange() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const { error } = await client().rpc('resolve_pending_change', { p_quote_id: quoteId });
+      if (error) throw toAppError(error);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quotes'] }),
+  });
+}

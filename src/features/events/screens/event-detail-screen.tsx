@@ -16,6 +16,7 @@ import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useExistingQuote } from '../../quotes/api';
+import { PortalStatus } from '../../quotes/components/portal-status';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
 import { KitchenTab } from '../components/kitchen-tab';
 import { ScheduleTab } from '../components/schedule-tab';
@@ -271,6 +272,24 @@ export function EventDetailScreen() {
                 router.push({ pathname: '/events/[id]/quote', params: { id: event.id } })
               }
             />
+          ) : null}
+          {quote && quote.revision > 0 ? (
+            <>
+              <Text variant="small" color="textSecondary">
+                {t('events.detail.quoteSent', { n: quote.revision })}
+                {quote.has_unsent_changes ? ` · ${t('quoteSend.unsent')}` : ''}
+              </Text>
+              <PortalStatus quoteId={quote.id} enabled />
+              {!closed ? (
+                <Button
+                  label={t('quoteSend.title')}
+                  variant="secondary"
+                  onPress={() =>
+                    router.push({ pathname: '/events/[id]/quote-send', params: { id: event.id } })
+                  }
+                />
+              ) : null}
+            </>
           ) : null}
           {!closed ? (
             <Button

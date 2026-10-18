@@ -741,7 +741,8 @@
       "map": "In Karten öffnen",
       "call": "Anrufen",
       "open": "Offen",
-      "historyEntry": "{{from}} → {{to}}"
+      "historyEntry": "{{from}} → {{to}}",
+      "quoteSent": "Fassung {{n}} versendet"
     },
     "dialog": {
       "title": "„{{title}}“: {{action}}?",
@@ -1208,6 +1209,15 @@
     "send": "Zum Versand",
     "sentBadge": "Fassung {{n}} versendet",
     "editFirst": "Du bearbeitest den Entwurf nach Fassung {{n}}.",
-    "mailFailed": "Die E-Mail-App ließ sich nicht öffnen. Kopiere den Link und schicke ihn selbst."
+    "mailFailed": "Die E-Mail-App ließ sich nicht öffnen. Kopiere den Link und schicke ihn selbst.",
+    "portal": {
+      "accepted": "Angenommen von {{name}} am {{date}} (Fassung {{revision}}).",
+      "declined": "Vom Kunden abgelehnt am {{date}}. Grund: {{reason}}",
+      "viewed": "Der Kunde hat das Angebot zuletzt am {{date}} angesehen.",
+      "notViewed": "Der Kunde hat das Angebot noch nicht angesehen.",
+      "comment": "Anmerkung des Kunden: {{text}}",
+      "change": "Änderungswunsch von {{name}} ({{date}}): Gästezahl {{guests}}. {{text}}",
+      "resolve": "Änderungswunsch erledigt"
+    }
   }
 }

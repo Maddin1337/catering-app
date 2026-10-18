@@ -1,6 +1,90 @@
 {
-  "placeholder": {
-    "title": "Ihr Angebot",
-    "body": "Das Kundenportal wird in einem späteren Meilenstein ausgebaut. Hier sehen Sie künftig Ihr Angebot und können es online annehmen."
+  "loading": "Ihr Angebot wird geladen …",
+  "invalid": {
+    "title": "Link ungültig",
+    "body": "Dieser Link ist nicht gültig. Bitte prüfen Sie, ob Sie ihn vollständig kopiert haben."
+  },
+  "revoked": {
+    "title": "Link nicht mehr gültig",
+    "body": "Bitte kontaktieren Sie {{company}}, um einen neuen Link zu erhalten."
+  },
+  "title": "Ihr Angebot {{number}}",
+  "status": {
+    "open": "Angebot vom {{date}}",
+    "validUntil": "gültig bis {{date}}",
+    "reserved": "Termin für Sie reserviert.",
+    "accepted": "Verbindlich angenommen am {{date}} von {{name}}.",
+    "newVersion": "Neue Version – bitte bestätigen. Bis dahin gilt die bisher angenommene Fassung.",
+    "declined": "Sie haben dieses Angebot am {{date}} abgelehnt.",
+    "expired": "Dieses Angebot ist abgelaufen. Bitte kontaktieren Sie {{company}}.",
+    "closed": "Dieser Auftrag ist abgeschlossen oder storniert. Das Angebot dient nur noch zur Ansicht.",
+    "pendingChange": "Ihr Änderungswunsch liegt {{company}} vor und wird geprüft."
+  },
+  "event": "Ihre Veranstaltung",
+  "guests": "{{count}} Gäste",
+  "items": "Leistungen",
+  "terms": "Konditionen",
+  "contact": "Fragen? Wir sind für Sie da",
+  "call": "Anrufen",
+  "mail": "E-Mail schreiben",
+  "pdf": "PDF öffnen",
+  "pdfFailed": "Das PDF konnte nicht erstellt werden.",
+  "accept": {
+    "button": "Verbindlich annehmen",
+    "title": "Angebot verbindlich annehmen",
+    "body": "Mit der Annahme beauftragen Sie {{company}} verbindlich. Die Zusammenfassung unten gilt.",
+    "name": "Ihr Name",
+    "email": "Ihre E-Mail-Adresse (optional)",
+    "comment": "Anmerkung (optional)",
+    "check": "Ich nehme das Angebot {{number}}, Fassung {{revision}}, verbindlich an.",
+    "submit": "Jetzt verbindlich annehmen",
+    "summary": "{{date}} · {{guests}} Gäste · {{total}} brutto"
+  },
+  "decline": {
+    "button": "Ablehnen",
+    "title": "Angebot ablehnen",
+    "body": "Die Ablehnung ist endgültig. Sie können sich jederzeit wieder bei {{company}} melden; dann entsteht ein neues Angebot.",
+    "reason": "Grund (optional)",
+    "comment": "Anmerkung (optional)",
+    "submit": "Endgültig ablehnen",
+    "reasons": {
+      "price": "Zu teuer",
+      "other_provider": "Anderer Anbieter",
+      "cancelled": "Veranstaltung abgesagt",
+      "other": "Sonstiges"
+    }
+  },
+  "change": {
+    "button": "Änderung wünschen",
+    "title": "Änderung wünschen",
+    "body": "Ihr Wunsch geht an {{company}}. Dort wird er geprüft; Sie erhalten danach ein angepasstes Angebot.",
+    "name": "Ihr Name",
+    "guests": "Neue Gästezahl (optional)",
+    "comment": "Ihre Nachricht",
+    "submit": "Wunsch senden",
+    "big": "Bei größeren Änderungen rufen Sie bitte kurz an: {{phone}}",
+    "until": "Änderungen möglich bis {{date}}",
+    "locked": "Kurzfristige Änderungen bitte telefonisch: {{phone}}",
+    "sent": "Vielen Dank – Ihr Wunsch ist angekommen."
+  },
+  "done": {
+    "accepted": "Vielen Dank – Sie haben verbindlich angenommen.",
+    "declined": "Vielen Dank für Ihre Rückmeldung."
+  },
+  "cancel": "Abbrechen",
+  "legal": {
+    "imprint": "Impressum",
+    "privacy": "Datenschutz"
+  },
+  "errors": {
+    "portal_invalid": "Dieser Link ist nicht mehr gültig.",
+    "revision_outdated": "Das Angebot wurde inzwischen aktualisiert. Bitte laden Sie die Seite neu.",
+    "name_required": "Bitte geben Sie Ihren Namen und eine Nachricht an.",
+    "invalid_email": "Bitte prüfen Sie Ihre E-Mail-Adresse.",
+    "quote_expired": "Das Angebot ist abgelaufen. Bitte kontaktieren Sie uns.",
+    "not_acceptable": "Das ist beim aktuellen Stand nicht mehr möglich. Bitte laden Sie die Seite neu.",
+    "changes_locked": "Der Änderungsschluss ist vorbei. Bitte rufen Sie uns an.",
+    "offline": "Keine Verbindung. Bitte versuchen Sie es erneut.",
+    "unknown": "Das hat nicht geklappt. Bitte versuchen Sie es erneut."
   }
 }

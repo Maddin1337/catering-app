@@ -14,7 +14,7 @@ select p.oid,
 select is(
   (select coalesce(array_agg(sig order by sig), '{}')
      from fns where has_function_privilege('anon', oid, 'execute')),
-  array['public.invitation_preview'],
+  array['public.invitation_preview', 'public.portal_accept_quote', 'public.portal_decline_quote', 'public.portal_get', 'public.portal_request_change'],
   'Für anon ist nur die Einladungs-Vorschau ausführbar (der Token ist das Geheimnis)'
 );
 
@@ -45,9 +45,14 @@ select is(
     'public.invitation_preview',
     'public.issue_portal_token',
     'public.leave_company',
+    'public.portal_accept_quote',
+    'public.portal_decline_quote',
+    'public.portal_get',
+    'public.portal_request_change',
     'public.remove_member',
     'public.resend_invitation',
     'public.reset_intake_questions',
+    'public.resolve_pending_change',
     'public.revoke_invitation',
     'public.revoke_portal_tokens',
     'public.save_dish',
