@@ -70,6 +70,20 @@ export function MoreScreen() {
             onPress={() => router.push('/customers')}
           />
         ) : null}
+        {role === 'kitchen' ? (
+          <>
+            <ActionCard
+              title={t('shifts.board.title')}
+              body={t('shifts.board.moreBody')}
+              onPress={() => router.push('/shift-board')}
+            />
+            <ActionCard
+              title={t('shifts.mine.title')}
+              body={t('shifts.mine.moreBody')}
+              onPress={() => router.push('/my-shifts')}
+            />
+          </>
+        ) : null}
         {role === 'admin' || role === 'kitchen' ? (
           <ActionCard
             title={t('kitchenPlan.more')}

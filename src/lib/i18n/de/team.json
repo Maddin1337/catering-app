@@ -1364,7 +1364,8 @@
       "kind": {
         "event_catering": "Event-Catering",
         "business_lunch": "Business-Lunch"
-      }
+      },
+      "moreBody": "Offene Schichten, auf die du dich bewerben kannst."
     },
     "mine": {
       "title": "Meine Einsätze",
@@ -1386,7 +1387,8 @@
       "meeting": "Treffpunkt",
       "dress": "Dresscode",
       "notes": "Hinweise",
-      "pending": "Du bekommst Bescheid, sobald zugesagt ist."
+      "pending": "Du bekommst Bescheid, sobald zugesagt ist.",
+      "moreBody": "Deine Bewerbungen und zugesagten Einsätze."
     }
   }
 }
