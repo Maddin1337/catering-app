@@ -4,16 +4,11 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import {
-  addDays,
-  endOfBerlinDayIso,
-  formatGermanDate,
-  parseGermanDate,
-  todayBerlin,
-} from '@/lib/berlin';
+import { addDays, endOfBerlinDayIso, todayBerlin } from '@/lib/berlin';
 import { requirementsFor, type EventStatus } from '@/lib/event-status';
 import { toAppError } from '@/lib/errors';
 import { tokens } from '@/theme/tokens';
@@ -42,14 +37,14 @@ export function StatusDialog({
   const extend = event.status === 'optioned' && target === 'optioned';
   const actionKey = extend ? 'optionedExtend' : target;
 
-  const [optionDate, setOptionDate] = useState(formatGermanDate(addDays(todayBerlin(), 7)));
+  const [optionDate, setOptionDate] = useState(addDays(todayBerlin(), 7));
   const [channel, setChannel] = useState<Channel | null>(null);
   const [reason, setReason] = useState('');
   const [invoiceRef, setInvoiceRef] = useState('');
   const [invoiceDate, setInvoiceDate] = useState('');
   const [tried, setTried] = useState(false);
 
-  const optionIso = parseGermanDate(optionDate);
+  const optionIso = optionDate || null;
   const optionError =
     needs.includes('option') && (!optionIso || optionIso < todayBerlin())
       ? t('events.dialog.optionError')
@@ -58,17 +53,13 @@ export function StatusDialog({
     needs.includes('channel') && !channel ? t('events.dialog.channelError') : undefined;
   const reasonError =
     needs.includes('reason') && reason.trim() === '' ? t('events.dialog.reasonError') : undefined;
-  const invDateParsed = invoiceDate.trim() === '' ? undefined : parseGermanDate(invoiceDate);
-  const invoiceError =
-    needs.includes('invoice') && invoiceDate.trim() !== '' && !invDateParsed
-      ? t('events.dialog.invoiceDateError')
-      : undefined;
+  const invDateParsed = invoiceDate || undefined;
   const notYet = target === 'completed' && event.starts_at > new Date().toISOString();
   const danger = target === 'declined' || target === 'cancelled';
 
   const submit = () => {
     setTried(true);
-    if (optionError || channelError || reasonError || invoiceError) return;
+    if (optionError || channelError || reasonError) return;
     set.mutate(
       {
         eventId: event.id,
@@ -106,10 +97,10 @@ export function StatusDialog({
             {notYet ? <Banner tone="warning">{t('events.dialog.notYet')}</Banner> : null}
 
             {needs.includes('option') ? (
-              <TextField
+              <DateField
                 label={t('events.dialog.optionDate')}
                 value={optionDate}
-                onChangeText={setOptionDate}
+                onChange={setOptionDate}
                 error={tried ? optionError : undefined}
               />
             ) : null}
@@ -145,11 +136,11 @@ export function StatusDialog({
                   value={invoiceRef}
                   onChangeText={setInvoiceRef}
                 />
-                <TextField
+                <DateField
                   label={t('events.dialog.invoicedOn')}
                   value={invoiceDate}
-                  onChangeText={setInvoiceDate}
-                  error={tried ? invoiceError : undefined}
+                  onChange={setInvoiceDate}
+                  optional
                 />
               </>
             ) : null}

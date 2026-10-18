@@ -5,17 +5,12 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { DateField } from '@/components/ui/date-field';
 import { ListRow } from '@/components/ui/list-row';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import {
-  berlinToIso,
-  endIso,
-  formatGermanDate,
-  isoToBerlin,
-  parseGermanDate,
-  parseTime,
-} from '@/lib/berlin';
+import { TimeField } from '@/components/ui/time-field';
+import { berlinToIso, endIso, isoToBerlin } from '@/lib/berlin';
 import { formatDate, formatTime } from '@/lib/dates';
 import { toAppError } from '@/lib/errors';
 import { tokens } from '@/theme/tokens';
@@ -146,16 +141,16 @@ function ItemForm({
   const e = item?.ends_at ? isoToBerlin(item.ends_at) : null;
   const [kind, setKind] = useState<ScheduleItem['kind']>(item?.kind ?? 'setup');
   const [label, setLabel] = useState(item?.label ?? '');
-  const [date, setDate] = useState(formatGermanDate(s.date));
+  const [date, setDate] = useState(s.date);
   const [start, setStart] = useState(s.time);
   const [end, setEnd] = useState(e?.time ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [tried, setTried] = useState(false);
 
-  const isoDate = parseGermanDate(date);
-  const startOk = parseTime(start);
-  const endOk = end.trim() === '' ? null : parseTime(end);
-  const invalid = !isoDate || !startOk || (end.trim() !== '' && !endOk);
+  const isoDate = date || null;
+  const startOk = start || null;
+  const endOk = end || null;
+  const invalid = !isoDate || !startOk;
 
   const submit = () => {
     setTried(true);
@@ -190,23 +185,24 @@ function ItemForm({
         ))}
       </View>
       <TextField label={t('events.schedule.label')} value={label} onChangeText={setLabel} />
-      <TextField
+      <DateField
         label={t('events.schedule.date')}
         value={date}
-        onChangeText={setDate}
+        onChange={setDate}
         error={tried && !isoDate ? t('events.schedule.error') : undefined}
       />
-      <TextField
+      <TimeField
         label={t('events.schedule.start')}
         value={start}
-        onChangeText={setStart}
+        onChange={setStart}
         error={tried && !startOk ? t('events.schedule.error') : undefined}
       />
-      <TextField
+      <TimeField
         label={t('events.schedule.end')}
         value={end}
-        onChangeText={setEnd}
-        error={tried && end.trim() !== '' && !endOk ? t('events.schedule.error') : undefined}
+        onChange={setEnd}
+        optional
+        defaultHour={14}
       />
       <TextField
         label={t('events.schedule.notes')}

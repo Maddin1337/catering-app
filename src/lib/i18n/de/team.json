@@ -655,10 +655,10 @@
       "customerCreate": "„{{name}}“ anlegen",
       "customerChange": "Kunde ändern",
       "kind": "Art",
-      "date": "Datum (TT.MM.JJJJ)",
-      "start": "Beginn (HH:MM)",
-      "end": "Ende (HH:MM, optional)",
-      "endHint": "Endet das Event nach Mitternacht, trage die Uhrzeit des Folgetags ein, z. B. 02:00.",
+      "date": "Datum",
+      "start": "Beginn",
+      "end": "Ende (optional)",
+      "endHint": "Endet das Event nach Mitternacht, wähle einfach die spätere Uhrzeit, z. B. 02:00. Das Ende liegt dann am Folgetag.",
       "title": "Titel",
       "titleHint": "Eingeplantes Personal sieht den Titel. Nimm keinen Kundennamen.",
       "occasion": "Anlass (z. B. Hochzeit)",
@@ -677,16 +677,19 @@
       "save": "Speichern",
       "errors": {
         "customer": "Bitte wähle einen Kunden.",
-        "date": "Bitte gib ein Datum wie 23.10.2026 ein.",
-        "start": "Bitte gib eine Uhrzeit wie 12:00 ein.",
+        "date": "Bitte wähle ein Datum.",
+        "start": "Bitte wähle eine Uhrzeit.",
         "end": "Bitte gib eine Uhrzeit wie 14:30 ein oder lass das Feld leer.",
         "title": "Bitte gib einen Titel ein.",
         "guests": "Bitte gib eine ganze Zahl ab 1 ein.",
-        "changesUntil": "Bitte gib Datum und Uhrzeit wie 20.10.2026 12:00 ein."
+        "changesUntil": "Bitte wähle Datum und Uhrzeit oder entferne beides."
       },
       "warnPast": "Das Datum liegt in der Vergangenheit.",
       "warnSameDay_one": "Am {{date}} gibt es schon {{count}} Auftrag.",
-      "warnSameDay_other": "Am {{date}} gibt es schon {{count}} Aufträge."
+      "warnSameDay_other": "Am {{date}} gibt es schon {{count}} Aufträge.",
+      "changesUntilDate": "Änderungen im Portal bis: Datum (optional)",
+      "changesUntilTime": "Änderungen im Portal bis: Uhrzeit",
+      "changesUntilHint": "Vorbelegt aus deiner Einstellung für die Auftragsart. Ohne Datum gibt es keinen Änderungsschluss."
     },
     "detail": {
       "title": "Auftrag",
@@ -728,14 +731,14 @@
       "title": "„{{title}}“: {{action}}?",
       "cancel": "Abbrechen",
       "irreversible": "Dieser Schritt kann nicht rückgängig gemacht werden.",
-      "optionDate": "Optioniert bis (TT.MM.JJJJ)",
+      "optionDate": "Optioniert bis",
       "optionError": "Bitte gib ein Datum ab heute ein.",
       "channel": "Wie wurde bestätigt?",
       "channelError": "Bitte wähle einen Bestätigungsweg.",
       "reason": "Grund",
       "reasonError": "Bitte nenne einen Grund.",
       "invoiceReference": "Rechnungsnummer (optional)",
-      "invoicedOn": "Rechnungsdatum (TT.MM.JJJJ, optional)",
+      "invoicedOn": "Rechnungsdatum (optional)",
       "invoiceDateError": "Bitte gib ein Datum wie 23.10.2026 ein oder lass das Feld leer.",
       "notYet": "Das Event hat noch nicht stattgefunden.",
       "channels": {
@@ -756,16 +759,17 @@
     "copy": {
       "title": "Auftrag kopieren",
       "body": "Der Zeitplan wird mit verschoben, die Uhrzeiten bleiben gleich.",
-      "dates": "Neue Termine (TT.MM.JJJJ, einer pro Zeile, höchstens 10)",
+      "dates": "Neue Termine (bis zu 10)",
       "sameWeekday": "Gleicher Wochentag nächste Woche",
       "status": "Startstatus",
       "startInquiry": "Anfrage",
       "startConfirmed": "Bestätigt (Direktbestätigung)",
       "dietary": "Sonderessen mitkopieren",
-      "dateError": "Bitte gib bis zu 10 Daten wie 30.10.2026 ein, eines pro Zeile.",
+      "dateError": "Bitte wähle mindestens einen Termin.",
       "submit": "Kopieren",
       "done": "{{count}} Auftrag angelegt.",
-      "confirmTitle": "Kopie als „bestätigt“ anlegen?"
+      "confirmTitle": "Kopie als „bestätigt“ anlegen?",
+      "dateN": "Termin {{n}}"
     },
     "schedule": {
       "empty": "Noch kein Zeitplan.",
@@ -786,7 +790,7 @@
       "notes": "Notiz",
       "save": "Speichern",
       "delete": "Löschen",
-      "error": "Bitte gib Datum und Uhrzeit korrekt ein."
+      "error": "Bitte wähle Datum und Uhrzeit."
     },
     "kitchen": {
       "title": "Sonderessen und Allergien",
@@ -853,5 +857,18 @@
     "provisional": "vorläufig",
     "special_one": "{{count}} Sonderessen",
     "special_other": "{{count}} Sonderessen"
+  },
+  "picker": {
+    "choose": "wählen",
+    "chooseDate": "Datum wählen",
+    "chooseTime": "Uhrzeit wählen",
+    "oclock": "Uhr",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "clear": "Entfernen",
+    "hour": "Stunde",
+    "minute": "Minute",
+    "apply": "{{time}} Uhr übernehmen",
+    "add": "Weiteren Termin hinzufügen"
   }
 }

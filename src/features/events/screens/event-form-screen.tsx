@@ -6,19 +6,13 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { TextField } from '@/components/ui/text-field';
-import {
-  berlinToIso,
-  endIso,
-  formatGermanDate,
-  isoToBerlin,
-  parseGermanDate,
-  parseTime,
-  todayBerlin,
-} from '@/lib/berlin';
+import { TimeField } from '@/components/ui/time-field';
+import { berlinToIso, endIso, formatGermanDate, isoToBerlin, todayBerlin } from '@/lib/berlin';
 import { toAppError } from '@/lib/errors';
 
 import { useCompanySettings } from '../../settings/api';
@@ -88,7 +82,7 @@ function EventForm({
     existing?.customer_id ?? presetCustomerId ?? null,
   );
   const [kind, setKind] = useState<EventKind>(existing?.kind ?? 'event_catering');
-  const [date, setDate] = useState(start ? formatGermanDate(start.date) : '');
+  const [date, setDate] = useState(start?.date ?? '');
   const [startTime, setStartTime] = useState(start?.time ?? '');
   const [endTime, setEndTime] = useState(end?.time ?? '');
   const [titleDraft, setTitleDraft] = useState<string | null>(existing?.title ?? null);
@@ -104,18 +98,19 @@ function EventForm({
   const [kitchenNotes, setKitchenNotes] = useState(existing?.kitchen_notes ?? '');
   const [staffNotes, setStaffNotes] = useState(existing?.staff_notes ?? '');
   const [internalNotes, setInternalNotes] = useState(existing?.internal_notes ?? '');
-  const [changesDraft, setChangesDraft] = useState<string | null>(
+  // Änderungsschluss: bis zur ersten Eingabe gilt die Vorbelegung bzw. der gespeicherte Wert
+  const [changesDraft, setChangesDraft] = useState<{ date: string; time: string } | null>(
     existing
       ? existing.changes_until
-        ? `${formatGermanDate(isoToBerlin(existing.changes_until).date)} ${isoToBerlin(existing.changes_until).time}`
-        : ''
+        ? isoToBerlin(existing.changes_until)
+        : { date: '', time: '' }
       : null,
   );
   const [tried, setTried] = useState(false);
 
-  const isoDate = parseGermanDate(date);
-  const startOk = parseTime(startTime);
-  const endOk = endTime.trim() === '' ? null : parseTime(endTime);
+  const isoDate = date || null;
+  const startOk = startTime || null;
+  const endOk = endTime || null;
   const guestNum =
     guests.trim() === ''
       ? null
@@ -129,17 +124,15 @@ function EventForm({
   const startsAt = isoDate && startOk ? berlinToIso(isoDate, startOk) : null;
   // Änderungsschluss: Vorbelegung aus der Firmeneinstellung der Auftragsart, wenn nichts eingetragen ist
   const lead = leadHours[kind];
-  let defaultChanges = '';
+  let defaultChanges = { date: '', time: '' };
   if (lead !== null && startsAt) {
-    const t0 = isoToBerlin(new Date(Date.parse(startsAt) - lead * 3_600_000));
-    defaultChanges = `${formatGermanDate(t0.date)} ${t0.time}`;
+    defaultChanges = isoToBerlin(new Date(Date.parse(startsAt) - lead * 3_600_000));
   }
-  const changesText = changesDraft ?? defaultChanges;
-  const changesMatch = /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:?\d{2})$/.exec(changesText.trim());
-  const changesDate = changesMatch ? parseGermanDate(changesMatch[1]!) : null;
-  const changesTime = changesMatch ? parseTime(changesMatch[2]!) : null;
+  const changes = changesDraft ?? defaultChanges;
+  const changesDate = changes.date || null;
+  const changesTime = changes.time || null;
   const changesError =
-    changesText.trim() !== '' && !(changesDate && changesTime)
+    (changes.date === '') !== (changes.time === '')
       ? t('events.form.errors.changesUntil')
       : undefined;
 
@@ -147,7 +140,6 @@ function EventForm({
     customer: !customerId ? t('events.form.errors.customer') : undefined,
     date: !isoDate ? t('events.form.errors.date') : undefined,
     start: !startOk ? t('events.form.errors.start') : undefined,
-    end: endTime.trim() !== '' && !endOk ? t('events.form.errors.end') : undefined,
     title: title.trim() === '' ? t('events.form.errors.title') : undefined,
     guests: Number.isNaN(guestNum) ? t('events.form.errors.guests') : undefined,
     changes: changesError,
@@ -223,12 +215,11 @@ function EventForm({
         }))}
       />
       <View style={{ gap: 16 }}>
-        <TextField
+        <DateField
           label={t('events.form.date')}
           value={date}
-          onChangeText={setDate}
+          onChange={setDate}
           error={tried ? errors.date : undefined}
-          inputMode="numeric"
         />
         {inPast ? <Banner tone="warning">{t('events.form.warnPast')}</Banner> : null}
         {sameDay > 0 && isoDate ? (
@@ -236,21 +227,22 @@ function EventForm({
             {t('events.form.warnSameDay', { date: formatGermanDate(isoDate), count: sameDay })}
           </Banner>
         ) : null}
-        <TextField
+        <TimeField
           label={t('events.form.start')}
           value={startTime}
-          onChangeText={setStartTime}
+          onChange={setStartTime}
           error={tried ? errors.start : undefined}
-          inputMode="numeric"
         />
-        <TextField
+        <TimeField
           label={t('events.form.end')}
-          helper={t('events.form.endHint')}
           value={endTime}
-          onChangeText={setEndTime}
-          error={tried ? errors.end : undefined}
-          inputMode="numeric"
+          onChange={setEndTime}
+          optional
+          defaultHour={14}
         />
+        <Text variant="small" color="textTertiary">
+          {t('events.form.endHint')}
+        </Text>
         <TextField label={t('events.form.occasion')} value={occasion} onChangeText={setOccasion} />
         <TextField
           label={t('events.form.title')}
@@ -307,12 +299,23 @@ function EventForm({
           onChangeText={setInternalNotes}
           multiline
         />
-        <TextField
-          label={t('events.form.changesUntil')}
-          value={changesText}
-          onChangeText={setChangesDraft}
+        <DateField
+          label={t('events.form.changesUntilDate')}
+          value={changes.date}
+          onChange={(d) => setChangesDraft({ ...changes, date: d })}
+          optional
+          startMonthFrom={date || undefined}
+        />
+        <TimeField
+          label={t('events.form.changesUntilTime')}
+          value={changes.time}
+          onChange={(v) => setChangesDraft({ ...changes, time: v })}
+          optional
           error={tried ? errors.changes : undefined}
         />
+        <Text variant="small" color="textTertiary">
+          {t('events.form.changesUntilHint')}
+        </Text>
       </View>
       <Button
         label={t('events.form.save')}

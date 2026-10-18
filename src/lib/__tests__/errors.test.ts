@@ -40,6 +40,13 @@ describe('toAppError', () => {
     expect(toAppError(e)).toBe(e);
     expect(toAppError(undefined).code).toBe('unknown');
     expect(toAppError({ code: 'etwas_neues' }).code).toBe('unknown');
+    expect(toAppError({ code: 'etwas_neues', message: 'kaputt' }).message).toContain(
+      'etwas_neues – kaputt',
+    );
+    expect(toAppError({ code: '42P01', message: 'relation "customers" does not exist' }).code).toBe(
+      'schema_outdated',
+    );
+    expect(toAppError({ code: 'PGRST205' }).code).toBe('schema_outdated');
   });
 
   it('liefert deutsche Meldungen', () => {

@@ -6,17 +6,18 @@ import { View } from 'react-native';
 import { Banner } from '@/components/ui/banner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateField } from '@/components/ui/date-field';
 import { RadioList } from '@/components/ui/radio-list';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { TextField } from '@/components/ui/text-field';
-import { addDays, berlinToIso, formatGermanDate, isoToBerlin, parseGermanDate } from '@/lib/berlin';
+import { addDays, berlinToIso, isoToBerlin } from '@/lib/berlin';
 import { confirm } from '@/lib/confirm';
 import { toAppError } from '@/lib/errors';
 
 import { useCopyEvent, useEvent } from '../api';
 
 type Channel = 'phone' | 'email' | 'in_person';
+const MAX_DATES = 10;
 
 /** SC-30 Auftrag kopieren: ein oder mehrere Termine, Startstatus Anfrage oder Bestätigt, Sonderessen optional. */
 export function EventCopyScreen() {
@@ -25,7 +26,8 @@ export function EventCopyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = useEvent(id).data;
   const copy = useCopyEvent();
-  const [dates, setDates] = useState('');
+  // Termine als „YYYY-MM-DD“; leere Einträge sind noch nicht gewählt
+  const [dates, setDates] = useState<string[]>(['']);
   const [startStatus, setStartStatus] = useState<'inquiry' | 'confirmed'>('inquiry');
   const [channel, setChannel] = useState<Channel | null>(null);
   const [dietary, setDietary] = useState(false);
@@ -44,17 +46,12 @@ export function EventCopyScreen() {
   }
   const origin = isoToBerlin(event.starts_at);
 
-  const lines = dates
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const parsed = lines.map(parseGermanDate);
-  const datesError =
-    lines.length === 0 || lines.length > 10 || parsed.some((p) => !p)
-      ? t('events.copy.dateError')
-      : undefined;
+  const chosen = dates.filter(Boolean);
+  const datesError = chosen.length === 0 ? t('events.copy.dateError') : undefined;
   const channelError =
     startStatus === 'confirmed' && !channel ? t('events.dialog.channelError') : undefined;
+
+  const setAt = (i: number, v: string) => setDates((cur) => cur.map((d, j) => (j === i ? v : d)));
 
   const submit = async () => {
     setTried(true);
@@ -67,12 +64,13 @@ export function EventCopyScreen() {
         t('events.copy.submit'),
         t('common.cancel'),
       ))
-    )
+    ) {
       return;
+    }
     copy.mutate(
       {
         eventId: event.id,
-        startsAt: (parsed as string[]).map((d) => berlinToIso(d, origin.time)),
+        startsAt: chosen.map((d) => berlinToIso(d, origin.time)),
         copyDietary: dietary,
         startStatus,
         channel: channel ?? undefined,
@@ -95,18 +93,41 @@ export function EventCopyScreen() {
     >
       {copy.error ? <Banner tone="danger">{toAppError(copy.error).message}</Banner> : null}
       <View style={{ gap: 12 }}>
-        <TextField
-          label={t('events.copy.dates')}
-          value={dates}
-          onChangeText={setDates}
-          error={tried ? datesError : undefined}
-          multiline
-        />
-        <Button
-          label={t('events.copy.sameWeekday')}
-          variant="secondary"
-          onPress={() => setDates(formatGermanDate(addDays(origin.date, 7)))}
-        />
+        <Text variant="small" color="textSecondary">
+          {t('events.copy.dates')}
+        </Text>
+        {dates.map((d, i) => (
+          <View key={i} style={{ gap: 4 }}>
+            <DateField
+              label={t('events.copy.dateN', { n: i + 1 })}
+              value={d}
+              onChange={(v) => setAt(i, v)}
+              startMonthFrom={addDays(origin.date, 7)}
+              error={tried && i === 0 ? datesError : undefined}
+            />
+            {dates.length > 1 ? (
+              <Button
+                label={t('common.remove')}
+                variant="ghost"
+                onPress={() => setDates((cur) => cur.filter((_, j) => j !== i))}
+              />
+            ) : null}
+          </View>
+        ))}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Button
+            label={t('events.copy.sameWeekday')}
+            variant="secondary"
+            onPress={() => setDates([addDays(origin.date, 7)])}
+          />
+          {dates.length < MAX_DATES ? (
+            <Button
+              label={t('picker.add')}
+              variant="secondary"
+              onPress={() => setDates((cur) => [...cur, ''])}
+            />
+          ) : null}
+        </View>
         <RadioList
           label={t('events.copy.status')}
           value={startStatus}

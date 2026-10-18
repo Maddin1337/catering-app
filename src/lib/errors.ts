@@ -16,6 +16,7 @@ export type AppErrorCode =
   | 'read_only'
   | 'forbidden'
   | 'duplicate'
+  | 'schema_outdated'
   | 'event_not_found'
   | 'option_required'
   | 'channel_required'
@@ -72,6 +73,8 @@ export const messages: Record<AppErrorCode, string> = {
   read_only: 'Die Testphase ist beendet. Änderungen sind derzeit nicht möglich.',
   forbidden: 'Dafür fehlt dir die Berechtigung.',
   duplicate: 'Diesen Eintrag gibt es schon.',
+  schema_outdated:
+    'Die Datenbank ist noch nicht auf dem neuesten Stand. Bitte führe das neueste SQL-Update im Supabase SQL Editor aus.',
   event_not_found: 'Diesen Auftrag gibt es nicht mehr.',
   option_required: 'Bitte gib ein „Optioniert bis“ ab heute an.',
   channel_required: 'Bitte wähle den Bestätigungsweg.',
@@ -149,6 +152,9 @@ export function toAppError(error: unknown): AppError {
       return new AppError(e.hint);
   }
   if (e.code === '42501') return new AppError('forbidden');
+  // Tabelle oder Funktion fehlt: das SQL-Update wurde noch nicht eingespielt (42P01, 42883, PGRST2xx)
+  if (e.code === '42P01' || e.code === '42883' || e.code?.startsWith('PGRST20'))
+    return new AppError('schema_outdated');
   if (e.code === '23505') return new AppError('duplicate');
   switch (e.code) {
     case 'invalid_credentials':
@@ -174,5 +180,10 @@ export function toAppError(error: unknown): AppError {
   if (e.status === 429) return new AppError('rate_limited');
   // supabase-js meldet fehlende Verbindung als AuthRetryableFetchError (status 0) bzw. „Failed to fetch“.
   if (e.status === 0 || /network|fetch/i.test(e.message ?? '')) return new AppError('offline');
-  return new AppError('unknown');
+  return new AppError(
+    'unknown',
+    e.code || e.message
+      ? `${messages.unknown} (Fehlercode: ${[e.code, e.message].filter(Boolean).join(' – ').slice(0, 120)})`
+      : undefined,
+  );
 }
