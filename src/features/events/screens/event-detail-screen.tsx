@@ -15,6 +15,7 @@ import { tokens } from '@/theme/tokens';
 
 import { useMembership } from '../../company/api';
 import { useDeleteEvent, useEvent, useStatusHistory } from '../api';
+import { KitchenTab } from '../components/kitchen-tab';
 import { ScheduleTab } from '../components/schedule-tab';
 import { StatusBadge } from '../components/status-badge';
 import { StatusDialog } from '../components/status-dialog';
@@ -57,7 +58,7 @@ export function EventDetailScreen() {
   const event = events.data;
   const history = useStatusHistory(id);
   const del = useDeleteEvent();
-  const [tab, setTab] = useState<'overview' | 'schedule'>('overview');
+  const [tab, setTab] = useState<'overview' | 'schedule' | 'kitchen'>('overview');
   const [target, setTarget] = useState<EventStatus | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -153,7 +154,7 @@ export function EventDetailScreen() {
       ) : null}
 
       <View style={{ flexDirection: 'row' }} accessibilityRole="tablist">
-        {(['overview', 'schedule'] as const).map((k) => (
+        {(['overview', 'schedule', 'kitchen'] as const).map((k) => (
           <Pressable
             key={k}
             accessibilityRole="tab"
@@ -245,8 +246,10 @@ export function EventDetailScreen() {
             </View>
           ) : null}
         </View>
-      ) : (
+      ) : tab === 'schedule' ? (
         <ScheduleTab event={event} isAdmin={isAdmin} />
+      ) : (
+        <KitchenTab event={event} />
       )}
 
       {isAdmin ? (

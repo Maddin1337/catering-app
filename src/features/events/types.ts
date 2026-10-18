@@ -33,6 +33,7 @@ export type EventRow = {
   cancellation_agreement?: string | null;
   invoice_reference?: string | null;
   invoiced_on?: string | null;
+  created_at?: string;
 };
 
 export type ScheduleKind = 'departure' | 'setup' | 'service' | 'teardown' | 'delivery' | 'other';
@@ -63,4 +64,17 @@ export type StatusChange = {
   reason: string | null;
   confirmation_channel: string | null;
   created_at: string;
+};
+
+export type DietaryRow = {
+  id: string;
+  event_id: string;
+  person_count: number;
+  diet: import('@/lib/dietary').Diet | null;
+  avoid_allergens: import('@/lib/dietary').Allergen[];
+  guest_name: string | null;
+  table_label: string | null;
+  note: string | null;
+  source: 'customer' | 'internal';
+  is_short_notice: boolean;
 };

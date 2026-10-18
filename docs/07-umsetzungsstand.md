@@ -150,9 +150,17 @@ Einmal-Import der Excel-Liste des Gründers (braucht die Datei), Produktions-Sup
 - **Aufträge:** Tab „Aufträge“ (SC-15: Suche, Anstehend/Vergangen/Archiv, Art); SC-16/SC-29 Schnellerfassung und Bearbeiten (Kunde suchen oder inline anlegen, Datum und Uhrzeit in Ortszeit, Ende nach Mitternacht, Titelvorschlag, Warnung bei Vergangenheit und mehreren Aufträgen am selben Tag, „Änderungen bis“ aus der Firmeneinstellung); SC-18/SC-19 Detail mit Übersicht, Statushistorie und Zeitplan (SC-26 mit Standardablauf); SC-31 Bestätigungsdialog vor jedem Statuswechsel (Pflichtangaben, Folgen, „nicht rückgängig“, „Abbrechen“ als Standard); SC-30 Kopieren (mehrere Termine, Startstatus Anfrage oder Bestätigt).
 - **Geprüft:** Typecheck, Lint, 102 Jest-Tests; im Browser gegen eine simulierte Datenbank als admin (Liste, Detail, Dialog, Abbrechen ändert nichts, Direktbestätigung verlangt den Bestätigungsweg, Standardablauf, Kopieren, Anlegen über Mitternacht) und als Küche (keine Kunden, keine internen Notizen, keine Statusaktionen).
 
+### Etappe 3 (gebaut): Kalender, Start, Küche
+
+- **SC-14 Kalender:** Monatsraster mit Statuspunkten (vorläufige Termine blasser), Tagesliste mit „Fortsetzung“ für Aufträge über Mitternacht, Listenansicht, Filter nach Art; abgelehnte und abgesagte Aufträge sind ausgeblendet. Zuordnung nach Berliner Ortszeit, getestet.
+- **SC-12 Start (admin):** Testphasen-Hinweis, Erste Schritte (Team, Gericht, Anfrage), „Heute und morgen“, „Zu erledigen“ (Anfragen länger als 24 h, Optionen mit Ablauf in höchstens 3 Tagen, „als durchgeführt markieren“ mit Sammelaktion über einen Bestätigungsdialog mit Liste).
+- **SC-13 Heute (Küche):** Umschalter Heute/Morgen, Karten mit Gästen, Abfahrt und Ausgabe, Anzahl Sonderessen und Hinweisen; vorläufige Aufträge gekennzeichnet; keine Preise.
+- **SC-25/SC-27 Tab Küche im Auftrag:** Hinweise und Sonderessen (Anzahl, Diätform, zu meidende Allergene, Gast und Tisch mit Datenschutzhinweis, Notiz, Quelle); die Datenbank prüft Summe ≤ Gästezahl und markiert Kurzfristiges.
+- **Geprüft:** Typecheck, Lint, 114 Jest-Tests (Monatsraster, Aufträge pro Tag über Mitternacht, Zu-erledigen-Regeln); im Browser gegen eine simulierte Datenbank (Start, Kalender, Küche, Tab Küche).
+
 ### Noch offen aus M3
 
-SC-14 Kalender (Monat, Woche, Liste), SC-12 Start („Heute und morgen“, „Zu erledigen“), SC-13 Heute und SC-25/SC-27 Küchen-Tab mit Sonderessen, Sammelaktion „Durchgeführt“, persistenter Abfrage-Cache mit „Offline – Stand: …“, Musterwahl aus Appllama Bereich B.
+Wochenansicht im Web (SC-14), persistenter Abfrage-Cache mit „Offline – Stand: …“ (braucht ein natives Speichermodul und damit einen neuen Build, zusammen mit Logo-Upload), Ersatzgerichte bei Sonderessen, Produktionsliste im Tab Küche (kommt mit den Angeboten, M4/M5), Musterwahl aus Appllama Bereich B, Aufträge des Pilotbetriebs übertragen (Excel).
 
 ### Abweichungen M3
 

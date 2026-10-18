@@ -692,7 +692,8 @@
       "title": "Auftrag",
       "tabs": {
         "overview": "Übersicht",
-        "schedule": "Zeitplan"
+        "schedule": "Zeitplan",
+        "kitchen": "Küche"
       },
       "customer": "Kunde",
       "guests": "{{count}} Gäste",
@@ -786,6 +787,71 @@
       "save": "Speichern",
       "delete": "Löschen",
       "error": "Bitte gib Datum und Uhrzeit korrekt ein."
+    },
+    "kitchen": {
+      "title": "Sonderessen und Allergien",
+      "sum": "{{count}} von {{guests}} Gästen mit Sonderessen",
+      "empty": "Noch keine Sonderessen.",
+      "add": "Sonderessen erfassen",
+      "allergy": "Allergie",
+      "shortNotice": "kurzfristig",
+      "count": "Anzahl Personen",
+      "countError": "Bitte gib eine Anzahl ab 1 ein.",
+      "contentError": "Bitte wähle eine Diätform, ein Allergen oder schreibe eine Notiz.",
+      "diet": "Diätform",
+      "avoid": "Zu meidende Allergene",
+      "guest": "Gast (optional)",
+      "privacy": "Namen sind Gesundheitsdaten. Wir löschen sie 30 Tage nach dem Event.",
+      "table": "Tisch (optional)",
+      "note": "Notiz",
+      "sourceInternal": "Intern erfasst",
+      "sourceCustomer": "Vom Kunden"
     }
+  },
+  "calendar": {
+    "title": "Kalender",
+    "month": "Monat",
+    "list": "Liste",
+    "prev": "Voriger Monat",
+    "next": "Nächster Monat",
+    "noEvents": "Keine Aufträge.",
+    "continuation": "Fortsetzung",
+    "eventCount_one": "{{count}} Auftrag",
+    "eventCount_other": "{{count}} Aufträge"
+  },
+  "start": {
+    "title": "Start",
+    "new": "Neue Anfrage",
+    "todayTomorrow": "Heute und morgen",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "nothing": "Heute und morgen stehen keine Aufträge an.",
+    "todo": "Zu erledigen",
+    "nothingTodo": "Nichts zu erledigen.",
+    "staleInquiries_one": "{{count}} Anfrage wartet länger als 24 Stunden",
+    "staleInquiries_other": "{{count}} Anfragen warten länger als 24 Stunden",
+    "expiringOptions_one": "{{count}} Option läuft in höchstens 3 Tagen ab",
+    "expiringOptions_other": "{{count}} Optionen laufen in höchstens 3 Tagen ab",
+    "toComplete_one": "{{count}} Auftrag als durchgeführt markieren",
+    "toComplete_other": "{{count}} Aufträge als durchgeführt markieren",
+    "completeAll": "Als durchgeführt markieren",
+    "completeTitle_one": "{{count}} Auftrag als durchgeführt markieren?",
+    "completeTitle_other": "{{count}} Aufträge als durchgeführt markieren?",
+    "completeError": "Nicht alle Aufträge ließen sich markieren. Bitte prüfe die Liste.",
+    "setup": "Erste Schritte",
+    "setupTeam": "Team einladen",
+    "setupDish": "Erstes Gericht anlegen",
+    "setupEvent": "Erste Anfrage erfassen",
+    "setupDone": "erledigt",
+    "trial": "Testphase bis {{date}}"
+  },
+  "today": {
+    "title": "Heute",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "empty": "Heute und morgen stehen keine bestätigten Aufträge an.",
+    "provisional": "vorläufig",
+    "special_one": "{{count}} Sonderessen",
+    "special_other": "{{count}} Sonderessen"
   }
 }

@@ -5,7 +5,7 @@ import { AppError, toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 
 import { useMembership } from '../company/api';
-import type { EventRow, ScheduleItem, StatusChange } from './types';
+import type { DietaryRow, EventRow, ScheduleItem, StatusChange } from './types';
 
 // Einziger Ort für Supabase-Aufrufe der Aufträge (docs/05 §3.2).
 
@@ -16,7 +16,7 @@ function client() {
 
 const KITCHEN_COLUMNS =
   'id, title, kind, status, starts_at, ends_at, event_date, guest_count, venue_name, street, postal_code, city, is_pickup, onsite_contact_name, onsite_contact_phone, meeting_point, dress_code, staff_notes, kitchen_notes';
-const ADMIN_COLUMNS = `${KITCHEN_COLUMNS}, occasion, internal_notes, option_expires_at, changes_until, customer_id, cancellation_agreement, invoice_reference, invoiced_on, customers(name)`;
+const ADMIN_COLUMNS = `${KITCHEN_COLUMNS}, occasion, internal_notes, option_expires_at, changes_until, customer_id, cancellation_agreement, invoice_reference, invoiced_on, created_at, customers(name)`;
 
 type RawEvent = EventRow & { customers?: { name: string } | null };
 const normalize = (r: RawEvent): EventRow => {
@@ -212,5 +212,51 @@ export const useSaveScheduleItem = () =>
 export const useDeleteScheduleItem = () =>
   useEventMutation(async (id: string) => {
     const { error } = await client().from('event_schedule_items').delete().eq('id', id);
+    if (error) throw toAppError(error);
+  });
+
+export function useDietary(eventId: string | undefined) {
+  const m = useMembership().data;
+  return useQuery({
+    queryKey: ['events', 'dietary', eventId],
+    enabled: !!eventId && (m?.role === 'admin' || m?.role === 'kitchen'),
+    queryFn: async (): Promise<DietaryRow[]> => {
+      const { data, error } = await client()
+        .from('event_dietary_requirements')
+        .select(
+          'id, event_id, person_count, diet, avoid_allergens, guest_name, table_label, note, source, is_short_notice',
+        )
+        .eq('event_id', eventId!)
+        .order('created_at');
+      if (error) throw toAppError(error);
+      return (data ?? []) as DietaryRow[];
+    },
+  });
+}
+
+export type DietaryInput = Pick<
+  DietaryRow,
+  'person_count' | 'diet' | 'avoid_allergens' | 'guest_name' | 'table_label' | 'note' | 'source'
+>;
+
+export const useSaveDietary = () =>
+  useEventMutation(async (v: { eventId: string; id?: string; values: DietaryInput }, companyId) => {
+    if (v.id) {
+      const { error } = await client()
+        .from('event_dietary_requirements')
+        .update(v.values)
+        .eq('id', v.id);
+      if (error) throw toAppError(error);
+    } else {
+      const { error } = await client()
+        .from('event_dietary_requirements')
+        .insert({ company_id: companyId, event_id: v.eventId, ...v.values });
+      if (error) throw toAppError(error);
+    }
+  });
+
+export const useDeleteDietary = () =>
+  useEventMutation(async (id: string) => {
+    const { error } = await client().from('event_dietary_requirements').delete().eq('id', id);
     if (error) throw toAppError(error);
   });
