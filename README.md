@@ -3,9 +3,10 @@
 Arbeitstitel einer Planungs-App für kleine Cateringfirmen (1–10 Mitarbeiter) im DACH-Raum.
 Gebaut wird mit Expo (iOS, Android, Web) und Supabase. Das UI-Design entsteht mit Recherche über den Appllama-MCP.
 
-> **Status:** Planung abgeschlossen, **Meilenstein M0 (Fundament) in Arbeit** (Stand 17.10.2026): Expo-Projekt mit
-> Anmeldung, Datenbank-Migrationen mit Tests und CI-Datei stehen; Konten, Builds und Deploy fehlen noch.
-> Details und Abweichungen von der Planung: [docs/07-umsetzungsstand.md](docs/07-umsetzungsstand.md).
+> **Status** (Stand 18.10.2026): Meilensteine M0 bis M5 gebaut, M6 (Kundenportal), M7 (Schichtbörse) und M8 (Küchenlisten)
+> im Kern. Es fehlen Push, E-Mail-Dienst, Abo/Stripe, Offline-Speicher und der Store-Build. Die Datenbank-Updates für den
+> Supabase SQL Editor und eine Testanleitung stehen in [docs/08-testanleitung.md](docs/08-testanleitung.md); Umsetzungsstand und
+> Abweichungen von der Planung in [docs/07-umsetzungsstand.md](docs/07-umsetzungsstand.md).
 
 ## Worum es geht
 
