@@ -18,6 +18,7 @@ import { formatCents } from '@/lib/money';
 import { sharePdf } from '@/lib/pdf';
 import { tokens } from '@/theme/tokens';
 
+import { DietaryCard } from '../components/dietary-card';
 import { renderQuoteHtml } from '../../quotes/document';
 import { applySelection } from '../../quotes/selection';
 import { SnapshotView } from '../../quotes/components/snapshot-view';
@@ -220,6 +221,15 @@ export function PortalScreen() {
       ) : null}
       {snapshot.quote.closing_text ? (
         <Text variant="body">{snapshot.quote.closing_text}</Text>
+      ) : null}
+
+      {['quoted', 'optioned', 'confirmed'].includes(status) ? (
+        <DietaryCard
+          token={token ?? ''}
+          rows={data.dietary ?? []}
+          guests={snapshot.event.guest_count}
+          canEdit={canChange}
+        />
       ) : null}
 
       <Button label={t('pdf')} variant="secondary" onPress={() => void pdf()} />

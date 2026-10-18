@@ -79,12 +79,30 @@
   "errors": {
     "portal_invalid": "Dieser Link ist nicht mehr gültig.",
     "revision_outdated": "Das Angebot wurde inzwischen aktualisiert. Bitte laden Sie die Seite neu.",
-    "name_required": "Bitte geben Sie Ihren Namen und eine Nachricht an.",
+    "name_required": "Bitte prüfen Sie Ihre Angaben (Name, Anzahl, Diätform, Allergen oder Hinweis).",
     "invalid_email": "Bitte prüfen Sie Ihre E-Mail-Adresse.",
     "quote_expired": "Das Angebot ist abgelaufen. Bitte kontaktieren Sie uns.",
     "not_acceptable": "Das ist beim aktuellen Stand nicht mehr möglich. Bitte laden Sie die Seite neu.",
     "changes_locked": "Der Änderungsschluss ist vorbei. Bitte rufen Sie uns an.",
     "offline": "Keine Verbindung. Bitte versuchen Sie es erneut.",
-    "unknown": "Das hat nicht geklappt. Bitte versuchen Sie es erneut."
+    "unknown": "Das hat nicht geklappt. Bitte versuchen Sie es erneut.",
+    "guest_sum_exceeded": "Es sind mehr Sonderessen als Gäste eingetragen."
+  },
+  "dietary": {
+    "title": "Sonderessen und Allergien",
+    "body": "Teilen Sie uns Allergien und besondere Wünsche mit. Eingaben gelten sofort und sind bis zum Änderungsschluss änderbar.",
+    "empty": "Noch keine Einträge.",
+    "allergy": "Allergie",
+    "add": "Eintrag hinzufügen",
+    "count": "Anzahl Personen",
+    "countHint": "{{total}} von {{guests}} Gästen eingetragen.",
+    "diet": "Diätform",
+    "avoid": "Zu meidende Allergene",
+    "guest": "Name des Gastes (optional)",
+    "privacy": "Nur eintragen, wenn der Gast zugestimmt hat. Gesundheitsdaten sind besonders geschützt.",
+    "table": "Tisch (optional)",
+    "note": "Hinweis (optional)",
+    "save": "Speichern",
+    "delete": "Eintrag löschen"
   }
 }

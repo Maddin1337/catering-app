@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { Allergen, Diet } from '@/lib/dietary';
 import { AppError, toAppError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 
@@ -20,6 +21,16 @@ export type PortalCompany = {
   website?: string | null;
   imprint_url?: string | null;
   privacy_policy_url?: string | null;
+};
+
+export type PortalDietary = {
+  id: string;
+  person_count: number;
+  diet: Diet | null;
+  avoid_allergens: Allergen[];
+  guest_name: string | null;
+  table_label: string | null;
+  note: string | null;
 };
 
 export type PortalData =
@@ -44,6 +55,7 @@ export type PortalData =
       event: { status: string; changes_until: string; changes_locked: boolean };
       snapshot: QuoteSnapshot;
       selection: Record<string, string>;
+      dietary: PortalDietary[];
       has_pending_change: boolean;
     };
 
@@ -133,8 +145,43 @@ export function portalErrorKey(error: unknown): string {
     case 'quote_expired':
     case 'not_acceptable':
     case 'changes_locked':
+    case 'guest_sum_exceeded':
       return `errors.${hint}`;
   }
   const code = toAppError(error).code;
   return code === 'offline' ? 'errors.offline' : 'errors.unknown';
+}
+
+export function usePortalSaveDietary(token: string) {
+  return usePortalAction(
+    async (v: {
+      id: string | null;
+      count: number;
+      diet: Diet | null;
+      avoid: Allergen[];
+      note: string;
+      guest: string;
+      table: string;
+    }) => {
+      const { error } = await client().rpc('portal_save_dietary', {
+        p_token: token,
+        p_id: v.id,
+        p_person_count: v.count,
+        p_diet: v.diet,
+        p_avoid: v.avoid,
+        p_note: v.note || null,
+        p_guest_name: v.guest || null,
+        p_table: v.table || null,
+        p_author: null,
+      });
+      if (error) throw error;
+    },
+  );
+}
+
+export function usePortalDeleteDietary(token: string) {
+  return usePortalAction(async (id: string) => {
+    const { error } = await client().rpc('portal_delete_dietary', { p_token: token, p_id: id });
+    if (error) throw error;
+  });
 }
