@@ -153,6 +153,7 @@ export function QuoteSendScreen() {
       rates,
       catalog: { dishes, packages, packageLines },
       guests,
+      entryMode: settings.price_entry_mode,
       display,
     });
   };

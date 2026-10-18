@@ -1166,7 +1166,8 @@
     "deposit": "Anzahlung (fällig {{date}})",
     "terms": "Konditionen",
     "allergens": "Allergene und Zusatzstoffe",
-    "vatId": "USt-IdNr."
+    "vatId": "USt-IdNr.",
+    "alternativeTap": "Alternative – zum Wählen antippen"
   },
   "quoteSend": {
     "title": "Angebot senden",
@@ -1230,7 +1231,9 @@
       "notViewed": "Der Kunde hat das Angebot noch nicht angesehen.",
       "comment": "Anmerkung des Kunden: {{text}}",
       "change": "Änderungswunsch von {{name}} ({{date}}): Gästezahl {{guests}}. {{text}}",
-      "resolve": "Änderungswunsch erledigt"
+      "resolve": "Änderungswunsch erledigt",
+      "selection": "Der Kunde hat bei {{count}} Wahlgruppe(n) eine Alternative gewählt.",
+      "applySelection": "Wahl des Kunden ins Angebot übernehmen"
     }
   },
   "kitchenPlan": {

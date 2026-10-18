@@ -18,6 +18,7 @@ Im Supabase-Dashboard unter **SQL Editor** jede Datei **genau einmal** einfügen
 | 8 | `remote-update-20261028090000.sql` | Kundenportal |
 | 9 | `remote-update-20261029090000.sql` | Küche aus dem verbindlichen Stand |
 | 10 | `remote-update-20261030090000.sql` | Schichtbörse |
+| 11 | `remote-update-20261031090000.sql` | Menüwahl im Portal |
 
 Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt eine dieser Dateien.
 
@@ -35,7 +36,7 @@ Meldet die App „Die Datenbank ist noch nicht auf dem neuesten Stand“, fehlt 
 
 - E-Mails verschickt die App nicht selbst. „Per E-Mail senden“ öffnet deine E-Mail-App mit fertigem Text und Link; das PDF hängst du selbst an (E-Mail-Dienst folgt, E-3).
 - Push-Nachrichten, Offline-Speicher, Logo-Upload, Abo und Bezahlung, Excel-Import, Kalender-Abo (iCal).
-- Im Portal gibt es noch keine Wahlgruppen und keine Sonderessen-Eingabe durch den Kunden.
+- Im Portal kann der Kunde Sonderessen noch nicht selbst eintragen (Wahlgruppen gehen).
 
 ## 4. Fehler melden
 

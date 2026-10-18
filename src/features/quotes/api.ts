@@ -186,6 +186,7 @@ export type PortalInfo = {
   declined_at: string | null;
   decline_reason: string | null;
   decline_comment: string | null;
+  portal_selection: { choices?: Record<string, string> } | null;
   pending_change: {
     requested_at: string;
     revision: number;
@@ -204,7 +205,7 @@ export function usePortalInfo(quoteId: string | undefined, enabled: boolean) {
       const { data, error } = await client()
         .from('quotes')
         .select(
-          'first_viewed_at, last_viewed_at, accepted_at, acceptance_name, acceptance_revision, acceptance_comment, declined_at, decline_reason, decline_comment, pending_change',
+          'first_viewed_at, last_viewed_at, accepted_at, acceptance_name, acceptance_revision, acceptance_comment, declined_at, decline_reason, decline_comment, pending_change, portal_selection',
         )
         .eq('id', quoteId!)
         .single();
@@ -239,5 +240,16 @@ export function useOpenChangeRequests() {
       if (error) throw toAppError(error);
       return (data ?? []).map((r) => r.event_id as string);
     },
+  });
+}
+
+export function useApplySelection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const { error } = await client().rpc('apply_portal_selection', { p_quote_id: quoteId });
+      if (error) throw toAppError(error);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quotes'] }),
   });
 }

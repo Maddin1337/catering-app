@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { formatGermanDate } from '@/lib/berlin';
@@ -13,7 +13,14 @@ import { quantityText } from '../document';
 import type { QuoteSnapshot } from '../snapshot';
 
 /** Positionen und Summen einer Revision (Portal und Vorschau); Preise in der Anzeigeart des Angebots. */
-export function SnapshotView({ snapshot: s }: { snapshot: QuoteSnapshot }) {
+export function SnapshotView({
+  snapshot: s,
+  onChoose,
+}: {
+  snapshot: QuoteSnapshot;
+  /** Wahlgruppe + Element: macht Alternativen antippbar (Portal vor der Annahme). */
+  onChoose?: (group: string, itemId: string) => void;
+}) {
   const { t } = useTranslation();
   const gross = s.quote.price_display === 'gross';
   const used = new Set<string>();
@@ -30,14 +37,28 @@ export function SnapshotView({ snapshot: s }: { snapshot: QuoteSnapshot }) {
             {i.name}
           </Text>
         ) : (
-          <View
+          <Pressable
             key={i.id}
+            disabled={!(onChoose && i.choice_group)}
+            accessibilityRole={onChoose && i.choice_group ? 'radio' : undefined}
+            accessibilityState={
+              onChoose && i.choice_group ? { selected: i.is_selected } : undefined
+            }
+            onPress={() => onChoose && i.choice_group && onChoose(i.choice_group, i.id)}
             style={{
               gap: 4,
               paddingBottom: 12,
               borderBottomWidth: 1,
               borderBottomColor: tokens.color.border,
-              opacity: i.is_selected ? 1 : 0.55,
+              opacity: i.is_selected || (onChoose && i.choice_group) ? 1 : 0.55,
+              ...(onChoose && i.choice_group
+                ? {
+                    padding: tokens.space[3],
+                    borderWidth: 2,
+                    borderRadius: tokens.radius.md,
+                    borderColor: i.is_selected ? tokens.color.accent : tokens.color.border,
+                  }
+                : {}),
             }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
@@ -69,10 +90,10 @@ export function SnapshotView({ snapshot: s }: { snapshot: QuoteSnapshot }) {
             <AllergenCodes allergens={i.allergens} />
             {!i.is_selected ? (
               <Text variant="small" color="textSecondary">
-                {t('quoteDoc.alternative')}
+                {t(onChoose && i.choice_group ? 'quoteDoc.alternativeTap' : 'quoteDoc.alternative')}
               </Text>
             ) : null}
-          </View>
+          </Pressable>
         ),
       )}
 

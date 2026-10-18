@@ -1,4 +1,4 @@
-import type { CalcResult } from '@/lib/calc';
+import { unitPriceOnCalcSide, type CalcResult } from '@/lib/calc';
 import type { Allergen, Diet } from '@/lib/dietary';
 
 import type { Dish, MenuPackage, PackageDishLine } from '../catalog/types';
@@ -150,6 +150,7 @@ export function buildSnapshot(args: {
   rates: TaxRate[];
   catalog: CatalogLookup;
   guests: number | null;
+  entryMode: 'net' | 'gross';
   display: 'net' | 'gross';
 }): QuoteSnapshot {
   const line = new Map(args.calc.lines.map((l) => [l.id, l]));
@@ -191,7 +192,17 @@ export function buildSnapshot(args: {
       unit_label: i.unit_label.trim() || 'Stück',
       hours: i.type === 'service' ? i.hours : null,
       unit_price_cents: i.is_heading ? null : (i.unit_price_cents ?? 0),
-      unit_price_display_cents: l ? l.unitPriceDisplayCents : null,
+      // nicht gewählte Alternativen stehen nicht in der Rechnung, der Kunde braucht ihren Preis trotzdem
+      unit_price_display_cents: l
+        ? l.unitPriceDisplayCents
+        : i.is_heading
+          ? null
+          : unitPriceOnCalcSide(
+              i.unit_price_cents ?? 0,
+              rateBp.get(i.tax_rate_id ?? '') ?? 0,
+              args.entryMode,
+              args.display,
+            ),
       price_is_manual: i.price_is_manual,
       discount_bp: i.discount_bp,
       tax_rate_id: i.tax_rate_id,

@@ -117,6 +117,7 @@ function build() {
       packageLines: [{ menu_package_id: 'p1', dish_id: 'd1', portion_factor: 1, sort_order: 0 }],
     },
     guests: 60,
+    entryMode: 'net',
     display: 'net',
   });
 }

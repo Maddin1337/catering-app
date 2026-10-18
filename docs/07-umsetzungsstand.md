@@ -231,13 +231,18 @@ Portal-Seite hinter dem Link (M6), `binding_snapshot` und Annahme durch den Kund
 | Nr. | Thema | Plan | Umsetzung | Grund |
 |---|---|---|---|---|
 | A-28 | Portal-API | Edge Function `portal-api` mit Rate-Limit | RPCs für `anon`, der Token (244 Bit, nur als Hash gespeichert) ist das Geheimnis; feste Feldauswahl | kein Edge-Function-Deployment möglich (siehe A-25) |
-| A-29 | Wahlgruppen und Sonderessen im Portal | Auswahlkarten, `portal_select_choice`, `portal_save_dietary` | noch nicht gebaut; Änderungswunsch als Nachricht (Gästezahl, Text) | Umsetzung braucht die Neuberechnung im Datenbankmodul bzw. weitere Tabellen, kommt als nächster Schritt |
+| A-29 | Wahlgruppen und Sonderessen im Portal | Auswahlkarten, `portal_select_choice`, `portal_save_dietary` | Wahlgruppen gebaut (Summen im Portal per TS-Modul); Sonderessen noch nicht; Änderungswunsch als Nachricht (Gästezahl, Text) | Sonderessen brauchen weitere Tabellenzugriffe, kommt als nächster Schritt |
 | A-30 | Allergene | live aus dem Katalog | aus dem Snapshot der versendeten Fassung | einfacher; bei Allergenänderungen nach dem Versand neue Fassung senden |
 | A-31 | Benachrichtigungen | Tabelle `notifications`, E-Mail an den Admin | Anzeige im Auftrag (Aufruf, Annahme, Ablehnung, Wunsch) | kein E-Mail-Dienst (E-3); Liste folgt mit M7 |
 
+### Ergänzt: Menüwahl im Portal (Wahlgruppen)
+
+- `supabase/migrations/20261031090000_m6_choices.sql` (`remote-update-20261031090000.sql`): `portal_select_choice`, Wahl in `quotes.portal_selection`, im Annahmeprotokoll und in `kitchen_event_lines`; `apply_portal_selection` übernimmt sie in den Entwurf; jede neue Fassung setzt sie zurück. 485 pgTAP-Tests laufen lokal.
+- Portal: Alternativen einer Wahlgruppe sind Auswahlkarten (vor der Annahme), die Summen rechnet `applySelection` mit dem gemeinsamen Rechenmodul neu. Team-App: Hinweis „Kunde hat gewählt“ mit „Wahl ins Angebot übernehmen“. Der Snapshot enthält jetzt auch die Preise nicht gewählter Alternativen.
+
 ### Noch offen
 
-`binding_snapshot` für die Küche nach Annahme, Wahlgruppen und Sonderessen im Portal, Benachrichtigungsliste und Start-Karten „offene Änderungswünsche“, Jobs (Option-Erinnerung, Angebotsablauf), Annahme-PDF.
+Sonderessen im Portal, Benachrichtigungsliste und Start-Karten „offene Änderungswünsche“, Jobs (Option-Erinnerung, Angebotsablauf), Annahme-PDF.
 
 ## M8 (Kern) · Küchenplanung
 

@@ -43,6 +43,7 @@ export type PortalData =
       };
       event: { status: string; changes_until: string; changes_locked: boolean };
       snapshot: QuoteSnapshot;
+      selection: Record<string, string>;
       has_pending_change: boolean;
     };
 
@@ -89,6 +90,18 @@ export function usePortalDecline(token: string) {
       p_revision: v.revision,
       p_reason: v.reason || null,
       p_comment: v.comment || null,
+    });
+    if (error) throw error;
+  });
+}
+
+export function usePortalSelect(token: string) {
+  return usePortalAction(async (v: { revision: number; group: string; itemId: string }) => {
+    const { error } = await client().rpc('portal_select_choice', {
+      p_token: token,
+      p_revision: v.revision,
+      p_group: v.group,
+      p_item_id: v.itemId,
     });
     if (error) throw error;
   });

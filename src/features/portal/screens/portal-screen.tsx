@@ -17,6 +17,7 @@ import { sharePdf } from '@/lib/pdf';
 import { tokens } from '@/theme/tokens';
 
 import { renderQuoteHtml } from '../../quotes/document';
+import { applySelection } from '../../quotes/selection';
 import { SnapshotView } from '../../quotes/components/snapshot-view';
 import {
   portalErrorKey,
@@ -24,6 +25,7 @@ import {
   usePortalAccept,
   usePortalChange,
   usePortalDecline,
+  usePortalSelect,
   type PortalCompany,
 } from '../api';
 
@@ -56,6 +58,7 @@ export function PortalScreen() {
   const accept = usePortalAccept(token ?? '');
   const decline = usePortalDecline(token ?? '');
   const change = usePortalChange(token ?? '');
+  const select = usePortalSelect(token ?? '');
 
   const [panel, setPanel] = useState<Panel>(null);
   const [name, setName] = useState('');
@@ -92,7 +95,8 @@ export function PortalScreen() {
     );
   }
 
-  const { company, quote, event, snapshot } = data;
+  const { company, quote, event } = data;
+  const snapshot = applySelection(data.snapshot, data.selection ?? {});
   const status = event.status;
   const accepted = quote.acceptance_revision === quote.revision && !!quote.accepted_at;
   const needsConfirm =
@@ -113,6 +117,7 @@ export function PortalScreen() {
     accept.reset();
     decline.reset();
     change.reset();
+    select.reset();
   };
   const toggle = (p: Panel) => {
     reset();
@@ -184,7 +189,17 @@ export function PortalScreen() {
 
       <Card>
         <Text variant="title2">{t('items')}</Text>
-        <SnapshotView snapshot={snapshot} />
+        <SnapshotView
+          snapshot={snapshot}
+          onChoose={
+            open && !quote.expired
+              ? (group, itemId) => {
+                  reset();
+                  select.mutate({ revision: quote.revision, group, itemId });
+                }
+              : undefined
+          }
+        />
       </Card>
 
       {snapshot.quote.terms_text ? (
