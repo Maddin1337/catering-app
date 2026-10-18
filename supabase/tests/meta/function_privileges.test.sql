@@ -33,7 +33,9 @@ select is(
     'public.auth_company_id',
     'public.auth_member_id',
     'public.auth_role',
+    'public.can_read_event',
     'public.company_is_writable',
+    'public.copy_event',
     'public.create_company',
     'public.create_invitation',
     'public.delete_my_account',
@@ -45,6 +47,8 @@ select is(
     'public.save_dish',
     'public.save_ingredient',
     'public.save_menu_package',
+    'public.set_event_status',
+    'public.set_invoice_details',
     'public.set_member_qualifications',
     'public.set_member_role'
   ],
