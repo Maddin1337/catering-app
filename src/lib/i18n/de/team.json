@@ -440,7 +440,8 @@
       "templateHours": "Stunden je Person",
       "templatePerGuest": "Menge folgt der Gästezahl (pro Person)",
       "templateDelete": "Vorlage löschen",
-      "templateInvalid": "Bitte Bezeichnung und einen gültigen Preis eingeben."
+      "templateInvalid": "Bitte Bezeichnung und einen gültigen Preis eingeben.",
+      "templatesExamples": "Beispielvorlagen einfügen (Preise anpassen)"
     },
     "db": {
       "title": "Datenbank-Stand",

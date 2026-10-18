@@ -23,6 +23,42 @@ const DEFAULT_UNIT: Record<ItemTemplate['type'], string> = {
   custom: 'Stück',
 };
 
+/** Beispielvorlagen zum Anpassen; die Preise sind Platzhalter, keine Empfehlung. */
+const EXAMPLES: ItemTemplate[] = [
+  {
+    type: 'service',
+    name: 'Servicekraft',
+    unit_label: 'Person',
+    unit_price_cents: 3200,
+    quantity_mode: 'fixed',
+    hours: 6,
+  },
+  {
+    type: 'service',
+    name: 'Koch vor Ort',
+    unit_label: 'Person',
+    unit_price_cents: 4500,
+    quantity_mode: 'fixed',
+    hours: 6,
+  },
+  {
+    type: 'travel',
+    name: 'Anfahrt und Abholung',
+    unit_label: 'pauschal',
+    unit_price_cents: 5000,
+    quantity_mode: 'fixed',
+    hours: null,
+  },
+  {
+    type: 'beverage',
+    name: 'Getränkepauschale',
+    unit_label: 'Person',
+    unit_price_cents: 1500,
+    quantity_mode: 'per_guest',
+    hours: null,
+  },
+];
+
 type Draft = {
   type: ItemTemplate['type'];
   name: string;
@@ -113,9 +149,17 @@ export function ItemTemplates({
         {t('settings.quoteTexts.templatesBody')}
       </Text>
       {value.length === 0 ? (
-        <Text variant="body" color="textSecondary">
-          {t('settings.quoteTexts.templatesEmpty')}
-        </Text>
+        <>
+          <Text variant="body" color="textSecondary">
+            {t('settings.quoteTexts.templatesEmpty')}
+          </Text>
+          <Button
+            label={t('settings.quoteTexts.templatesExamples')}
+            variant="secondary"
+            loading={saving}
+            onPress={() => onChange(EXAMPLES)}
+          />
+        </>
       ) : (
         value.map((tpl, i) => (
           <ListRow
