@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -9,6 +9,7 @@ import { tokens } from '@/theme/tokens';
 
 import { Button } from './button';
 import { IconButton } from './icon-button';
+import { PickCard } from './pick-card';
 import { PickerSheet } from './picker-sheet';
 import { Text } from './text';
 
@@ -31,6 +32,7 @@ export function DateField({
   error,
   optional,
   startMonthFrom,
+  variant = 'field',
 }: {
   label: string;
   value: string;
@@ -40,6 +42,8 @@ export function DateField({
   optional?: boolean;
   /** Monat, der ohne Wert zuerst gezeigt wird (z. B. Datum des Auftrags); sonst heute. */
   startMonthFrom?: string;
+  /** `card`: große Karte mit Symbol (Anfrage-Chat) statt des schlichten Felds. */
+  variant?: 'field' | 'card';
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -67,27 +71,41 @@ export function DateField({
 
   return (
     <View style={{ gap: tokens.space[1] }}>
-      <Text variant="small" color="textSecondary">
-        {label}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ? display(value) : t('picker.choose')}`}
-        onPress={openSheet}
-        style={[
-          styles.field,
-          { borderColor: error ? tokens.color.danger : tokens.color.borderInput },
-        ]}
-      >
-        <Text variant="body" color={value ? 'text' : 'textTertiary'}>
-          {value ? display(value) : t('picker.chooseDate')}
-        </Text>
-      </Pressable>
-      {error ? (
-        <Text variant="small" color="danger" accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
+      {variant === 'card' ? (
+        <PickCard
+          icon={CalendarDays}
+          tint="sky"
+          label={label}
+          value={value ? display(value) : undefined}
+          placeholder={t('picker.chooseDate')}
+          error={error}
+          onPress={openSheet}
+        />
+      ) : (
+        <>
+          <Text variant="small" color="textSecondary">
+            {label}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${label}: ${value ? display(value) : t('picker.choose')}`}
+            onPress={openSheet}
+            style={[
+              styles.field,
+              { borderColor: error ? tokens.color.danger : tokens.color.borderInput },
+            ]}
+          >
+            <Text variant="body" color={value ? 'text' : 'textTertiary'}>
+              {value ? display(value) : t('picker.chooseDate')}
+            </Text>
+          </Pressable>
+          {error ? (
+            <Text variant="small" color="danger" accessibilityRole="alert">
+              {error}
+            </Text>
+          ) : null}
+        </>
+      )}
 
       {open ? (
         <PickerSheet title={label} onClose={() => setOpen(false)}>

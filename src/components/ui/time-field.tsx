@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react-native';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -5,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { tokens } from '@/theme/tokens';
 
 import { Button } from './button';
+import { PickCard } from './pick-card';
 import { PickerSheet } from './picker-sheet';
 import { Text } from './text';
 
@@ -50,6 +52,7 @@ export function TimeField({
   error,
   optional,
   defaultHour = 12,
+  variant = 'field',
 }: {
   label: string;
   value: string;
@@ -57,6 +60,8 @@ export function TimeField({
   error?: string;
   optional?: boolean;
   defaultHour?: number;
+  /** `card`: große Karte mit Symbol (Anfrage-Chat) statt des schlichten Felds. */
+  variant?: 'field' | 'card';
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -80,28 +85,42 @@ export function TimeField({
     : [...MINUTES, minute].sort((a, b) => a - b);
 
   return (
-    <View style={{ gap: tokens.space[1] }}>
-      <Text variant="small" color="textSecondary">
-        {label}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value || t('picker.choose')}`}
-        onPress={openSheet}
-        style={[
-          styles.field,
-          { borderColor: error ? tokens.color.danger : tokens.color.borderInput },
-        ]}
-      >
-        <Text variant="body" color={value ? 'text' : 'textTertiary'}>
-          {value ? `${value} ${t('picker.oclock')}` : t('picker.chooseTime')}
-        </Text>
-      </Pressable>
-      {error ? (
-        <Text variant="small" color="danger" accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
+    <View style={{ gap: tokens.space[1], flex: variant === 'card' ? 1 : undefined }}>
+      {variant === 'card' ? (
+        <PickCard
+          icon={Clock}
+          tint="amber"
+          label={label}
+          value={value ? `${value} ${t('picker.oclock')}` : undefined}
+          placeholder={t('picker.chooseTime')}
+          error={error}
+          onPress={openSheet}
+        />
+      ) : (
+        <>
+          <Text variant="small" color="textSecondary">
+            {label}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${label}: ${value || t('picker.choose')}`}
+            onPress={openSheet}
+            style={[
+              styles.field,
+              { borderColor: error ? tokens.color.danger : tokens.color.borderInput },
+            ]}
+          >
+            <Text variant="body" color={value ? 'text' : 'textTertiary'}>
+              {value ? `${value} ${t('picker.oclock')}` : t('picker.chooseTime')}
+            </Text>
+          </Pressable>
+          {error ? (
+            <Text variant="small" color="danger" accessibilityRole="alert">
+              {error}
+            </Text>
+          ) : null}
+        </>
+      )}
 
       {open ? (
         <PickerSheet title={`${label}: ${preview}`} onClose={() => setOpen(false)}>

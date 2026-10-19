@@ -1141,11 +1141,9 @@
       "value_missing": "Bitte gib einen Wert an."
     },
     "chat": {
-      "progress": "Frage {{n}} von {{total}}",
-      "summaryTitle": "Zusammenfassung",
+      "summaryTitle": "Alles korrekt?",
       "next": "Weiter",
       "skip": "Überspringen",
-      "skipped": "Übersprungen",
       "yes": "Ja",
       "no": "Nein",
       "yourAnswer": "Deine Antwort",
@@ -1154,8 +1152,6 @@
       "from": "Von",
       "to": "Bis (optional)",
       "time": "Uhrzeit",
-      "change": "Antwort ändern",
-      "currentCustomer": "Aktuell: {{name}}",
       "testRun": "Testlauf – nichts wird gespeichert.",
       "dropped_one": "{{count}} Antwort entfällt.",
       "dropped_other": "{{count}} Antworten entfallen.",
@@ -1168,18 +1164,42 @@
       "update": "Anfrage aktualisieren",
       "endTest": "Testlauf beenden",
       "errors": {
-        "start": "Bitte wähle mindestens den Beginn.",
-        "datetime": "Bitte wähle Datum und Uhrzeit.",
         "number": "Bitte gib eine Zahl ein, z. B. 65 oder 65,50.",
         "integer": "Bitte gib eine ganze Zahl ein.",
-        "required": "Diese Frage braucht eine Antwort."
+        "atLeastOne": "Bitte gib mindestens 1 ein."
       },
       "problems": {
-        "missing_customer": "Es fehlt ein Kunde. Tippe oben auf die Frage nach dem Kunden und wähle einen.",
-        "missing_date": "Es fehlt das Datum.",
-        "missing_start": "Es fehlt der Beginn.",
+        "missing_customer": "Es fehlt ein Kunde. Tippe unten auf die Zeile „Kunde“ und wähle einen.",
+        "missing_date": "Es fehlt das Datum. Tippe unten auf die Zeile „Datum“.",
+        "missing_start": "Es fehlt der Beginn. Tippe unten auf die Zeile „Uhrzeit“.",
         "dietary_exceeds_guests": "Es gibt mehr Sonderessen als Gäste. Ändere die Gästezahl oder die Sonderessen."
-      }
+      },
+      "section": {
+        "customer": "Kunde",
+        "kind": "Art der Anfrage",
+        "schedule": "Termin",
+        "guests": "Gäste",
+        "place": "Ort",
+        "kitchen": "Küche",
+        "more": "Weitere Angaben"
+      },
+      "fewer": "Weniger",
+      "more": "Mehr",
+      "searchHint": "Tippe mindestens zwei Buchstaben, um einen Kunden zu suchen.",
+      "summaryEyebrow": "Fast fertig",
+      "summaryHint": "Tippe auf eine Zeile, um sie zu ändern.",
+      "heroNew": "Neue Anfrage",
+      "heroUpdate": "Anfrage aktualisieren",
+      "missing": "Fehlt",
+      "guestsFact_one": "1 Gast",
+      "guestsFact_other": "{{count}} Gäste",
+      "groupRequest": "Anfrage",
+      "groupWhen": "Termin und Ort",
+      "groupMore": "Küche und mehr",
+      "occasion": "Anlass",
+      "created": "Anfrage angelegt",
+      "createdHint": "Das Angebot öffnet sich gleich …",
+      "notGiven": "Nicht angegeben"
     }
   },
   "quote": {

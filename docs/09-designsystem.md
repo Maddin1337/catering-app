@@ -173,3 +173,22 @@ Grundsatz: Die Seite zeigt nur Positionen und Summe. Alles andere öffnet ein Bl
 **Felder einer Position (`ItemFields`):** Bezeichnung; Menge als Umschalter „Pro Gast (80) | Feste Anzahl“; bei Personal die Stunden; Preis mit Vorschlag aus dem Wareneinsatz als Chip; darunter „Ergibt 80 × 24,50 € = 1.960,00 €“. Zugeklappt unter „Weitere Optionen“ (die Zeile nennt, was eingestellt ist): Steuersatz als Chips, Beschreibung, Einheit, Rabatt, Wahlgruppe mit „gewählt“, „Kunde darf die Menge ändern“. Fehlt der Steuersatz, ist der Bereich offen. Im Bearbeiten-Blatt zusätzlich Duplizieren und Entfernen.
 
 Logik getestet in `src/features/quotes/item-draft.ts` (Eingaben, Prüfung, Zeilenrechnung) und `editor-doc.ts` (Rabatt, Anzahlung, Zeilenwerte).
+
+## Anfrage-Chat (Oktober 2026, neu aufgebaut)
+
+Vorbilder aus Appllama: Yazio, ZOE, Wispr Flow, Cooklist, Sidekick (eine Frage pro Bildschirm, große Frage, feste Aktion unten), Cooklist (Zähler mit − und +), Numify und Down Dog (Zusammenfassung als Zeilen), Rabby Wallet (Erfolgsmoment). Übernommen wurden Muster, kein Bildmaterial. Die Fragen selbst kommen weiter aus dem eigenen Fragenkatalog (Mehr → Einstellungen → Angebote & Anfragen → Fragenkatalog); Logik und Datenmodell sind unverändert.
+
+| Teil | Umsetzung |
+|---|---|
+| Kopf | runder Zurück-Knopf (bei der ersten Frage nur Platz), gleitender Fortschrittsbalken, ✕ zum Verwerfen (mit Rückfrage) |
+| Frage | kleine Bereichszeile in Versalen (Kunde, Art der Anfrage, Termin, Gäste, Ort, Küche, Weitere Angaben – hängt an der Zuordnung, springt also nicht mit der Fragenzahl), Frage groß (28 pt), Hilfetext darunter |
+| Übergang | der Schritt gleitet von rechts herein, beim Zurückgehen von links; „Zurück“ zeigt die frühere Antwort wieder |
+| Unten fest | „Weiter“ (erst aktiv bei gültiger Antwort), bei freiwilligen Fragen „Überspringen“ darunter |
+
+**Antworteingaben (`StepInput`):** Auswahl und Ja/Nein als große Karten mit Haken, die Karte bleibt kurz markiert, dann geht es von selbst weiter (`OptionCard`); Mehrfachauswahl mit Kästchen und „Weiter“; Zahl groß in der Mitte mit − und + (bei Gästezahl Schnellwahl 20 bis 100; die Zahl lässt sich auch eintippen); Datum und Uhrzeit als große Karten mit Symbol (`PickCard`, `variant="card"` an `DateField`/`TimeField`), beim Beginn Schnellwahl 12, 17, 18, 19 Uhr; Text mit schwebender Beschriftung; Kunde mit Suche, Trefferzeilen mit Initialen und „als neuen Kunden anlegen“.
+
+**Zusammenfassung „Alles korrekt?“:** dunkle Karte mit Kunde, Termin, Gästen und Ort; darunter Zeilen in Gruppen (Anfrage, Termin und Ort, Küche und mehr). Ein Tipp auf eine Zeile springt zur Frage und danach direkt zurück; Hinweise und Notizen erscheinen als Frage und Antwort. Fehlende Pflichtangaben sind rosa markiert („Fehlt“). Titel zum Anpassen, feste Aktion „Anfrage anlegen“.
+
+**Abschluss:** Petrol-Kreis springt herein, der Haken zeichnet sich, Erfolgs-Haptik, dann öffnet sich der Auftrag mit seinem Angebot (`CreatedOverlay`).
+
+Ablauflogik getestet in `src/features/intake/flow.ts` (nächste Frage, Zurück, Fortschritt, Zeilen der Zusammenfassung).
